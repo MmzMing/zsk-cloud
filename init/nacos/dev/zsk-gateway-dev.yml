@@ -1,0 +1,28 @@
+# 网关配置
+spring:
+  cloud:
+    gateway:
+      server:
+        webflux:
+          discovery:
+            locator:
+              lower-case-service-id: true
+              enabled: true
+          routes:
+            # 认证中心
+            - id: zsk-auth
+              uri: lb://zsk-auth
+              predicates:
+                - Path=/auth/**
+            # 系统模块
+            - id: zsk-system
+              uri: lb://zsk-system
+              predicates:
+                - Path=/system/**
+
+# XSS 防护配置
+security:
+  xss:
+    enabled: true
+    exclude-urls:
+      - /system/notice/*

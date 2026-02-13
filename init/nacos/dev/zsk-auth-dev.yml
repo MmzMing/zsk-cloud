@@ -1,0 +1,25 @@
+# 邮箱配置
+email:
+  host: smtp.qq.com
+  port: 465
+  username: your-email@qq.com
+  password: your-password
+  from: your-email@qq.com
+  subject: 验证码
+  code:
+    expire: 300
+
+# 第三方登录配置
+auth:
+  qq:
+    app-id: your-qq-app-id
+    app-secret: your-qq-app-secret
+    redirect-uri: http://localhost:8080/auth/qq/callback
+  wechat:
+    app-id: your-wechat-app-id
+    app-secret: your-wechat-app-secret
+    redirect-uri: http://localhost:8080/auth/wechat/callback
+  github:
+    client-id: your-github-client-id
+    client-secret: your-github-client-secret
+    redirect-uri: http://localhost:8080/auth/github/callback

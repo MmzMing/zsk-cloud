@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.zsk.cloud</groupId>
+        <artifactId>zsk-cloud</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>zsk-common</artifactId>
+    <packaging>pom</packaging>
+    <name>${project.artifactId}</name>
+    <description>公共模块聚合</description>
+
+    <modules>
+        <!-- 核心基础模块 -->
+        <module>zsk-common-core</module>
+
+        <!-- 数据库相关 -->
+        <module>zsk-common-datasource</module>
+
+        <!-- 缓存 -->
+        <module>zsk-common-redis</module>
+
+        <!-- 安全认证 -->
+        <module>zsk-common-security</module>
+
+        <!-- 日志 -->
+        <module>zsk-common-log</module>
+
+        <!-- API文档 -->
+        <module>zsk-common-swagger</module>
+
+        <!-- 限流熔断 -->
+        <module>zsk-common-sentinel</module>
+
+        <!-- 定时任务 -->
+        <module>zsk-common-xxljob</module>
+
+        <!-- 文件存储 -->
+        <module>zsk-common-oss</module>
+    </modules>
+
+</project>

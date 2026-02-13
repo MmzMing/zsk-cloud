@@ -1,0 +1,32 @@
+package com.zsk.auth.controller;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+/**
+ * 认证测试 控制器
+ * 
+ * @author MzgMing
+ * @date 2026-02-13
+ * @version 1.0
+ */
+@RestController
+@RequestMapping("/auth")
+public class AuthHelloController {
+
+    /** 测试配置项 */
+    @Value(value = "${k1}")
+    String k1;
+
+    /**
+     * 测试接口
+     * 
+     * @return 配置内容
+     */
+    @GetMapping("/hello")
+    public String hello(){
+        return k1;
+    }
+}

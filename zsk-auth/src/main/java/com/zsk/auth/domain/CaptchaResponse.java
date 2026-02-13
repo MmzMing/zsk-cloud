@@ -1,0 +1,28 @@
+package com.zsk.auth.domain;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+/**
+ * 验证码响应对象
+ * 
+ * @author wuhuaming
+ * @date 2024-01-15
+ * @version 1.0
+ */
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CaptchaResponse {
+    /** 验证码唯一标识 */
+    private String uuid;
+
+    /** 背景图片（Base64） */
+    private String bgUrl;
+
+    /** 拼图图片（Base64） */
+    private String puzzleUrl;
+}

@@ -1,0 +1,51 @@
+package com.zsk.system.api.factory;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cloud.openfeign.FallbackFactory;
+import org.springframework.stereotype.Component;
+import com.zsk.common.core.domain.R;
+import com.zsk.system.api.RemoteUserService;
+import com.zsk.system.api.domain.SysUserApi;
+import com.zsk.system.api.model.LoginUser;
+
+/**
+ * 用户服务降级处理
+ * 
+ * @author zsk
+ */
+@Component
+public class RemoteUserFallbackFactory implements FallbackFactory<RemoteUserService> {
+    private static final Logger log = LoggerFactory.getLogger(RemoteUserFallbackFactory.class);
+
+    @Override
+    public RemoteUserService create(Throwable throwable) {
+        log.error("用户服务调用失败:{}", throwable.getMessage());
+        return new RemoteUserService() {
+            @Override
+            public R<SysUserApi> getUserInfo(String username) {
+                return R.fail("获取用户失败:" + throwable.getMessage());
+            }
+
+            @Override
+            public R<LoginUser> getUserInfo(String username, String source) {
+                return R.fail("获取用户失败:" + throwable.getMessage());
+            }
+
+            @Override
+            public R<LoginUser> getUserInfoByEmail(String email, String source) {
+                return R.fail("获取用户失败:" + throwable.getMessage());
+            }
+
+            @Override
+            public R<LoginUser> getUserByThirdPartyId(String loginType, String thirdPartyId, String source) {
+                return R.fail("获取用户失败:" + throwable.getMessage());
+            }
+
+            @Override
+            public R<Boolean> createUser(SysUserApi user) {
+                return R.fail("创建用户失败:" + throwable.getMessage());
+            }
+        };
+    }
+}

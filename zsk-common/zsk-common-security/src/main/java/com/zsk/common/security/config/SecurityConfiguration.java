@@ -1,0 +1,140 @@
+package com.zsk.common.security.config;
+
+import com.zsk.common.core.config.properties.IgnoreWhiteProperties;
+import com.zsk.common.core.constant.CommonConstants;
+import com.zsk.common.core.context.SecurityContext;
+import com.zsk.common.core.domain.R;
+import com.zsk.common.core.utils.JsonUtil;
+import com.zsk.common.core.utils.ServletUtils;
+import com.zsk.common.core.utils.StringUtils;
+import com.zsk.common.security.filter.HeaderContextFilter;
+import com.zsk.common.security.filter.RepeatSubmitFilter;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import lombok.RequiredArgsConstructor;
+import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.access.intercept.AuthorizationFilter;
+
+import java.util.List;
+
+/**
+ * 权限配置
+ * 
+ * @author zsk
+ * @date 2024-02-13
+ * @version 1.0
+ */
+@AutoConfiguration
+@RequiredArgsConstructor
+@ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
+@EnableConfigurationProperties(IgnoreWhiteProperties.class)
+public class SecurityConfiguration {
+    /** 白名单配置 */
+    private final IgnoreWhiteProperties ignoreWhiteProperties;
+    /** 请求头解析过滤器 */
+    private final HeaderContextFilter headerContextFilter;
+    /** 防止重复提交过滤器 */
+    private final RepeatSubmitFilter repeatSubmitFilter;
+
+    /**
+     * 配置安全过滤链
+     * <p>
+     * 核心逻辑说明：
+     * 1. 无状态处理：通过 SessionCreationPolicy.STATELESS 禁用 Session，完全依赖 Token 认证。
+     * 2. 身份恢复：HeaderContextFilter 负责从网关透传的 Header 中解析用户信息并存入 SecurityContext。
+     * 3. 权限判定：通过 isAuthenticated 方法检查 SecurityContext 或内部调用标识。
+     * 4. 异常处理：自定义 AuthenticationEntryPoint，在认证失败时返回 401 JSON，而非重定向。
+     * <p>
+     * 为什么不跳转到 /login：
+     * 1. 前后端分离架构：后端仅提供 RESTful API，跳转会导致 AJAX 请求收到 HTML 源码而非 JSON。
+     * 2. 跨域限制：CORS 策略下，浏览器会拦截跨域的 302 重定向。
+     * 3. 职责解耦：后端只负责返回 401 状态码，由前端 Axios 拦截器捕获并执行 router.push('/login')。
+     *
+     * @param http HttpSecurity
+     * @return SecurityFilterChain
+     * @throws Exception 异常
+     */
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        // 禁用 CSRF，因为在微服务架构下，通常使用 Token 验证，不需要 CSRF 防护
+        http.csrf(AbstractHttpConfigurer::disable)
+                // 禁用 Session，使用无状态（STATELESS）策略，完全依赖 Token 认证
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                // 配置请求权限控制
+                .authorizeHttpRequests(auth -> {
+                    // 获取白名单配置并放行
+                    List<String> whites = ignoreWhiteProperties.getWhites();
+                    if (whites != null && !whites.isEmpty()) {
+                        auth.requestMatchers(whites.toArray(new String[0])).permitAll();
+                    }
+                    // 其他所有请求都需要进行认证校验
+                    auth.anyRequest().access((authentication, context) ->
+                            new AuthorizationDecision(isAuthenticated(context.getRequest())));
+                })
+                // 配置异常处理逻辑
+                .exceptionHandling(ex -> ex
+                        // 未认证（未登录）处理器
+                        .authenticationEntryPoint((request, response, authException) ->
+                                writeUnauthorized(response))
+                        // 权限不足处理器
+                        .accessDeniedHandler((request, response, accessDeniedException) ->
+                                writeForbidden(response)))
+                // 在授权过滤器之前添加自定义请求头解析过滤器，用于解析网关透传的用户信息
+                .addFilterBefore(headerContextFilter, AuthorizationFilter.class)
+                // 在请求头解析过滤器之前添加防重提交过滤器
+                .addFilterBefore(repeatSubmitFilter, HeaderContextFilter.class)
+                // 禁用 HTTP Basic 认证
+                .httpBasic(AbstractHttpConfigurer::disable)
+                // 禁用表单登录
+                .formLogin(AbstractHttpConfigurer::disable)
+                // 禁用默认注销功能
+                .logout(AbstractHttpConfigurer::disable)
+                // 禁用匿名用户访问功能
+                .anonymous(AbstractHttpConfigurer::disable);
+
+        return http.build();
+    }
+
+    /**
+     * 判断是否已认证或内部调用
+     *
+     * @param request 请求对象
+     * @return true:已通过认证, false:未通过认证
+     */
+    private boolean isAuthenticated(HttpServletRequest request) {
+        if (SecurityContext.getUserId() != null) {
+            return true;
+        }
+        String source = request.getHeader(CommonConstants.REQUEST_SOURCE_HEADER);
+        return StringUtils.equals(CommonConstants.REQUEST_SOURCE_INNER, source);
+    }
+
+    /**
+     * 写入未认证响应
+     *
+     * @param response 响应对象
+     */
+    private void writeUnauthorized(HttpServletResponse response) {
+        response.setStatus(HttpStatus.UNAUTHORIZED.value());
+        ServletUtils.renderString(response, JsonUtil.toJson(R.unauthorized("未登录或登录已过期")));
+    }
+
+    /**
+     * 写入未授权响应
+     *
+     * @param response 响应对象
+     */
+    private void writeForbidden(HttpServletResponse response) {
+        response.setStatus(HttpStatus.FORBIDDEN.value());
+        ServletUtils.renderString(response, JsonUtil.toJson(R.forbidden("没有权限访问资源")));
+    }
+}
