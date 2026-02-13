@@ -12,8 +12,8 @@ import reactor.core.publisher.Mono;
  * 日志过滤器
  *
  * @author wuhuaming
- * @date 2024-02-13
  * @version 1.0
+ * @date 2024-02-13
  */
 @Slf4j
 @Component
@@ -23,7 +23,7 @@ public class LogFilter implements GlobalFilter, Ordered {
      * 执行过滤逻辑
      *
      * @param exchange 服务网络交换器
-     * @param chain 过滤器链
+     * @param chain    过滤器链
      * @return Mono<Void>
      */
     @Override

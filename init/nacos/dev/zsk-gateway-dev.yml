@@ -19,10 +19,20 @@ spring:
               uri: lb://zsk-system
               predicates:
                 - Path=/system/**
-
-# XSS 防护配置
 security:
+  # XSS 防护配置
   xss:
     enabled: true
     exclude-urls:
       - /system/notice/*
+  # 安全配置 (白名单)
+  ignore:
+    whites:
+      - /auth/login
+      - /auth/register
+      - /auth/logout
+      - /auth/captcha
+      - /auth/email/code
+      - /auth/third/**
+      - /auth/hello
+      - /system/user/info/*

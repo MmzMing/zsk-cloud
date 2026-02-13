@@ -1,17 +1,16 @@
 package com.zsk.gateway.filter;
 
-import com.zsk.common.core.config.properties.IgnoreWhiteProperties;
 import com.zsk.common.core.constant.CacheConstants;
 import com.zsk.common.core.constant.SecurityConstants;
 import com.zsk.common.core.domain.R;
-import com.zsk.common.core.utils.JwtUtils;
 import com.zsk.common.core.utils.JsonUtil;
+import com.zsk.common.core.utils.JwtUtils;
 import com.zsk.common.core.utils.StringUtils;
 import com.zsk.common.redis.service.RedisService;
+import com.zsk.gateway.config.properties.IgnoreWhiteProperties;
 import io.jsonwebtoken.Claims;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
@@ -28,15 +27,14 @@ import reactor.core.publisher.Mono;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
 /**
  * 认证过滤器
  *
  * @author wuhuaming
- * @date 2024-02-13
  * @version 1.0
+ * @date 2024-02-13
  */
 @Slf4j
 @Component
@@ -51,7 +49,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
      * 过滤逻辑实现
      *
      * @param exchange 服务网络交换器
-     * @param chain 过滤器链
+     * @param chain    过滤器链
      * @return Mono<Void>
      */
     @Override
@@ -66,12 +64,14 @@ public class AuthFilter implements GlobalFilter, Ordered {
 
         // 2. 令牌提取：从请求头 Authorization 中解析 Token
         String token = getToken(request);
-        
+
         // 3. 匿名访问处理：
-        // 如果令牌为空，则直接放行。下游微服务将根据方法上的安全注解（如 @PreAuthorize）决定是否拦截。
-        // 这种设计实现了“缩小 Security 粒度”，即：网关不强制鉴权，由业务层按需鉴权。
+        // 走网关就必须要有token，否则无法访问
+        // 不走网关的话，如果令牌为空，则直接放行。下游微服务将根据方法上的安全注解（如 @PreAuthorize）决定是否拦截。
+        // 网关管令牌，security管权限
         if (StringUtils.isEmpty(token)) {
-            return chain.filter(exchange);
+            return unauthorizedResponse(exchange, "令牌不能为空");
+            //return chain.filter(exchange);
         }
 
         // 4. 令牌有效性校验 & 5. 用户信息获取
@@ -81,11 +81,11 @@ public class AuthFilter implements GlobalFilter, Ordered {
             if (claims == null) {
                 return unauthorizedResponse(exchange, "令牌已过期或验证不正确");
             }
-            
+
             // 获取 Token 唯一标识 (jti/uuid)
             String uuid = (String) claims.get(SecurityConstants.USER_KEY);
             String tokenKey = CacheConstants.LOGIN_TOKEN_KEY + uuid;
-            
+
             // 检查 Redis 中是否存在该 Key (状态管控)
             boolean hasKey = redisService.hasKey(tokenKey);
             if (!hasKey) {
@@ -99,7 +99,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
             String userId = claims.get(SecurityConstants.USER_ID).toString();
             String username = claims.get(SecurityConstants.USER_NAME).toString();
             String nickname = claims.get(SecurityConstants.NICK_NAME) != null ? claims.get(SecurityConstants.NICK_NAME).toString() : "";
-            
+
             // 处理集合类型的 Claims (roles, permissions)
             Object rolesObj = claims.get(SecurityConstants.ROLES);
             Object permsObj = claims.get(SecurityConstants.PERMISSIONS);
@@ -117,7 +117,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
                     .header(SecurityConstants.PERMISSIONS, permissions)
                     .build();
             ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
-            
+
             // 继续执行后续过滤器链
             return chain.filter(mutableExchange);
         } catch (Exception e) {

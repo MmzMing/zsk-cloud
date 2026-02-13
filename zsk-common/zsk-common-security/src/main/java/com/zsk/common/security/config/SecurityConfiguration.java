@@ -1,6 +1,5 @@
 package com.zsk.common.security.config;
 
-import com.zsk.common.core.config.properties.IgnoreWhiteProperties;
 import com.zsk.common.core.domain.R;
 import com.zsk.common.core.utils.JsonUtil;
 import com.zsk.common.core.utils.ServletUtils;
@@ -32,7 +31,6 @@ import org.springframework.security.web.access.intercept.AuthorizationFilter;
 @RequiredArgsConstructor
 @EnableMethodSecurity(securedEnabled = true)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
-@EnableConfigurationProperties(IgnoreWhiteProperties.class)
 public class SecurityConfiguration {
     /** 请求头解析过滤器 */
     private final HeaderContextFilter headerContextFilter;

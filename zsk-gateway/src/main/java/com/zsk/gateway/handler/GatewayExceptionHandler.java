@@ -19,8 +19,8 @@ import reactor.core.publisher.Mono;
  * 网关统一异常处理
  *
  * @author wuhuaming
- * @date 2024-02-13
  * @version 1.0
+ * @date 2024-02-13
  */
 @Slf4j
 @Order(-1)
@@ -31,7 +31,7 @@ public class GatewayExceptionHandler implements ErrorWebExceptionHandler {
      * 异常处理逻辑实现
      *
      * @param exchange 服务网络交换器
-     * @param ex 异常对象
+     * @param ex       异常对象
      * @return Mono<Void>
      */
     @Override

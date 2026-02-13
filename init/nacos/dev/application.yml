@@ -49,25 +49,3 @@ logging:
     com.zsk: debug
     org.springframework: warn
     com.alibaba.nacos: warn
-
-# 安全配置 (白名单)
-security:
-  ignore:
-    whites:
-      - /auth/login
-      - /auth/register
-      - /auth/logout
-      - /auth/captcha
-      - /auth/email/code
-      - /auth/third/url/*
-      - /auth/third/callback/*
-      - /auth/hello
-      - /*/v3/api-docs
-      - /*/doc.html
-      - /*/swagger-resources/**
-      - /*/webjars/**
-      - /doc.html
-      - /swagger-ui.html
-      - /swagger-resources/**
-      - /webjars/**
-      - /v3/api-docs/**

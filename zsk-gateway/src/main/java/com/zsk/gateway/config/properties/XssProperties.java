@@ -10,19 +10,23 @@ import java.util.List;
 
 /**
  * XSS配置属性
- * 
+ *
  * @author zsk
- * @date 2024-02-13
  * @version 1.0
+ * @date 2024-02-13
  */
 @Data
 @Configuration
 @RefreshScope
 @ConfigurationProperties(prefix = "security.xss")
 public class XssProperties {
-    /** XSS开关 */
+    /**
+     * XSS开关
+     */
     private Boolean enabled = true;
 
-    /** 排除路径 */
+    /**
+     * 排除路径
+     */
     private List<String> excludeUrls = new ArrayList<>();
 }

@@ -72,7 +72,7 @@ public class HeaderContextFilter extends OncePerRequestFilter {
         // 构建 Spring Security 权限集合
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
         
-        // 解析并设置角色
+        // 解析并设置角色 @PreAuthorize("hasRole('ADMIN')")  检查是否有以 ROLE_ 开头且值为 ROLE_ADMIN 的权限。
         Set<String> roles = strToSet(rolesStr);
         if (StringUtils.isNotEmpty(roles)) {
             SecurityContext.setRoles(roles);
@@ -81,7 +81,7 @@ public class HeaderContextFilter extends OncePerRequestFilter {
                 .forEach(authorities::add);
         }
         
-        // 解析并设置权限
+        // 解析并设置权限 @PreAuthorize("hasAuthority('system:user:list')") 它会检查权限列表中是否包含该字符串。
         Set<String> permissions = strToSet(permissionsStr);
         if (StringUtils.isNotEmpty(permissions)) {
             SecurityContext.setPermissions(permissions);
