@@ -1,17 +1,17 @@
 package com.zsk.system.api.factory;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.cloud.openfeign.FallbackFactory;
-import org.springframework.stereotype.Component;
 import com.zsk.common.core.domain.R;
 import com.zsk.system.api.RemoteUserService;
 import com.zsk.system.api.domain.SysUserApi;
 import com.zsk.system.api.model.LoginUser;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.cloud.openfeign.FallbackFactory;
+import org.springframework.stereotype.Component;
 
 /**
  * 用户服务降级处理
- * 
+ *
  * @author zsk
  */
 @Component

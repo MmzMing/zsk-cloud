@@ -23,13 +23,19 @@ import java.util.concurrent.TimeUnit;
  */
 @Component
 public class RedisRepeatSubmitProvider {
-    /** Redis 缓存中存储请求参数的 Key */
+    /**
+     * Redis 缓存中存储请求参数的 Key
+     */
     public final String REPEAT_PARAMS = "repeatParams";
 
-    /** Redis 缓存中存储请求时间的 Key */
+    /**
+     * Redis 缓存中存储请求时间的 Key
+     */
     public final String REPEAT_TIME = "repeatTime";
 
-    /** 防重提交 Redis Key 前缀 */
+    /**
+     * 防重提交 Redis Key 前缀
+     */
     public final String REPEAT_SUBMIT_KEY = "repeat_submit:";
 
     @Autowired
@@ -37,8 +43,8 @@ public class RedisRepeatSubmitProvider {
 
     /**
      * 判断是否为重复提交
-     * 
-     * @param request 请求对象
+     *
+     * @param request    请求对象
      * @param annotation 防重注解配置
      * @return true: 是重复提交, false: 不是重复提交
      */
@@ -61,7 +67,7 @@ public class RedisRepeatSubmitProvider {
             if (sessionMap.containsKey(REPEAT_PARAMS)) {
                 String preParams = (String) sessionMap.get(REPEAT_PARAMS);
                 long preTime = (long) sessionMap.get(REPEAT_TIME);
-                
+
                 // 4. 核心比对：
                 // a. 参数是否一致 (compareParams)
                 // b. 当前时间与上次时间差是否小于注解设定的间隔 (interval)
@@ -70,14 +76,14 @@ public class RedisRepeatSubmitProvider {
                 }
             }
         }
-        
+
         // 5. 如果不是重复提交，则将本次请求的数据存入 Redis
         // 设置过期时间为注解指定的间隔时间，确保缓存能自动清理
         Map<String, Object> cacheMap = new HashMap<>();
         cacheMap.put(REPEAT_PARAMS, nowParams);
         cacheMap.put(REPEAT_TIME, System.currentTimeMillis());
         redisService.setCacheObject(cacheRepeatKey, cacheMap, annotation.interval(), TimeUnit.MILLISECONDS);
-        
+
         return false;
     }
 

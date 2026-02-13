@@ -1,24 +1,20 @@
 package com.zsk.system.api;
 
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import com.zsk.common.core.constant.CommonConstants;
 import com.zsk.common.core.constant.ServiceNameConstants;
 import com.zsk.common.core.domain.R;
 import com.zsk.system.api.domain.SysUserApi;
 import com.zsk.system.api.factory.RemoteUserFallbackFactory;
 import com.zsk.system.api.model.LoginUser;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 用户服务
- * 
+ *
  * @author zsk
  */
-@FeignClient(contextId = "remoteUserService", value = ServiceNameConstants.SYSTEM_SERVICE, fallbackFactory = RemoteUserFallbackFactory.class,url = "http://127.0.0.1:20010")
+@FeignClient(contextId = "remoteUserService", value = ServiceNameConstants.SYSTEM_SERVICE, fallbackFactory = RemoteUserFallbackFactory.class, url = "http://127.0.0.1:20010")
 public interface RemoteUserService {
     /**
      * 通过用户名查询用户信息

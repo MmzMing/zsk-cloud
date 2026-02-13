@@ -25,21 +25,21 @@ import java.util.stream.Stream;
 /**
  * 请求头解析过滤器
  * 将请求头中的用户信息设置到当前线程上下文中，并同步到 Spring Security 上下文
- * 
+ *
  * @author zsk
- * @date 2024-02-13
  * @version 1.0
+ * @date 2024-02-13
  */
 @Component
 public class HeaderContextFilter extends OncePerRequestFilter {
     /**
      * 执行过滤逻辑
      *
-     * @param request 请求对象
-     * @param response 响应对象
+     * @param request     请求对象
+     * @param response    响应对象
      * @param filterChain 过滤器链
      * @throws ServletException 异常
-     * @throws IOException IO异常
+     * @throws IOException      IO异常
      */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
@@ -54,40 +54,40 @@ public class HeaderContextFilter extends OncePerRequestFilter {
         if (StringUtils.isNotEmpty(userId)) {
             SecurityContext.setUserId(Long.valueOf(userId));
         }
-        
+
         String decodedUserName = null;
         if (StringUtils.isNotEmpty(userName)) {
             decodedUserName = URLUtil.decode(userName);
             SecurityContext.setUserName(decodedUserName);
         }
-        
+
         if (StringUtils.isNotEmpty(nickName)) {
             SecurityContext.setNickName(URLUtil.decode(nickName));
         }
-        
+
         if (StringUtils.isNotEmpty(deptId)) {
             SecurityContext.setDeptId(Long.valueOf(deptId));
         }
-        
+
         // 构建 Spring Security 权限集合
         List<SimpleGrantedAuthority> authorities = new ArrayList<>();
-        
+
         // 解析并设置角色 @PreAuthorize("hasRole('ADMIN')")  检查是否有以 ROLE_ 开头且值为 ROLE_ADMIN 的权限。
         Set<String> roles = strToSet(rolesStr);
         if (StringUtils.isNotEmpty(roles)) {
             SecurityContext.setRoles(roles);
             roles.stream()
-                .map(role -> new SimpleGrantedAuthority(SecurityConstants.ROLE_PREFIX + role))
-                .forEach(authorities::add);
+                    .map(role -> new SimpleGrantedAuthority(SecurityConstants.ROLE_PREFIX + role))
+                    .forEach(authorities::add);
         }
-        
+
         // 解析并设置权限 @PreAuthorize("hasAuthority('system:user:list')") 它会检查权限列表中是否包含该字符串。
         Set<String> permissions = strToSet(permissionsStr);
         if (StringUtils.isNotEmpty(permissions)) {
             SecurityContext.setPermissions(permissions);
             permissions.stream()
-                .map(SimpleGrantedAuthority::new)
-                .forEach(authorities::add);
+                    .map(SimpleGrantedAuthority::new)
+                    .forEach(authorities::add);
         }
 
         // 如果获取到了用户信息，将其填充到 Spring Security 上下文中

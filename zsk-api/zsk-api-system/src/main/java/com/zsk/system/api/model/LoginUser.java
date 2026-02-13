@@ -1,14 +1,15 @@
 package com.zsk.system.api.model;
 
-import java.io.Serial;
-import java.io.Serializable;
-import java.util.Set;
 import com.zsk.system.api.domain.SysUserApi;
 import lombok.Data;
 
+import java.io.Serial;
+import java.io.Serializable;
+import java.util.Set;
+
 /**
  * 用户登录信息
- * 
+ *
  * @author zsk
  */
 @Data

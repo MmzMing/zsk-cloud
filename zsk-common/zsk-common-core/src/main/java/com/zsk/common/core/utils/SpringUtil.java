@@ -12,14 +12,14 @@ import org.springframework.stereotype.Component;
  * @author zsk
  */
 @Component
-public final class SpringUtil implements BeanFactoryPostProcessor
-{
-    /** Spring应用上下文环境 */
+public final class SpringUtil implements BeanFactoryPostProcessor {
+    /**
+     * Spring应用上下文环境
+     */
     private static ConfigurableListableBeanFactory beanFactory;
 
     @Override
-    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException
-    {
+    public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
         SpringUtil.beanFactory = beanFactory;
     }
 
@@ -32,8 +32,7 @@ public final class SpringUtil implements BeanFactoryPostProcessor
      *
      */
     @SuppressWarnings("unchecked")
-    public static <T> T getBean(String name) throws BeansException
-    {
+    public static <T> T getBean(String name) throws BeansException {
         return (T) beanFactory.getBean(name);
     }
 
@@ -45,8 +44,7 @@ public final class SpringUtil implements BeanFactoryPostProcessor
      * @throws org.springframework.beans.BeansException
      *
      */
-    public static <T> T getBean(Class<T> clz) throws BeansException
-    {
+    public static <T> T getBean(Class<T> clz) throws BeansException {
         return beanFactory.getBean(clz);
     }
 
@@ -56,8 +54,7 @@ public final class SpringUtil implements BeanFactoryPostProcessor
      * @param name
      * @return boolean
      */
-    public static boolean containsBean(String name)
-    {
+    public static boolean containsBean(String name) {
         return beanFactory.containsBean(name);
     }
 
@@ -69,8 +66,7 @@ public final class SpringUtil implements BeanFactoryPostProcessor
      * @throws org.springframework.beans.factory.NoSuchBeanDefinitionException
      *
      */
-    public static boolean isSingleton(String name)
-    {
+    public static boolean isSingleton(String name) {
         return beanFactory.isSingleton(name);
     }
 
@@ -80,8 +76,7 @@ public final class SpringUtil implements BeanFactoryPostProcessor
      * @throws org.springframework.beans.factory.NoSuchBeanDefinitionException
      *
      */
-    public static Class<?> getType(String name) 
-    {
+    public static Class<?> getType(String name) {
         return beanFactory.getType(name);
     }
 
@@ -93,20 +88,18 @@ public final class SpringUtil implements BeanFactoryPostProcessor
      * @throws org.springframework.beans.factory.NoSuchBeanDefinitionException
      *
      */
-    public static String[] getAliases(String name)
-    {
+    public static String[] getAliases(String name) {
         return beanFactory.getAliases(name);
     }
 
     /**
      * 获取aop代理对象
-     * 
+     *
      * @param invoker
      * @return
      */
     @SuppressWarnings("unchecked")
-    public static <T> T getAopProxy(T invoker)
-    {
+    public static <T> T getAopProxy(T invoker) {
         return (T) AopContext.currentProxy();
     }
 }

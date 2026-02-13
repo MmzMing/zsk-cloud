@@ -1,16 +1,16 @@
 package com.zsk.auth.service.impl;
 
-import com.zsk.system.api.RemoteUserService;
-import com.zsk.system.api.domain.SysUserApi;
 import com.zsk.auth.service.IThirdPartyAuthService;
 import com.zsk.common.core.constant.CacheConstants;
 import com.zsk.common.core.constant.CommonConstants;
-import com.zsk.system.api.model.LoginUser;
 import com.zsk.common.core.domain.R;
 import com.zsk.common.core.exception.AuthException;
 import com.zsk.common.core.utils.JsonUtil;
 import com.zsk.common.core.utils.StringUtils;
 import com.zsk.common.redis.service.RedisService;
+import com.zsk.system.api.RemoteUserService;
+import com.zsk.system.api.domain.SysUserApi;
+import com.zsk.system.api.model.LoginUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
@@ -22,10 +22,10 @@ import java.util.UUID;
 
 /**
  * 第三方认证服务实现
- * 
+ *
  * @author wuhuaming
- * @date 2024-01-15
  * @version 1.0
+ * @date 2024-01-15
  */
 @Slf4j
 @Service
@@ -35,48 +35,66 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
     private final RemoteUserService remoteUserService;
     private final RedisService redisService;
 
-    /** QQ AppId */
+    /**
+     * QQ AppId
+     */
     @Value("${auth.qq.app-id}")
     private String qqAppId;
 
-    /** QQ AppSecret */
+    /**
+     * QQ AppSecret
+     */
     @Value("${auth.qq.app-secret}")
     private String qqAppSecret;
 
-    /** QQ 重定向地址 */
+    /**
+     * QQ 重定向地址
+     */
     @Value("${auth.qq.redirect-uri}")
     private String qqRedirectUri;
 
-    /** 微信 AppId */
+    /**
+     * 微信 AppId
+     */
     @Value("${auth.wechat.app-id}")
     private String wechatAppId;
 
-    /** 微信 AppSecret */
+    /**
+     * 微信 AppSecret
+     */
     @Value("${auth.wechat.app-secret}")
     private String wechatAppSecret;
 
-    /** 微信 重定向地址 */
+    /**
+     * 微信 重定向地址
+     */
     @Value("${auth.wechat.redirect-uri}")
     private String wechatRedirectUri;
 
-    /** GitHub ClientId */
+    /**
+     * GitHub ClientId
+     */
     @Value("${auth.github.client-id}")
     private String githubClientId;
 
-    /** GitHub ClientSecret */
+    /**
+     * GitHub ClientSecret
+     */
     @Value("${auth.github.client-secret}")
     private String githubClientSecret;
 
-    /** GitHub 重定向地址 */
+    /**
+     * GitHub 重定向地址
+     */
     @Value("${auth.github.redirect-uri}")
     private String githubRedirectUri;
 
     /**
      * 根据授权码获取第三方用户信息并登录/注册
-     * 
+     *
      * @param loginType 登录类型（qq, wechat, github）
-     * @param authCode 授权码
-     * @param state 状态码（用于防止CSRF攻击）
+     * @param authCode  授权码
+     * @param state     状态码（用于防止CSRF攻击）
      * @return 系统用户信息
      * @throws AuthException 认证失败时抛出
      */
@@ -118,7 +136,7 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 获取第三方授权登录URL
-     * 
+     *
      * @param loginType 登录类型
      * @return 授权跳转URL
      */
@@ -141,9 +159,9 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 获取访问令牌
-     * 
+     *
      * @param loginType 登录类型
-     * @param authCode 授权码
+     * @param authCode  授权码
      * @return 访问令牌
      */
     private String getAccessToken(String loginType, String authCode) {
@@ -157,7 +175,7 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 获取QQ访问令牌
-     * 
+     *
      * @param authCode 授权码
      * @return QQ访问令牌
      */
@@ -177,7 +195,7 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 获取微信访问令牌
-     * 
+     *
      * @param authCode 授权码
      * @return 微信访问令牌
      */
@@ -197,7 +215,7 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 获取GitHub访问令牌
-     * 
+     *
      * @param authCode 授权码
      * @return GitHub访问令牌
      */
@@ -221,8 +239,8 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 获取用户信息
-     * 
-     * @param loginType 登录类型
+     *
+     * @param loginType   登录类型
      * @param accessToken 访问令牌
      * @return 用户信息Map
      */
@@ -237,7 +255,7 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 获取QQ用户信息
-     * 
+     *
      * @param accessToken 访问令牌
      * @return QQ用户信息Map
      */
@@ -255,7 +273,7 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 获取微信用户信息
-     * 
+     *
      * @param accessToken 访问令牌
      * @return 微信用户信息Map
      */
@@ -273,7 +291,7 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 获取GitHub用户信息
-     * 
+     *
      * @param accessToken 访问令牌
      * @return GitHub用户信息Map
      */
@@ -294,9 +312,9 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 提取第三方唯一标识ID
-     * 
+     *
      * @param loginType 登录类型
-     * @param userInfo 用户信息Map
+     * @param userInfo  用户信息Map
      * @return 第三方唯一标识
      */
     private String getThirdPartyId(String loginType, Map<String, Object> userInfo) {
@@ -310,9 +328,9 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 提取第三方用户名
-     * 
+     *
      * @param loginType 登录类型
-     * @param userInfo 用户信息Map
+     * @param userInfo  用户信息Map
      * @return 第三方用户名
      */
     private String getThirdPartyUsername(String loginType, Map<String, Object> userInfo) {
@@ -326,9 +344,9 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 提取第三方头像URL
-     * 
+     *
      * @param loginType 登录类型
-     * @param userInfo 用户信息Map
+     * @param userInfo  用户信息Map
      * @return 第三方头像URL
      */
     private String getThirdPartyAvatar(String loginType, Map<String, Object> userInfo) {
@@ -342,7 +360,7 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 发送GET请求
-     * 
+     *
      * @param url 请求URL
      * @return 响应内容
      */
@@ -352,8 +370,8 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 发送GET请求（带请求头）
-     * 
-     * @param url 请求URL
+     *
+     * @param url     请求URL
      * @param headers 请求头Map
      * @return 响应内容
      */
@@ -387,8 +405,8 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 发送POST请求
-     * 
-     * @param url 请求URL
+     *
+     * @param url    请求URL
      * @param params POST参数Map
      * @return 响应内容
      */
@@ -432,7 +450,7 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     /**
      * 解析HTTP响应内容（支持JSON和URL查询字符串格式）
-     * 
+     *
      * @param response 原始响应字符串
      * @return 解析后的Map
      */

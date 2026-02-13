@@ -14,10 +14,10 @@ import java.net.UnknownHostException;
 
 /**
  * 认证授权中心启动类
- * 
+ *
  * @author wuhuaming
- * @date 2024-01-15
  * @version 1.0
+ * @date 2024-01-15
  */
 @Slf4j
 @SpringBootApplication

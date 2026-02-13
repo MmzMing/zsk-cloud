@@ -17,10 +17,10 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * 邮箱服务实现
- * 
+ *
  * @author wuhuaming
- * @date 2024-01-15
  * @version 1.0
+ * @date 2024-01-15
  */
 @Slf4j
 @Service
@@ -29,37 +29,51 @@ public class EmailServiceImpl implements IEmailService {
 
     private final RedisService redisService;
 
-    /** 邮件服务器主机名 */
+    /**
+     * 邮件服务器主机名
+     */
     @Value("${email.host:smtp.qq.com}")
     private String emailHost;
 
-    /** 邮件服务器端口 */
+    /**
+     * 邮件服务器端口
+     */
     @Value("${email.port:465}")
     private Integer emailPort;
 
-    /** 邮件服务器认证账号 */
+    /**
+     * 邮件服务器认证账号
+     */
     @Value("${email.username}")
     private String emailUsername;
 
-    /** 邮件服务器认证密码 */
+    /**
+     * 邮件服务器认证密码
+     */
     @Value("${email.password}")
     private String emailPassword;
 
-    /** 发件人地址 */
+    /**
+     * 发件人地址
+     */
     @Value("${email.from}")
     private String emailFrom;
 
-    /** 邮件主题 */
+    /**
+     * 邮件主题
+     */
     @Value("${email.subject:验证码}")
     private String emailSubject;
 
-    /** 验证码过期时间（秒） */
+    /**
+     * 验证码过期时间（秒）
+     */
     @Value("${email.code.expire:300}")
     private Long emailCodeExpire;
 
     /**
      * 发送邮箱验证码
-     * 
+     *
      * @param email 目标邮箱地址
      * @throws AuthException 发送失败或参数无效时抛出
      */
@@ -95,9 +109,9 @@ public class EmailServiceImpl implements IEmailService {
 
     /**
      * 校验邮箱验证码
-     * 
+     *
      * @param email 邮箱地址
-     * @param code 用户输入的验证码内容
+     * @param code  用户输入的验证码内容
      * @throws AuthException 验证码无效或错误时抛出
      */
     @Override
@@ -122,7 +136,7 @@ public class EmailServiceImpl implements IEmailService {
 
     /**
      * 生成6位数字验证码
-     * 
+     *
      * @return 6位数字字符串
      */
     private String generateEmailCode() {

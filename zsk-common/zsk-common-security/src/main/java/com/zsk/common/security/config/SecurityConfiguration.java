@@ -10,7 +10,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
@@ -22,19 +21,23 @@ import org.springframework.security.web.access.intercept.AuthorizationFilter;
 
 /**
  * 权限配置
- * 
+ *
  * @author zsk
- * @date 2024-02-13
  * @version 1.0
+ * @date 2024-02-13
  */
 @AutoConfiguration
 @RequiredArgsConstructor
 @EnableMethodSecurity(securedEnabled = true)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 public class SecurityConfiguration {
-    /** 请求头解析过滤器 */
+    /**
+     * 请求头解析过滤器
+     */
     private final HeaderContextFilter headerContextFilter;
-    /** 防止重复提交过滤器 */
+    /**
+     * 防止重复提交过滤器
+     */
     private final RepeatSubmitFilter repeatSubmitFilter;
 
     @Value("${server.servlet.context-path:}")
@@ -65,7 +68,9 @@ public class SecurityConfiguration {
                 // 禁用 Session，使用无状态（STATELESS）策略，完全依赖 Token 认证
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // 配置请求权限控制，允许所有请求，通过注解控制权限
-                .authorizeHttpRequests(auth -> {auth.anyRequest().permitAll();})
+                .authorizeHttpRequests(auth -> {
+                    auth.anyRequest().permitAll();
+                })
                 // 配置异常处理逻辑
                 .exceptionHandling(ex -> ex
                         // 未认证（未登录）处理器
