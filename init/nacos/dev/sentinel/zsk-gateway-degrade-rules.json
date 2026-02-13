@@ -1,0 +1,22 @@
+[
+  {
+    "resource": "zsk-auth",
+    "limitApp": "default",
+    "grade": 2,
+    "count": 1000,
+    "timeWindow": 10,
+    "minRequestAmount": 5,
+    "statIntervalMs": 1000,
+    "slowRatioThreshold": 0.5
+  },
+  {
+    "resource": "zsk-system",
+    "limitApp": "default",
+    "grade": 2,
+    "count": 1000,
+    "timeWindow": 10,
+    "minRequestAmount": 5,
+    "statIntervalMs": 1000,
+    "slowRatioThreshold": 0.5
+  }
+]

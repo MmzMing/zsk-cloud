@@ -1,0 +1,12 @@
+[
+  {
+    "resource": "/auth/login",
+    "limitApp": "default",
+    "grade": 2,
+    "count": 2000,
+    "timeWindow": 10,
+    "minRequestAmount": 5,
+    "statIntervalMs": 1000,
+    "slowRatioThreshold": 0.5
+  }
+]

@@ -26,3 +26,31 @@ spring:
         namespace: 14d6a66b-76d7-49e0-a077-40f326377790
         file-extension: yml
         refresh-enabled: true
+    sentinel:
+      # 取消控制台懒加载
+      eager: true
+      transport:
+        # 控制台地址 (Web 端口)
+        dashboard: 192.168.101.129:8858
+        # 客户端通讯端口
+        port: 8719
+      # nacos 配置持久化
+      datasource:
+        # 限流规则
+        flow:
+          nacos:
+            server-addr: ${spring.cloud.nacos.server-addr}
+            namespace: ${spring.cloud.nacos.config.namespace}
+            data-id: ${spring.application.name}-flow-rules
+            group-id: dev
+            data-type: json
+            rule-type: flow
+        # 降级规则
+        degrade:
+          nacos:
+            server-addr: ${spring.cloud.nacos.server-addr}
+            namespace: ${spring.cloud.nacos.config.namespace}
+            data-id: ${spring.application.name}-degrade-rules
+            group-id: dev
+            data-type: json
+            rule-type: degrade

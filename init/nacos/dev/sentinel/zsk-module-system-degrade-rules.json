@@ -1,0 +1,12 @@
+[
+  {
+    "resource": "/system/user/list",
+    "limitApp": "default",
+    "grade": 2,
+    "count": 3000,
+    "timeWindow": 10,
+    "minRequestAmount": 10,
+    "statIntervalMs": 1000,
+    "slowRatioThreshold": 0.6
+  }
+]

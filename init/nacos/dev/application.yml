@@ -12,6 +12,30 @@ spring:
   cloud:
     config:
       override-noe: true
+    sentinel:
+      enabled: true
+      eager: true
+      transport:
+        dashboard: localhost:8080
+      datasource:
+        # 限流规则
+         flow:
+           nacos:
+             server-addr: ${spring.cloud.nacos.server-addr}
+             namespace: ${spring.cloud.nacos.config.namespace}
+             data-id: ${spring.application.name}-flow-rules
+             group-id: dev
+             data-type: json
+             rule-type: flow
+         # 降级规则
+         degrade:
+           nacos:
+             server-addr: ${spring.cloud.nacos.server-addr}
+             namespace: ${spring.cloud.nacos.config.namespace}
+             data-id: ${spring.application.name}-degrade-rules
+             group-id: dev
+             data-type: json
+             rule-type: degrade
   jackson:
     date-format: yyyy-MM-dd HH:mm:ss
     time-zone: GMT+8

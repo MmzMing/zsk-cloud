@@ -53,9 +53,11 @@ public class CaptchaServiceImpl implements ICaptchaService {
             // 1. 生成背景图
             BufferedImage bgImage = generateBackgroundImage();
 
-            // 2. 随机生成拼图缺口位置
-            int x = RandomUtil.randomInt(IMG_WIDTH - CUT_WIDTH - 20) + CUT_WIDTH + 10;
-            int y = RandomUtil.randomInt(IMG_HEIGHT - CUT_HEIGHT) + 5;
+            // 2. 随机生成拼图缺口位置 (确保不超出背景图边界)
+            // x 范围：[CUT_WIDTH + 10, IMG_WIDTH - CUT_WIDTH - 10]
+            int x = RandomUtil.randomInt(IMG_WIDTH - 2 * CUT_WIDTH - 20) + CUT_WIDTH + 10;
+            // y 范围：[10, IMG_HEIGHT - CUT_HEIGHT - 10]
+            int y = RandomUtil.randomInt(IMG_HEIGHT - CUT_HEIGHT - 20) + 10;
 
             // 3. 生成拼图块
             BufferedImage puzzleImage = createPuzzleImage(bgImage, x, y);

@@ -30,23 +30,17 @@
             <artifactId>spring-cloud-starter-alibaba-sentinel</artifactId>
         </dependency>
 
-        <!-- Sentinel Gateway Adapter -->
+        <!-- Sentinel DataSource Nacos -->
         <dependency>
             <groupId>com.alibaba.csp</groupId>
-            <artifactId>sentinel-spring-cloud-gateway-adapter</artifactId>
-            <version>1.8.6</version>
+            <artifactId>sentinel-datasource-nacos</artifactId>
         </dependency>
+
 
         <!-- Spring Web -->
         <dependency>
             <groupId>org.springframework</groupId>
             <artifactId>spring-web</artifactId>
-        </dependency>
-
-        <!-- Spring WebFlux -->
-        <dependency>
-            <groupId>org.springframework</groupId>
-            <artifactId>spring-webflux</artifactId>
         </dependency>
 
         <!-- Spring Context -->
@@ -67,12 +61,6 @@
             <artifactId>aspectjweaver</artifactId>
         </dependency>
 
-        <!-- Lombok -->
-        <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <optional>true</optional>
-        </dependency>
     </dependencies>
 
 
