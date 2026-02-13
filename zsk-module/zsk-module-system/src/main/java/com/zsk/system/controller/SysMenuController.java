@@ -12,12 +12,12 @@ import java.util.List;
 
 /**
  * 菜单管理 控制器
- * 
+ *
  * @author zsk
  */
 @Tag(name = "菜单管理")
 @RestController
-@RequestMapping("/system/menu")
+@RequestMapping("/menu")
 @RequiredArgsConstructor
 public class SysMenuController {
 
@@ -30,6 +30,15 @@ public class SysMenuController {
     @GetMapping("/list")
     public R<List<SysMenu>> list(SysMenu menu) {
         return R.ok(menuService.list());
+    }
+
+    /**
+     * 根据用户ID查询菜单树列表
+     */
+    @Operation(summary = "根据用户ID查询菜单树列表")
+    @GetMapping("/user/{userId}")
+    public R<List<SysMenu>> userMenu(@PathVariable Long userId) {
+        return R.ok(menuService.selectMenuTreeByUserId(userId));
     }
 
     /**

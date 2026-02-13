@@ -12,12 +12,12 @@ import java.util.List;
 
 /**
  * 字典管理 控制器
- * 
+ *
  * @author zsk
  */
 @Tag(name = "字典管理")
 @RestController
-@RequestMapping("/system/dict/type")
+@RequestMapping("/dict/type")
 @RequiredArgsConstructor
 public class SysDictTypeController {
 

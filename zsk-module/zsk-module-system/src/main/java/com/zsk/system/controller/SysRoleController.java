@@ -12,12 +12,12 @@ import java.util.List;
 
 /**
  * 角色管理 控制器
- * 
+ *
  * @author zsk
  */
 @Tag(name = "角色管理")
 @RestController
-@RequestMapping("/system/role")
+@RequestMapping("/role")
 @RequiredArgsConstructor
 public class SysRoleController {
 
@@ -47,7 +47,7 @@ public class SysRoleController {
     @Operation(summary = "新增角色")
     @PostMapping
     public R<Void> add(@RequestBody SysRole role) {
-        return roleService.save(role) ? R.ok() : R.fail();
+        return roleService.insertRole(role) ? R.ok() : R.fail();
     }
 
     /**
@@ -56,7 +56,7 @@ public class SysRoleController {
     @Operation(summary = "修改角色")
     @PutMapping
     public R<Void> edit(@RequestBody SysRole role) {
-        return roleService.updateById(role) ? R.ok() : R.fail();
+        return roleService.updateRole(role) ? R.ok() : R.fail();
     }
 
     /**
@@ -65,6 +65,6 @@ public class SysRoleController {
     @Operation(summary = "删除角色")
     @DeleteMapping("/{ids}")
     public R<Void> remove(@PathVariable List<Long> ids) {
-        return roleService.removeByIds(ids) ? R.ok() : R.fail();
+        return roleService.deleteRoleByIds(ids) ? R.ok() : R.fail();
     }
 }

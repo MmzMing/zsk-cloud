@@ -5,7 +5,7 @@ import com.zsk.system.domain.SysDictType;
 
 /**
  * 字典类型管理 服务层
- * 
+ *
  * @author zsk
  */
 public interface ISysDictTypeService extends IService<SysDictType> {

@@ -1,0 +1,15 @@
+测试数据
+{
+  "username": "admin",
+  "password": "123456",
+  "code": "122",
+  "uuid": "9accd9188e74432886676fe51ce81665",
+  "loginType": "password",
+  "email": "",
+  "emailCode": "",
+  "authCode": "",
+  "state": ""
+}
+
+token
+eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJ1c2VyX25hbWUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbXSwibmlja19uYW1lIjoiYWRtaW4iLCJyb2xlcyI6W10sInVzZXJfa2V5IjoiZGIyNWViMjgxZDI1NDBkOTkxYjE4MmQ0YmRmZGM0NzIifQ.1tH2gUeY50wfXYpKm3SnBaeNpek5fiSmFliA5dPV1Jw

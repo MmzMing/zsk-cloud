@@ -12,12 +12,12 @@ import java.util.List;
 
 /**
  * 通知公告 控制器
- * 
+ *
  * @author zsk
  */
 @Tag(name = "通知公告")
 @RestController
-@RequestMapping("/system/notice")
+@RequestMapping("/notice")
 @RequiredArgsConstructor
 public class SysNoticeController {
 

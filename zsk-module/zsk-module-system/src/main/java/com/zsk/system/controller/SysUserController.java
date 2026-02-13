@@ -1,13 +1,13 @@
 package com.zsk.system.controller;
 
+import com.zsk.common.core.constant.CommonConstants;
 import com.zsk.common.core.domain.R;
 import com.zsk.system.api.domain.SysUserApi;
-import com.zsk.system.domain.SysUser;
-import com.zsk.system.service.ISysUserService;
-import com.zsk.system.service.ISysRoleService;
-import com.zsk.system.service.ISysMenuService;
 import com.zsk.system.api.model.LoginUser;
-import com.zsk.common.core.constant.CommonConstants;
+import com.zsk.system.domain.SysUser;
+import com.zsk.system.service.ISysMenuService;
+import com.zsk.system.service.ISysRoleService;
+import com.zsk.system.service.ISysUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -19,7 +19,7 @@ import java.util.Set;
 
 /**
  * 用户管理 控制器
- * 
+ *
  * @author zsk
  */
 @Tag(name = "用户管理")
@@ -42,11 +42,11 @@ public class SysUserController {
         if (sysUser == null) {
             return R.fail("用户不存在");
         }
-        
+
         if (CommonConstants.REQUEST_SOURCE_INNER.equals(source)) {
             return R.ok(createLoginUser(sysUser));
         }
-        
+
         return R.ok(sysUser);
     }
 
@@ -60,11 +60,11 @@ public class SysUserController {
         if (sysUser == null) {
             return R.fail("用户不存在");
         }
-        
+
         if (CommonConstants.REQUEST_SOURCE_INNER.equals(source)) {
             return R.ok(createLoginUser(sysUser));
         }
-        
+
         return R.ok(sysUser);
     }
 
@@ -78,11 +78,11 @@ public class SysUserController {
         if (sysUser == null) {
             return R.fail("用户不存在");
         }
-        
+
         if (CommonConstants.REQUEST_SOURCE_INNER.equals(source)) {
             return R.ok(createLoginUser(sysUser));
         }
-        
+
         return R.ok(sysUser);
     }
 
@@ -91,15 +91,15 @@ public class SysUserController {
         SysUserApi apiUser = getSysUserApi(sysUser);
 
         loginUser.setSysUser(apiUser);
-        
+
         // 角色权限标识
         Set<String> roles = roleService.selectRolePermissionByUserId(sysUser.getId());
         loginUser.setRoles(roles);
-        
+
         // 菜单权限标识
         Set<String> permissions = menuService.selectMenuPermissionByUserId(sysUser.getId());
         loginUser.setPermissions(permissions);
-        
+
         return loginUser;
     }
 
@@ -134,7 +134,7 @@ public class SysUserController {
     @Operation(summary = "获取用户详细信息")
     @GetMapping("/{id}")
     public R<SysUser> getInfo(@PathVariable Long id) {
-        return R.ok(userService.getById(id));
+        return R.ok(userService.selectUserById(id));
     }
 
     /**
@@ -143,7 +143,7 @@ public class SysUserController {
     @Operation(summary = "新增用户")
     @PostMapping
     public R<Boolean> add(@RequestBody SysUser user) {
-        return R.ok(userService.save(user));
+        return R.ok(userService.insertUser(user));
     }
 
     /**
@@ -152,7 +152,7 @@ public class SysUserController {
     @Operation(summary = "修改用户")
     @PutMapping
     public R<Void> edit(@RequestBody SysUser user) {
-        return userService.updateById(user) ? R.ok() : R.fail();
+        return userService.updateUser(user) ? R.ok() : R.fail();
     }
 
     /**
@@ -161,6 +161,6 @@ public class SysUserController {
     @Operation(summary = "删除用户")
     @DeleteMapping("/{ids}")
     public R<Void> remove(@PathVariable List<Long> ids) {
-        return userService.removeByIds(ids) ? R.ok() : R.fail();
+        return userService.deleteUserByIds(ids) ? R.ok() : R.fail();
     }
 }

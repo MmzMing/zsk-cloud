@@ -12,12 +12,12 @@ import java.util.List;
 
 /**
  * 参数管理 控制器
- * 
+ *
  * @author zsk
  */
 @Tag(name = "参数管理")
 @RestController
-@RequestMapping("/system/config")
+@RequestMapping("/config")
 @RequiredArgsConstructor
 public class SysConfigController {
 
