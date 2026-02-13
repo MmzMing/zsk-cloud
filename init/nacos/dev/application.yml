@@ -55,6 +55,7 @@ security:
   ignore:
     whites:
       - /auth/login
+      - /auth/register
       - /auth/logout
       - /auth/captcha
       - /auth/email/code

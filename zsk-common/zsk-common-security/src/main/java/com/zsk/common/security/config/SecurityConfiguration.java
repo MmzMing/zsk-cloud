@@ -1,31 +1,25 @@
 package com.zsk.common.security.config;
 
 import com.zsk.common.core.config.properties.IgnoreWhiteProperties;
-import com.zsk.common.core.constant.CommonConstants;
-import com.zsk.common.core.context.SecurityContext;
 import com.zsk.common.core.domain.R;
 import com.zsk.common.core.utils.JsonUtil;
 import com.zsk.common.core.utils.ServletUtils;
-import com.zsk.common.core.utils.StringUtils;
 import com.zsk.common.security.filter.HeaderContextFilter;
 import com.zsk.common.security.filter.RepeatSubmitFilter;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
-import org.springframework.security.authorization.AuthorizationDecision;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
-
-import java.util.List;
 
 /**
  * 权限配置
@@ -36,11 +30,10 @@ import java.util.List;
  */
 @AutoConfiguration
 @RequiredArgsConstructor
+@EnableMethodSecurity(securedEnabled = true)
 @ConditionalOnWebApplication(type = ConditionalOnWebApplication.Type.SERVLET)
 @EnableConfigurationProperties(IgnoreWhiteProperties.class)
 public class SecurityConfiguration {
-    /** 白名单配置 */
-    private final IgnoreWhiteProperties ignoreWhiteProperties;
     /** 请求头解析过滤器 */
     private final HeaderContextFilter headerContextFilter;
     /** 防止重复提交过滤器 */
@@ -73,26 +66,8 @@ public class SecurityConfiguration {
         http.csrf(AbstractHttpConfigurer::disable)
                 // 禁用 Session，使用无状态（STATELESS）策略，完全依赖 Token 认证
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // 配置请求权限控制
-                .authorizeHttpRequests(auth -> {
-                    // 获取白名单配置并放行
-                    List<String> whites = ignoreWhiteProperties.getWhites();
-                    if (whites != null && !whites.isEmpty()) {
-                        // 如果配置了 context-path，且白名单路径以 context-path 开头，则需要去除前缀才能匹配 servlet-path
-                        // 例如：contextPath = "/auth", path = "/auth/captcha" -> 匹配路径 = "/captcha"
-                        String[] whiteArray = whites.stream()
-                                .map(path -> {
-                                    if (StringUtils.isNotEmpty(contextPath) && path.startsWith(contextPath)) {
-                                        return path.substring(contextPath.length());
-                                    }
-                                    return path;
-                                }).toArray(String[]::new);
-                        auth.requestMatchers(whiteArray).permitAll();
-                    }
-                    // 其他所有请求都需要进行认证校验
-                    auth.anyRequest().access((authentication, context) ->
-                            new AuthorizationDecision(isAuthenticated(context.getRequest())));
-                })
+                // 配置请求权限控制，允许所有请求，通过注解控制权限
+                .authorizeHttpRequests(auth -> {auth.anyRequest().permitAll();})
                 // 配置异常处理逻辑
                 .exceptionHandling(ex -> ex
                         // 未认证（未登录）处理器
@@ -110,25 +85,9 @@ public class SecurityConfiguration {
                 // 禁用表单登录
                 .formLogin(AbstractHttpConfigurer::disable)
                 // 禁用默认注销功能
-                .logout(AbstractHttpConfigurer::disable)
-                // 禁用匿名用户访问功能
-                .anonymous(AbstractHttpConfigurer::disable);
+                .logout(AbstractHttpConfigurer::disable);
 
         return http.build();
-    }
-
-    /**
-     * 判断是否已认证或内部调用
-     *
-     * @param request 请求对象
-     * @return true:已通过认证, false:未通过认证
-     */
-    private boolean isAuthenticated(HttpServletRequest request) {
-        if (SecurityContext.getUserId() != null) {
-            return true;
-        }
-        String source = request.getHeader(CommonConstants.REQUEST_SOURCE_HEADER);
-        return StringUtils.equals(CommonConstants.REQUEST_SOURCE_INNER, source);
     }
 
     /**

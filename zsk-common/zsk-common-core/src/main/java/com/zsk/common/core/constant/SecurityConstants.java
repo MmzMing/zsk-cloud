@@ -28,6 +28,11 @@ public class SecurityConstants {
     public static final String USER_NAME = "user_name";
 
     /**
+     * 用户昵称字段
+     */
+    public static final String NICK_NAME = "nick_name";
+
+    /**
      * 用户Key字段
      */
     public static final String USER_KEY = "user_key";
@@ -108,6 +113,11 @@ public class SecurityConstants {
     public static final String USER_NAME_HEADER = "X-User-Name";
 
     /**
+     * 用户昵称请求头
+     */
+    public static final String NICK_NAME_HEADER = "X-User-Nickname";
+
+    /**
      * 用户Key请求头
      */
     public static final String USER_KEY_HEADER = "X-User-Key";
@@ -131,6 +141,21 @@ public class SecurityConstants {
      * 刷新Token有效期（天）
      */
     public static final long REFRESH_TOKEN_EXPIRE = 30;
+
+    /**
+     * 角色前缀
+     */
+    public static final String ROLE_PREFIX = "ROLE_";
+
+    /**
+     * 内部请求标识
+     */
+    public static final String FROM_SOURCE = "from-source";
+
+    /**
+     * 内部请求标识值
+     */
+    public static final String INNER = "inner";
 
     private SecurityConstants() {
         throw new AssertionError("常量类禁止实例化");

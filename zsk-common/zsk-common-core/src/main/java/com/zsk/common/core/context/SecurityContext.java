@@ -1,6 +1,7 @@
 package com.zsk.common.core.context;
 
 import com.alibaba.ttl.TransmittableThreadLocal;
+import com.zsk.common.core.constant.SecurityConstants;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -32,57 +33,66 @@ public class SecurityContext {
     }
 
     public static Long getUserId() {
-        Object userId = get("userId");
+        Object userId = get(SecurityConstants.USER_ID);
         return userId == null ? null : Long.valueOf(userId.toString());
     }
 
     public static void setUserId(Long userId) {
-        set("userId", userId);
+        set(SecurityConstants.USER_ID, userId);
     }
 
     public static String getUserName() {
-        Object userName = get("userName");
+        Object userName = get(SecurityConstants.USER_NAME);
         return userName == null ? null : userName.toString();
     }
 
     public static void setUserName(String userName) {
-        set("userName", userName);
+        set(SecurityConstants.USER_NAME, userName);
+    }
+
+    public static String getNickName() {
+        Object nickName = get(SecurityConstants.NICK_NAME);
+        return nickName == null ? null : nickName.toString();
+    }
+
+    public static void setNickName(String nickName) {
+        set(SecurityConstants.NICK_NAME, nickName);
     }
 
     public static Long getDeptId() {
-        Object deptId = get("deptId");
+        Object deptId = get(SecurityConstants.DEPT_ID);
         return deptId == null ? null : Long.valueOf(deptId.toString());
     }
 
     public static void setDeptId(Long deptId) {
-        set("deptId", deptId);
+        set(SecurityConstants.DEPT_ID, deptId);
     }
 
     public static String getToken() {
-        Object token = get("token");
+        Object token = get(SecurityConstants.TOKEN_KEY);
         return token == null ? null : token.toString();
     }
 
     public static void setToken(String token) {
-        set("token", token);
+        set(SecurityConstants.TOKEN_KEY, token);
     }
 
     public static java.util.Set<String> getRoles() {
-        Object roles = get("roles");
+        Object roles = get(SecurityConstants.ROLES);
         return roles == null ? new java.util.HashSet<>() : (java.util.Set<String>) roles;
     }
 
     public static void setRoles(java.util.Set<String> roles) {
-        set("roles", roles);
+        set(SecurityConstants.ROLES, roles);
     }
 
     public static java.util.Set<String> getPermissions() {
-        Object permissions = get("permissions");
+        Object permissions = get(SecurityConstants.PERMISSIONS);
         return permissions == null ? new java.util.HashSet<>() : (java.util.Set<String>) permissions;
     }
 
     public static void setPermissions(java.util.Set<String> permissions) {
-        set("permissions", permissions);
+        set(SecurityConstants.PERMISSIONS, permissions);
     }
 
     public static void clear() {

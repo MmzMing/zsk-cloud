@@ -25,6 +25,8 @@ import java.util.Map;
  * XSS 跨站脚本攻击防护过滤器
  *
  * @author zsk
+ * @date 2024-02-13
+ * @version 1.0
  */
 @Slf4j
 @Component
@@ -34,6 +36,13 @@ public class XssFilter implements GlobalFilter, Ordered {
     private final XssProperties xssProperties;
     private final AntPathMatcher antPathMatcher = new AntPathMatcher();
 
+    /**
+     * 执行过滤逻辑
+     *
+     * @param exchange 服务网络交换器
+     * @param chain 过滤器链
+     * @return Mono<Void>
+     */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         if (!xssProperties.getEnabled()) {

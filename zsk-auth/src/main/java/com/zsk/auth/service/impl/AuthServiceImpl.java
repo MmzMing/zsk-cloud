@@ -13,6 +13,7 @@ import com.zsk.common.core.constant.SecurityConstants;
 import com.zsk.common.core.domain.R;
 import com.zsk.common.core.exception.AuthException;
 import com.zsk.common.core.exception.BusinessException;
+import com.zsk.common.core.utils.JwtUtils;
 import com.zsk.common.core.utils.JsonUtil;
 import com.zsk.common.core.utils.StringUtils;
 import com.zsk.common.redis.service.RedisService;
@@ -248,20 +249,26 @@ public class AuthServiceImpl implements IAuthService {
      */
     private String generateAccessToken(LoginUser loginUser) {
         SysUserApi user = loginUser.getSysUser();
-        String token = UUID.randomUUID().toString().replace("-", "");
-        String tokenKey = CacheConstants.LOGIN_TOKEN_KEY + token;
+        // 生成唯一标识 jti (JWT ID)，作为 Redis Key
+        String uuid = UUID.randomUUID().toString().replace("-", "");
+        String tokenKey = CacheConstants.LOGIN_TOKEN_KEY + uuid;
 
-        Map<String, Object> tokenInfo = new HashMap<>();
-        tokenInfo.put("userId", user.getId());
-        tokenInfo.put("username", user.getUserName());
-        tokenInfo.put("nickname", user.getNickName());
-        tokenInfo.put("avatar", user.getAvatar());
-        tokenInfo.put("roles", loginUser.getRoles());
-        tokenInfo.put("permissions", loginUser.getPermissions());
-        tokenInfo.put("loginTime", System.currentTimeMillis());
+        Map<String, Object> claims = new HashMap<>();
+        claims.put(SecurityConstants.USER_KEY, uuid); // 存入 uuid 用于后续验证 Redis 状态
+        claims.put(SecurityConstants.USER_ID, user.getId());
+        claims.put(SecurityConstants.USER_NAME, user.getUserName());
+        claims.put(SecurityConstants.NICK_NAME, user.getNickName());
+        // claims.put("avatar", user.getAvatar()); // 头像信息较大且非必要，可不存
+        claims.put(SecurityConstants.ROLES, loginUser.getRoles());
+        claims.put(SecurityConstants.PERMISSIONS, loginUser.getPermissions());
+        // claims.put("loginTime", System.currentTimeMillis());
 
-        redisService.setCacheObject(tokenKey, JsonUtil.toJsonString(tokenInfo), SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
-        return token;
+        // Redis 只存储简单的状态信息（如 userId），不再存储全量用户信息
+        // 这样既利用了 JWT 的无状态特性传递数据，又利用 Redis 实现了 Token 的可控性（过期、黑名单）
+        redisService.setCacheObject(tokenKey, user.getId(), SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
+        
+        // 生成 JWT
+        return JwtUtils.createToken(claims);
     }
 
     /**

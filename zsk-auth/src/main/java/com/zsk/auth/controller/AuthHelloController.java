@@ -1,6 +1,7 @@
 package com.zsk.auth.controller;
 
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -27,6 +28,17 @@ public class AuthHelloController {
      */
     @GetMapping("/hello")
     public String hello(){
+        return k1;
+    }
+
+    /**
+     * 测试加认证的接口
+     *
+     * @return 配置内容
+     */
+    @GetMapping("/helloAuth")
+    @PreAuthorize("hasRole('ADMIN')")
+    public String helloAuth(){
         return k1;
     }
 }
