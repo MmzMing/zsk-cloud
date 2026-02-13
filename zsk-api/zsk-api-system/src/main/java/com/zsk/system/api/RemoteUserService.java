@@ -26,7 +26,7 @@ public interface RemoteUserService {
      * @param username 用户名
      * @return 结果
      */
-    @GetMapping("/user/info/{username}")
+    @GetMapping("/system/user/info/{username}")
     public R<SysUserApi> getUserInfo(@PathVariable String username);
 
     /**
@@ -36,7 +36,7 @@ public interface RemoteUserService {
      * @param source   请求来源
      * @return 结果
      */
-    @GetMapping("/user/info/{username}")
+    @GetMapping("/system/user/info/{username}")
     public R<LoginUser> getUserInfo(@PathVariable String username, @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
 
     /**
@@ -46,7 +46,7 @@ public interface RemoteUserService {
      * @param source 请求来源
      * @return 结果
      */
-    @GetMapping("/user/info/email/{email}")
+    @GetMapping("/system/user/info/email/{email}")
     public R<LoginUser> getUserInfoByEmail(@PathVariable("email") String email, @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
 
     /**
@@ -57,7 +57,7 @@ public interface RemoteUserService {
      * @param source       请求来源
      * @return 结果
      */
-    @GetMapping("/user/info/thirdparty/{loginType}/{thirdPartyId}")
+    @GetMapping("/system/user/info/thirdparty/{loginType}/{thirdPartyId}")
     public R<LoginUser> getUserByThirdPartyId(@PathVariable("loginType") String loginType, @PathVariable("thirdPartyId") String thirdPartyId, @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
 
     /**
@@ -66,6 +66,6 @@ public interface RemoteUserService {
      * @param user 用户信息
      * @return 结果
      */
-    @PostMapping("/user")
+    @PostMapping("/system/user")
     public R<Boolean> createUser(@RequestBody SysUserApi user);
 }

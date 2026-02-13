@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import lombok.Data;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
@@ -18,6 +19,7 @@ import java.time.LocalDateTime;
 @Data
 public class BaseEntity implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**
@@ -31,7 +33,7 @@ public class BaseEntity implements Serializable {
      * 创建人
      */
     @TableField(fill = FieldFill.INSERT)
-    private Long createBy;
+    private String createName;
 
     /**
      * 更新时间
@@ -44,7 +46,7 @@ public class BaseEntity implements Serializable {
      * 更新人
      */
     @TableField(fill = FieldFill.INSERT_UPDATE)
-    private Long updateBy;
+    private String updateName;
 
     /**
      * 删除标志（0-正常，2-删除）
@@ -52,7 +54,7 @@ public class BaseEntity implements Serializable {
     @TableLogic
     @TableField(fill = FieldFill.INSERT)
     @JsonIgnore
-    private Integer delFlag;
+    private Integer deleted;
 
     /**
      * 备注

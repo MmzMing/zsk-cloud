@@ -48,7 +48,7 @@ public class SysUserApi implements Serializable {
     private String status;
 
     /** 删除标志（0代表存在 2代表删除） */
-    private Integer delFlag;
+    private Integer deleted;
 
     /** 最后登录IP */
     private String loginIp;

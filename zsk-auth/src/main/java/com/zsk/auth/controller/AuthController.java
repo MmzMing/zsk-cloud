@@ -65,9 +65,9 @@ public class AuthController {
      * @return 登录结果
      */
     @PostMapping("/refresh")
-    public R<LoginResponse> refreshToken(@RequestParam String refreshToken) {
-        LoginResponse response = authService.refreshToken(refreshToken);
-        return R.ok(response);
+    public R<Void> refreshTokenTime(@RequestHeader("Authorization") String refreshToken) {
+        authService.refreshTokenTime(refreshToken);
+        return R.ok();
     }
 
     /**

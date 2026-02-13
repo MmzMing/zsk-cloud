@@ -225,11 +225,9 @@ public class AuthServiceImpl implements IAuthService {
     private LoginResponse generateToken(LoginUser loginUser) {
         SysUserApi user = loginUser.getSysUser();
         String accessToken = generateAccessToken(loginUser);
-        String refreshToken = generateRefreshToken(loginUser);
 
-        LoginResponse response = LoginResponse.builder()
+        return LoginResponse.builder()
                 .accessToken(accessToken)
-                .refreshToken(refreshToken)
                 .tokenType("Bearer")
                 .expiresIn(SecurityConstants.TOKEN_EXPIRE * 60)
                 .userId(user.getId())
@@ -237,8 +235,6 @@ public class AuthServiceImpl implements IAuthService {
                 .nickname(user.getNickName())
                 .avatar(user.getAvatar())
                 .build();
-
-        return response;
     }
 
     /**
@@ -258,7 +254,6 @@ public class AuthServiceImpl implements IAuthService {
         claims.put(SecurityConstants.USER_ID, user.getId());
         claims.put(SecurityConstants.USER_NAME, user.getUserName());
         claims.put(SecurityConstants.NICK_NAME, user.getNickName());
-        // claims.put("avatar", user.getAvatar()); // 头像信息较大且非必要，可不存
         claims.put(SecurityConstants.ROLES, loginUser.getRoles());
         claims.put(SecurityConstants.PERMISSIONS, loginUser.getPermissions());
         // claims.put("loginTime", System.currentTimeMillis());
@@ -271,24 +266,6 @@ public class AuthServiceImpl implements IAuthService {
         return JwtUtils.createToken(claims);
     }
 
-    /**
-     * 生成刷新令牌（Refresh Token）并缓存
-     *
-     * @param loginUser 登录用户信息
-     * @return 刷新令牌
-     */
-    private String generateRefreshToken(LoginUser loginUser) {
-        SysUserApi user = loginUser.getSysUser();
-        String token = UUID.randomUUID().toString().replace("-", "");
-        String tokenKey = CacheConstants.LOGIN_REFRESH_TOKEN_KEY + token;
-
-        Map<String, Object> tokenInfo = new HashMap<>();
-        tokenInfo.put("userId", user.getId());
-        tokenInfo.put("username", user.getUserName());
-
-        redisService.setCacheObject(tokenKey, JsonUtil.toJsonString(tokenInfo), SecurityConstants.REFRESH_TOKEN_EXPIRE, TimeUnit.DAYS);
-        return token;
-    }
 
     /**
      * 刷新令牌处理
@@ -298,33 +275,28 @@ public class AuthServiceImpl implements IAuthService {
      * @throws AuthException 刷新失败异常
      */
     @Override
-    public LoginResponse refreshToken(String refreshToken) {
+    public void refreshTokenTime(String refreshToken) {
         if (StringUtils.isEmpty(refreshToken)) {
             throw new AuthException("刷新令牌不能为空");
         }
-
-        String tokenKey = CacheConstants.LOGIN_REFRESH_TOKEN_KEY + refreshToken;
-        String tokenInfoJson = redisService.getCacheObject(tokenKey);
-
-        if (StringUtils.isEmpty(tokenInfoJson)) {
+        // 如果带了 Bearer 前缀，先去掉
+        if (refreshToken.startsWith(SecurityConstants.TOKEN_PREFIX)) {
+            refreshToken = refreshToken.replace(SecurityConstants.TOKEN_PREFIX, "");
+        }
+        // 从 refreshToken 获取 uuid (user_key)
+        String uuid = JwtUtils.getUserKey(refreshToken);
+        if (StringUtils.isEmpty(uuid)) {
+            throw new AuthException("刷新令牌无效");
+        }
+        // 根据 uuid 获取 redis 中的缓存
+        String tokenKey = CacheConstants.LOGIN_TOKEN_KEY + uuid;
+        Object userId = redisService.getCacheObject(tokenKey);
+        if (userId == null) {
             throw new AuthException("刷新令牌已过期或不存在");
         }
+        // 更新对应的时间 (续期)
+        redisService.expire(tokenKey, SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
 
-        Map<String, Object> tokenInfo = JsonUtil.parseMap(tokenInfoJson);
-        String username = tokenInfo.get("username").toString();
-
-        R<LoginUser> userResult = remoteUserService.getUserInfo(username, CommonConstants.REQUEST_SOURCE_INNER);
-        if (userResult == null || !userResult.isSuccess()) {
-            throw new AuthException("用户不存在");
-        }
-
-        LoginUser loginUser = userResult.getData();
-        if (loginUser == null || loginUser.getSysUser() == null) {
-            throw new AuthException("用户不存在");
-        }
-
-        redisService.deleteObject(tokenKey);
-        return generateToken(loginUser);
     }
 
     /**
@@ -338,7 +310,21 @@ public class AuthServiceImpl implements IAuthService {
             return;
         }
 
-        String tokenKey = CacheConstants.LOGIN_TOKEN_KEY + token;
-        redisService.deleteObject(tokenKey);
+        try {
+            // 如果带了 Bearer 前缀，先去掉
+            if (token.startsWith(SecurityConstants.TOKEN_PREFIX)) {
+                token = token.replace(SecurityConstants.TOKEN_PREFIX, "");
+            }
+
+            // 从 token 解析获取 uuid (user_key)
+            String uuid = JwtUtils.getUserKey(token);
+            if (StringUtils.isNotEmpty(uuid)) {
+                // 根据 uuid 删除 redis 缓存
+                String tokenKey = CacheConstants.LOGIN_TOKEN_KEY + uuid;
+                redisService.deleteObject(tokenKey);
+            }
+        } catch (Exception e) {
+            log.error("退出登录时解析 Token 失败: {}", e.getMessage());
+        }
     }
 }

@@ -115,7 +115,7 @@ public class SysUserController {
         apiUser.setAvatar(sysUser.getAvatar());
         apiUser.setPassword(sysUser.getPassword());
         apiUser.setStatus(sysUser.getStatus());
-        apiUser.setDelFlag(sysUser.getDelFlag());
+        apiUser.setDeleted(sysUser.getDeleted());
         return apiUser;
     }
 

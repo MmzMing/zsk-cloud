@@ -102,10 +102,6 @@ public class CacheConstants {
      */
     public static final String LOGIN_TOKEN_KEY = CACHE_PREFIX + "login:token:";
 
-    /**
-     * 刷新令牌缓存键前缀
-     */
-    public static final String LOGIN_REFRESH_TOKEN_KEY = CACHE_PREFIX + "login:refresh_token:";
 
     /**
      * 第三方登录状态缓存键前缀

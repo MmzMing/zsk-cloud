@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.core.metadata.IPage;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.io.Serial;
 import java.io.Serializable;
 import java.util.Collections;
 import java.util.List;
@@ -17,6 +18,7 @@ import java.util.List;
 @NoArgsConstructor
 public class PageResult<T> implements Serializable {
 
+    @Serial
     private static final long serialVersionUID = 1L;
 
     /**

@@ -33,7 +33,7 @@ public interface IAuthService {
      * @param refreshToken 刷新令牌
      * @return 登录结果
      */
-    LoginResponse refreshToken(String refreshToken);
+    void refreshTokenTime(String refreshToken);
 
     /**
      * 退出登录
