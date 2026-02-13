@@ -50,53 +50,18 @@ public class CaptchaServiceImpl implements ICaptchaService {
     @Override
     public CaptchaResponse generateSlideCaptcha() {
         try {
-            // 1. 生成随机背景图
-            BufferedImage bgImage = new BufferedImage(IMG_WIDTH, IMG_HEIGHT, BufferedImage.TYPE_INT_RGB);
-            Graphics2D g = bgImage.createGraphics();
-            // 填充随机背景色
-            g.setColor(new Color(240 + RandomUtil.randomInt(15), 240 + RandomUtil.randomInt(15), 240 + RandomUtil.randomInt(15)));
-            g.fillRect(0, 0, IMG_WIDTH, IMG_HEIGHT);
-
-            // 画一些干扰线或图形
-            for (int i = 0; i < 20; i++) {
-                g.setColor(new Color(RandomUtil.randomInt(255), RandomUtil.randomInt(255), RandomUtil.randomInt(255)));
-                g.drawLine(RandomUtil.randomInt(IMG_WIDTH), RandomUtil.randomInt(IMG_HEIGHT),
-                        RandomUtil.randomInt(IMG_WIDTH), RandomUtil.randomInt(IMG_HEIGHT));
-                g.drawOval(RandomUtil.randomInt(IMG_WIDTH), RandomUtil.randomInt(IMG_HEIGHT),
-                        RandomUtil.randomInt(30), RandomUtil.randomInt(30));
-            }
-
-            // 添加文字干扰
-            g.setFont(new Font("Arial", Font.BOLD, 25));
-            for (int i = 0; i < 5; i++) {
-                g.setColor(new Color(RandomUtil.randomInt(150), RandomUtil.randomInt(150), RandomUtil.randomInt(150)));
-                g.drawString(RandomUtil.randomString(1), RandomUtil.randomInt(IMG_WIDTH - 20), RandomUtil.randomInt(IMG_HEIGHT - 20) + 20);
-            }
+            // 1. 生成背景图
+            BufferedImage bgImage = generateBackgroundImage();
 
             // 2. 随机生成拼图缺口位置
-            // X轴范围：CUT_WIDTH ~ IMG_WIDTH - CUT_WIDTH
             int x = RandomUtil.randomInt(IMG_WIDTH - CUT_WIDTH - 20) + CUT_WIDTH + 10;
-            // Y轴范围：0 ~ IMG_HEIGHT - CUT_HEIGHT
             int y = RandomUtil.randomInt(IMG_HEIGHT - CUT_HEIGHT) + 5;
 
-            // 3. 生成拼图块图片（透明背景）
-            BufferedImage puzzleImage = new BufferedImage(CUT_WIDTH, CUT_HEIGHT, BufferedImage.TYPE_INT_ARGB);
-            Graphics2D pg = puzzleImage.createGraphics();
+            // 3. 生成拼图块
+            BufferedImage puzzleImage = createPuzzleImage(bgImage, x, y);
 
-            // 从背景图中截取拼图区域
-            BufferedImage cutImage = bgImage.getSubimage(x, y, CUT_WIDTH, CUT_HEIGHT);
-            pg.drawImage(cutImage, 0, 0, null);
-
-            // 给拼图块添加边框（可选）
-            pg.setColor(Color.WHITE);
-            pg.setStroke(new BasicStroke(2));
-            pg.drawRect(0, 0, CUT_WIDTH - 1, CUT_HEIGHT - 1);
-            pg.dispose();
-
-            // 4. 在背景图上绘制缺口（半透明遮罩）
-            g.setColor(new Color(0, 0, 0, 100)); // 黑色半透明
-            g.fillRect(x, y, CUT_WIDTH, CUT_HEIGHT);
-            g.dispose();
+            // 4. 在背景图上绘制缺口
+            drawGap(bgImage, x, y);
 
             // 5. 转换图片为Base64
             String bgBase64 = "data:image/png;base64," + Base64.encode(imageToBytes(bgImage));
@@ -105,8 +70,7 @@ public class CaptchaServiceImpl implements ICaptchaService {
             // 6. 缓存X坐标用于校验
             String uuid = UUID.randomUUID().toString().replace("-", "");
             String captchaKey = CacheConstants.CAPTCHA_CODE_KEY + uuid;
-            // 允许误差范围在校验时处理，这里存储准确值
-            redisService.setCacheObject(captchaKey, String.valueOf(x), 5, TimeUnit.MINUTES);
+            redisService.setCacheObject(captchaKey, String.valueOf(x), 1, TimeUnit.MINUTES);
 
             return CaptchaResponse.builder()
                     .uuid(uuid)
@@ -118,6 +82,64 @@ public class CaptchaServiceImpl implements ICaptchaService {
             log.error("生成滑块验证码失败", e);
             throw new AuthException("生成验证码失败");
         }
+    }
+
+    /**
+     * 生成随机背景图
+     */
+    private BufferedImage generateBackgroundImage() {
+        BufferedImage bgImage = new BufferedImage(IMG_WIDTH, IMG_HEIGHT, BufferedImage.TYPE_INT_RGB);
+        Graphics2D g = bgImage.createGraphics();
+        // 填充随机背景色
+        g.setColor(new Color(240 + RandomUtil.randomInt(15), 240 + RandomUtil.randomInt(15), 240 + RandomUtil.randomInt(15)));
+        g.fillRect(0, 0, IMG_WIDTH, IMG_HEIGHT);
+
+        // 画一些干扰线或图形
+        for (int i = 0; i < 20; i++) {
+            g.setColor(new Color(RandomUtil.randomInt(255), RandomUtil.randomInt(255), RandomUtil.randomInt(255)));
+            g.drawLine(RandomUtil.randomInt(IMG_WIDTH), RandomUtil.randomInt(IMG_HEIGHT),
+                    RandomUtil.randomInt(IMG_WIDTH), RandomUtil.randomInt(IMG_HEIGHT));
+            g.drawOval(RandomUtil.randomInt(IMG_WIDTH), RandomUtil.randomInt(IMG_HEIGHT),
+                    RandomUtil.randomInt(30), RandomUtil.randomInt(30));
+        }
+
+        // 添加文字干扰
+        g.setFont(new Font("Arial", Font.BOLD, 25));
+        for (int i = 0; i < 5; i++) {
+            g.setColor(new Color(RandomUtil.randomInt(150), RandomUtil.randomInt(150), RandomUtil.randomInt(150)));
+            g.drawString(RandomUtil.randomString(1), RandomUtil.randomInt(IMG_WIDTH - 20), RandomUtil.randomInt(IMG_HEIGHT - 20) + 20);
+        }
+        g.dispose();
+        return bgImage;
+    }
+
+    /**
+     * 根据背景图截取拼图块
+     */
+    private BufferedImage createPuzzleImage(BufferedImage bgImage, int x, int y) {
+        BufferedImage puzzleImage = new BufferedImage(CUT_WIDTH, CUT_HEIGHT, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D pg = puzzleImage.createGraphics();
+
+        // 从背景图中截取拼图区域
+        BufferedImage cutImage = bgImage.getSubimage(x, y, CUT_WIDTH, CUT_HEIGHT);
+        pg.drawImage(cutImage, 0, 0, null);
+
+        // 给拼图块添加边框
+        pg.setColor(Color.WHITE);
+        pg.setStroke(new BasicStroke(2));
+        pg.drawRect(0, 0, CUT_WIDTH - 1, CUT_HEIGHT - 1);
+        pg.dispose();
+        return puzzleImage;
+    }
+
+    /**
+     * 在背景图上绘制缺口（半透明遮罩）
+     */
+    private void drawGap(BufferedImage bgImage, int x, int y) {
+        Graphics2D g = bgImage.createGraphics();
+        g.setColor(new Color(0, 0, 0, 100)); // 黑色半透明
+        g.fillRect(x, y, CUT_WIDTH, CUT_HEIGHT);
+        g.dispose();
     }
 
     /**

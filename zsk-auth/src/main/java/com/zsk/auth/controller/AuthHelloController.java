@@ -13,7 +13,7 @@ import org.springframework.web.bind.annotation.RestController;
  * @version 1.0
  */
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/test")
 public class AuthHelloController {
 
     /** 测试配置项 */

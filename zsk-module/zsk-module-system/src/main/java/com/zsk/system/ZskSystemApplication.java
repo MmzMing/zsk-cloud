@@ -35,7 +35,7 @@ public class ZskSystemApplication {
                 "Application System is running! Access URLs:\n\t" +
                 "Local: \t\thttp://localhost:" + port + path + "/\n\t" +
                 "External: \thttp://" + ip + ":" + port + path + "/\n\t" +
-                "nacos: \t\thttp://localhost:8088/nacos\n\t" +
+                "nacos: \t\thttp://192.168.101.129:8088/nacos\n\t" +
                 "Knife4j: \thttp://" + ip + ":" + port + path + "/doc.html\n" +
                 "----------------------------------------------------------");
     }

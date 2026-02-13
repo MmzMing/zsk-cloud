@@ -63,7 +63,7 @@ public class RepeatSubmitFilter extends OncePerRequestFilter {
      * @throws Exception 异常
      */
     private boolean isRepeatSubmit(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        RequestMappingHandlerMapping requestMappingHandlerMapping = SpringUtil.getBean(RequestMappingHandlerMapping.class);
+        RequestMappingHandlerMapping requestMappingHandlerMapping = SpringUtil.getBean("requestMappingHandlerMapping");
         HandlerExecutionChain chain = requestMappingHandlerMapping.getHandler(request);
         if (chain == null || !(chain.getHandler() instanceof HandlerMethod handlerMethod)) {
             return false;

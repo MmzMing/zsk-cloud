@@ -15,6 +15,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authorization.AuthorizationDecision;
@@ -45,6 +46,9 @@ public class SecurityConfiguration {
     /** 防止重复提交过滤器 */
     private final RepeatSubmitFilter repeatSubmitFilter;
 
+    @Value("${server.servlet.context-path:}")
+    private String contextPath;
+
     /**
      * 配置安全过滤链
      * <p>
@@ -74,7 +78,16 @@ public class SecurityConfiguration {
                     // 获取白名单配置并放行
                     List<String> whites = ignoreWhiteProperties.getWhites();
                     if (whites != null && !whites.isEmpty()) {
-                        auth.requestMatchers(whites.toArray(new String[0])).permitAll();
+                        // 如果配置了 context-path，且白名单路径以 context-path 开头，则需要去除前缀才能匹配 servlet-path
+                        // 例如：contextPath = "/auth", path = "/auth/captcha" -> 匹配路径 = "/captcha"
+                        String[] whiteArray = whites.stream()
+                                .map(path -> {
+                                    if (StringUtils.isNotEmpty(contextPath) && path.startsWith(contextPath)) {
+                                        return path.substring(contextPath.length());
+                                    }
+                                    return path;
+                                }).toArray(String[]::new);
+                        auth.requestMatchers(whiteArray).permitAll();
                     }
                     // 其他所有请求都需要进行认证校验
                     auth.anyRequest().access((authentication, context) ->
