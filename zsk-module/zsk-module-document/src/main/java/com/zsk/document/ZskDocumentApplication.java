@@ -16,6 +16,5 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
 public class ZskDocumentApplication {
     public static void main(String[] args) {
         SpringApplication.run(ZskDocumentApplication.class, args);
-        System.out.println("（づ￣3￣）づ╭❤～ 文档管理服务启动成功 \n");
     }
 }

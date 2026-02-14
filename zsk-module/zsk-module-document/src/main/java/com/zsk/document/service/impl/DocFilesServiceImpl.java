@@ -1,5 +1,6 @@
 package com.zsk.document.service.impl;
 
+import cn.hutool.core.io.file.FileNameUtil;
 import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -7,6 +8,7 @@ import com.zsk.common.core.exception.BusinessException;
 import com.zsk.common.oss.core.DynamicOssTemplate;
 import com.zsk.common.oss.core.OssTemplate;
 import com.zsk.common.oss.utils.OssUtils;
+import com.zsk.common.core.utils.StringUtils;
 import com.zsk.document.domain.DocFiles;
 import com.zsk.document.domain.vo.MultipartCompleteRequest;
 import com.zsk.document.domain.vo.MultipartInitRequest;
@@ -73,10 +75,19 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
     @Override
     @SneakyThrows
     public String initiateMultipartUpload(MultipartInitRequest request) {
+        if (request == null) {
+            throw new BusinessException("参数不能为空");
+        }
         String fileName = request.getFileName();
         String contentType = request.getContentType();
-        String md5 = request.getMd5(); 
+        String md5 = request.getMd5();
 
+        if (StringUtils.isEmpty(fileName)) {
+            throw new BusinessException("文件名不能为空");
+        }
+        if (StringUtils.isEmpty(md5)) {
+            throw new BusinessException("文件MD5不能为空");
+        }
         // 生成存储路径
         String objectName = OssUtils.getPath(fileName, md5);
         
@@ -94,6 +105,7 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
         docFile.setFileType(OssUtils.getExtension(fileName));
         docFile.setCreateTime(LocalDateTime.now());
         docFile.setBucket(bucketName);
+        docFile.setStatus(1); // 上传中
         save(docFile);
         
         return uploadId;
@@ -142,8 +154,27 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
         // 完成分片上传
         ossTemplate.completeMultipartUpload(docFile.getBucket(), docFile.getFilePath(), uploadId, request.getParts());
         
+        // 校验文件MD5
+        // 1. 获取路径中的MD5 (文件名就是MD5)
+        String expectedMd5 = FileNameUtil.mainName(docFile.getFilePath());
+        
+        // 2. 计算实际文件的MD5
+        String actualMd5;
+        try (InputStream is = ossTemplate.getObject(docFile.getBucket(), docFile.getFilePath())) {
+            actualMd5 = OssUtils.getMd5(is);
+        }
+        
+        // 3. 比较MD5
+        if (!expectedMd5.equalsIgnoreCase(actualMd5)) {
+            // MD5不一致，删除文件和记录
+            ossTemplate.removeObject(docFile.getBucket(), docFile.getFilePath());
+            removeById(docFile.getId());
+            throw new BusinessException("文件校验失败：MD5值不一致，文件可能已损坏或被篡改");
+        }
+        
         // 更新记录URL
         docFile.setUrl(ossTemplate.getObjectUrl(docFile.getBucket(), docFile.getFilePath()));
+        docFile.setStatus(2); // 已上传
         updateById(docFile);
     }
 
@@ -177,6 +208,7 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
         docFile.setCreateTime(LocalDateTime.now());
         docFile.setUrl(url);
         docFile.setBucket(getBucketName());
+        docFile.setStatus(2); // 已上传
         save(docFile);
         return docFile;
     }

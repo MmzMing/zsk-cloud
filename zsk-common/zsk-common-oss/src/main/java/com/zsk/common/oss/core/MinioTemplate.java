@@ -1,5 +1,6 @@
 package com.zsk.common.oss.core;
 
+import cn.hutool.core.util.IdUtil;
 import com.google.common.collect.Multimap;
 import com.zsk.common.oss.model.OssPart;
 import com.zsk.common.oss.properties.OssProperties;
@@ -186,7 +187,7 @@ public class MinioTemplate implements OssTemplate {
         if (!bucketExists(bucketName)) {
             makeBucket(bucketName);
         }
-        return UUID.randomUUID().toString();
+        return IdUtil.simpleUUID();
     }
 
     /**

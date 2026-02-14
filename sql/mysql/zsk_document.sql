@@ -70,6 +70,10 @@ CREATE TABLE `document_note_pic`  (
   INDEX `idx_np_note_id`(`note_id` ASC) USING BTREE COMMENT '笔记ID'
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_笔记多图关联表' ROW_FORMAT = DYNAMIC;
 
+
+-- ----------------------------
+-- 4. 文件表
+-- ----------------------------
 DROP TABLE IF EXISTS `document_files`;
 CREATE TABLE `document_files`  (
   `id` bigint(20) NOT NULL COMMENT '参数主键',
@@ -82,6 +86,7 @@ CREATE TABLE `document_files`  (
   `url` varchar(1024) NULL DEFAULT NULL COMMENT '媒资文件访问地址',
   `remark` varchar(32) NULL DEFAULT NULL COMMENT '备注',
   `file_size` bigint(20) NULL DEFAULT NULL COMMENT '文件大小',
+  `status` int(4) NOT NULL DEFAULT 0 COMMENT '上传状态（0未上传 1上传中 2已上传）',
   `create_name` varchar(100) DEFAULT NULL COMMENT '创建者姓名',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
   `update_name` varchar(100) DEFAULT NULL COMMENT '更新者姓名',

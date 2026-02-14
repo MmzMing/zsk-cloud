@@ -49,4 +49,8 @@ public class DocFiles extends TenantEntity {
     /** 文件大小 */
     @Schema(description = "文件大小")
     private Long fileSize;
+
+    /** 上传状态（0未上传 1上传中 2已上传） */
+    @Schema(description = "上传状态（0未上传 1上传中 2已上传）")
+    private Integer status;
 }

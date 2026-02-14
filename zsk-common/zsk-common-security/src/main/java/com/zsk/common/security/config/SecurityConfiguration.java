@@ -12,12 +12,17 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.access.intercept.AuthorizationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
+import org.springframework.web.cors.CorsConfigurationSource;
+import java.util.Collections;
 
 /**
  * 权限配置
@@ -65,6 +70,8 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         // 禁用 CSRF，因为在微服务架构下，通常使用 Token 验证，不需要 CSRF 防护
         http.csrf(AbstractHttpConfigurer::disable)
+                // 开启跨域配置
+                .cors(Customizer.withDefaults())
                 // 禁用 Session，使用无状态（STATELESS）策略，完全依赖 Token 认证
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // 配置请求权限控制，允许所有请求，通过注解控制权限
@@ -91,6 +98,29 @@ public class SecurityConfiguration {
                 .logout(AbstractHttpConfigurer::disable);
 
         return http.build();
+    }
+
+    /**
+     * 跨域资源配置
+     */
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration config = new CorsConfiguration();
+        // 允许所有请求域名
+        config.setAllowedOriginPatterns(Collections.singletonList("*"));
+        // 允许所有请求方法
+        config.addAllowedMethod("*");
+        // 允许所有请求头
+        config.addAllowedHeader("*");
+        // 允许凭证
+        config.setAllowCredentials(true);
+        // 暴露哪些头部信息
+        config.addExposedHeader("*");
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        // 对所有路径生效
+        source.registerCorsConfiguration("/**", config);
+        return source;
     }
 
     /**
