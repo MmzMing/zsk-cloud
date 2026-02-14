@@ -14,7 +14,7 @@ import java.util.Set;
 /**
  * 菜单管理 服务层实现
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Service
 public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> implements ISysMenuService {

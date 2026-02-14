@@ -9,7 +9,7 @@ import java.util.List;
 /**
  * 菜单权限表 数据层
  *
- * @author zsk
+ * @author wuhuaming
  */
 public interface SysMenuMapper extends BaseMapper<SysMenu> {
     /**

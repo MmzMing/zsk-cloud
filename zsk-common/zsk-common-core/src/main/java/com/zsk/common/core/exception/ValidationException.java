@@ -7,7 +7,7 @@ import java.io.Serial;
 /**
  * 参数校验异常
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class ValidationException extends BaseException {
 

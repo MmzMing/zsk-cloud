@@ -5,7 +5,7 @@ import lombok.Getter;
 /**
  * 数据状态枚举
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Getter
 public enum DataStatus {

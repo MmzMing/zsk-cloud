@@ -5,7 +5,7 @@ import java.lang.annotation.*;
 /**
  * 内部认证：仅限内部服务调用
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)

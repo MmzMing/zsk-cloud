@@ -12,7 +12,7 @@ import java.io.Serializable;
 /**
  * 分页查询参数
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Data
 public class PageQuery implements Serializable {

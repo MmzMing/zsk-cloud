@@ -5,7 +5,7 @@ import com.alibaba.ttl.TransmittableThreadLocal;
 /**
  * 租户上下文 - 多租户SaaS模式支持
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class TenantContext {
 

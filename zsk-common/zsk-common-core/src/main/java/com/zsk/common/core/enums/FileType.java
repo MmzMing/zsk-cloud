@@ -6,7 +6,7 @@ import lombok.Getter;
 /**
  * 文件类型枚举
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Getter
 @AllArgsConstructor
@@ -14,27 +14,27 @@ public enum FileType {
     /**
      * 图片
      */
-    IMAGE("image", new String[]{"png", "jpg", "jpeg", "gif", "bmp", "webp"}),
+    IMAGE("image", new String[]{"bmp", "dib", "gif", "jfif", "jpe", "jpeg", "jpg", "png", "tif", "tiff", "ico", "psd", "svg", "webp"}),
 
     /**
      * 视频
      */
-    VIDEO("video", new String[]{"mp4", "avi", "rmvb", "wmv", "mkv", "flv"}),
+    VIDEO("video", new String[]{"wmv", "asf", "asx", "rm", "rmvb", "mpg", "mpeg", "mpe", "3gp", "mov", "mp4", "m4v", "avi", "dat", "mkv", "flv", "vob", "swf", "webm", "ts"}),
 
     /**
      * 音频
      */
-    AUDIO("audio", new String[]{"mp3", "wav", "wma", "ogg", "flac"}),
+    AUDIO("audio", new String[]{"mp3", "ogg", "wav", "ape", "cda", "au", "midi", "mac", "aac", "flac", "wma"}),
 
     /**
      * 文档
      */
-    DOC("doc", new String[]{"doc", "docx", "xls", "xlsx", "ppt", "pptx", "pdf", "txt"}),
+    DOC("doc", new String[]{"pptx", "docx", "xlsx", "doc", "wps", "xls", "ppt", "txt", "sql", "htm", "html", "pdf", "dwg", "md", "json", "xml", "csv"}),
 
     /**
      * 压缩包
      */
-    ZIP("zip", new String[]{"zip", "rar", "7z", "tar", "gz"}),
+    ZIP("zip", new String[]{"rar", "zip", "cab", "arj", "7z", "tar", "gz", "gzip", "jar", "iso", "z", "uue", "ace", "lzh", "bz2", "bz", "xz"}),
 
     /**
      * 其他

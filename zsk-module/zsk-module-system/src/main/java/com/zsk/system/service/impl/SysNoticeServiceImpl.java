@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 /**
  * 通知公告管理 服务层实现
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Service
 public class SysNoticeServiceImpl extends ServiceImpl<SysNoticeMapper, SysNotice> implements ISysNoticeService {

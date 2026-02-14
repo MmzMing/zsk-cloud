@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 用户服务
  *
- * @author zsk
+ * @author wuhuaming
  */
 @FeignClient(contextId = "remoteUserService", value = ServiceNameConstants.SYSTEM_SERVICE, fallbackFactory = RemoteUserFallbackFactory.class, url = "http://127.0.0.1:20010")
 public interface RemoteUserService {

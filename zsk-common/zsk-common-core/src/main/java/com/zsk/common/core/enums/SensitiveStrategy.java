@@ -7,7 +7,7 @@ import java.util.function.Function;
 /**
  * 脱敏策略
  *
- * @author zsk
+ * @author wuhuaming
  */
 public enum SensitiveStrategy {
     /**

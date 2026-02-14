@@ -8,7 +8,7 @@ import java.lang.annotation.*;
  * 从库数据源注解
  *
  * @author wuhuaming
- * @date 2024-01-15
+ * @date 2026-02-14
  */
 @Target({ElementType.TYPE, ElementType.METHOD})
 @Retention(RetentionPolicy.RUNTIME)

@@ -3,7 +3,7 @@ package com.zsk.common.core.constant;
 /**
  * Nacos常量
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class NacosConstants {
 

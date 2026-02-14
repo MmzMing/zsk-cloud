@@ -3,7 +3,7 @@
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_user`;
 CREATE TABLE `sys_user` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '用户ID',
+  `id` bigint(20) NOT NULL  COMMENT '用户ID',
   `tenant_id` bigint(20) DEFAULT 0 COMMENT '租户ID',
   `user_name` varchar(30) NOT NULL COMMENT '用户账号',
   `nick_name` varchar(30) NOT NULL COMMENT '用户昵称',
@@ -30,7 +30,7 @@ CREATE TABLE `sys_user` (
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_role`;
 CREATE TABLE `sys_role` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '角色ID',
+  `id` bigint(20) NOT NULL  COMMENT '角色ID',
   `tenant_id` bigint(20) DEFAULT 0 COMMENT '租户ID',
   `role_name` varchar(30) NOT NULL COMMENT '角色名称',
   `role_key` varchar(100) NOT NULL COMMENT '角色权限字符串',
@@ -63,7 +63,7 @@ CREATE TABLE `sys_user_role` (
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_menu`;
 CREATE TABLE `sys_menu` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '菜单ID',
+  `id` bigint(20) NOT NULL  COMMENT '菜单ID',
   `menu_name` varchar(50) NOT NULL COMMENT '菜单名称',
   `parent_id` bigint(20) DEFAULT 0 COMMENT '父菜单ID',
   `order_num` int(4) DEFAULT 0 COMMENT '显示顺序',
@@ -100,7 +100,7 @@ CREATE TABLE `sys_role_menu` (
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_dict_type`;
 CREATE TABLE `sys_dict_type` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '字典主键',
+  `id` bigint(20) NOT NULL  COMMENT '字典主键',
   `dict_name` varchar(100) DEFAULT '' COMMENT '字典名称',
   `dict_type` varchar(100) DEFAULT '' COMMENT '字典类型',
   `status` int(4) DEFAULT 0 COMMENT '状态（0正常 1停用）',
@@ -115,7 +115,7 @@ CREATE TABLE `sys_dict_type` (
 
 DROP TABLE IF EXISTS `sys_dict_data`;
 CREATE TABLE `sys_dict_data` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '字典编码',
+  `id` bigint(20) NOT NULL  COMMENT '字典编码',
   `dict_sort` int(4) DEFAULT 0 COMMENT '字典排序',
   `dict_label` varchar(100) DEFAULT '' COMMENT '字典标签',
   `dict_value` varchar(100) DEFAULT '' COMMENT '字典键值',
@@ -137,7 +137,7 @@ CREATE TABLE `sys_dict_data` (
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_config`;
 CREATE TABLE `sys_config` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '参数主键',
+  `id` bigint(20) NOT NULL  COMMENT '参数主键',
   `config_name` varchar(100) DEFAULT '' COMMENT '参数名称',
   `config_key` varchar(100) DEFAULT '' COMMENT '参数键名',
   `config_value` varchar(500) DEFAULT '' COMMENT '参数键值',
@@ -155,7 +155,7 @@ CREATE TABLE `sys_config` (
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_notice`;
 CREATE TABLE `sys_notice` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT COMMENT '公告ID',
+  `id` bigint(20) NOT NULL  COMMENT '公告ID',
   `notice_title` varchar(50) NOT NULL COMMENT '公告标题',
   `notice_type` int(4) NOT NULL COMMENT '公告类型（1通知 2公告）',
   `notice_content` longblob COMMENT '公告内容',

@@ -15,7 +15,7 @@ import java.util.Objects;
 /**
  * 脱敏序列化器
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class SensitiveSerializer extends JsonSerializer<String> implements ContextualSerializer {
     private SensitiveStrategy strategy;

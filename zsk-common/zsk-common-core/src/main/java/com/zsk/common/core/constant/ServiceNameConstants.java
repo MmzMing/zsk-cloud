@@ -3,7 +3,7 @@ package com.zsk.common.core.constant;
 /**
  * 服务名称
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class ServiceNameConstants {
     /**

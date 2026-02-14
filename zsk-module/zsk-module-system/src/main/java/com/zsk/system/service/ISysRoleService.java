@@ -9,7 +9,7 @@ import java.util.Set;
 /**
  * 角色管理 服务层
  *
- * @author zsk
+ * @author wuhuaming
  */
 public interface ISysRoleService extends IService<SysRole> {
     /**

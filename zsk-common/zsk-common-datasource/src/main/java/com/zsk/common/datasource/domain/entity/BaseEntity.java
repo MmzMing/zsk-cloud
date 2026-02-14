@@ -1,7 +1,9 @@
 package com.zsk.common.datasource.domain.entity;
 
 import com.baomidou.mybatisplus.annotation.FieldFill;
+import com.baomidou.mybatisplus.annotation.IdType;
 import com.baomidou.mybatisplus.annotation.TableField;
+import com.baomidou.mybatisplus.annotation.TableId;
 import com.baomidou.mybatisplus.annotation.TableLogic;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.fasterxml.jackson.annotation.JsonIgnore;
@@ -14,13 +16,18 @@ import java.time.LocalDateTime;
 /**
  * 基础实体类
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Data
 public class BaseEntity implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
+    /**
+     * 参数主键
+     */
+    @TableId(value = "id", type = IdType.ASSIGN_ID)
+    private Long id;
 
     /**
      * 创建时间

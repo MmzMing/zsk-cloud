@@ -6,7 +6,7 @@ import com.zsk.system.domain.SysRoleMenu;
 /**
  * 角色与菜单关联表 数据层
  *
- * @author zsk
+ * @author wuhuaming
  */
 public interface SysRoleMenuMapper extends BaseMapper<SysRoleMenu> {
 }

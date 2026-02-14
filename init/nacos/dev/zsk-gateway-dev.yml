@@ -19,6 +19,8 @@ spring:
               uri: lb://zsk-system
               predicates:
                 - Path=/system/**
+
+
 security:
   # XSS 防护配置
   xss:
@@ -34,5 +36,5 @@ security:
       - /auth/captcha
       - /auth/email/code
       - /auth/third/**
-      - /auth/hello
+      - /auth/test/hello
       - /system/user/info/*

@@ -9,7 +9,7 @@ import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
  *
  * @author wuhuaming
  * @version 1.0
- * @date 2024-02-13
+ * @date 2026-02-14
  */
 @SpringBootApplication
 @EnableDiscoveryClient

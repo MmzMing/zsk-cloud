@@ -3,7 +3,7 @@ package com.zsk.common.security.enums;
 /**
  * 权限验证逻辑
  *
- * @author zsk
+ * @author wuhuaming
  */
 public enum Logical {
     /**

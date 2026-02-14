@@ -8,7 +8,7 @@ import java.io.Serializable;
 /**
  * 用户对象 sys_user
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Data
 public class SysUserApi implements Serializable {

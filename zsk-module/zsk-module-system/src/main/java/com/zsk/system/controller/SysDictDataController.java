@@ -16,7 +16,7 @@ import java.util.List;
 /**
  * 字典数据 控制器
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Tag(name = "字典数据")
 @RestController

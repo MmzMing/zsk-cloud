@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * 参数管理 控制器
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Tag(name = "参数管理")
 @RestController

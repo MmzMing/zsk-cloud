@@ -14,7 +14,7 @@ import java.time.LocalDateTime;
 /**
  * MyBatis Plus 自动填充处理器
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Slf4j
 @Component
@@ -29,7 +29,7 @@ public class MybatisPlusMetaObjectHandler implements MetaObjectHandler {
             userName = "admin";
         }
         Long tenantId = TenantContext.getTenantId();
-        if (ObjectUtil.isEmpty(tenantId)) {
+        if (ObjectUtil.isEmpty(tenantId) || tenantId == 0L) {
             tenantId = 1001L;
         }
 

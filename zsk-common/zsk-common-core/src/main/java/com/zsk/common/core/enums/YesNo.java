@@ -5,7 +5,7 @@ import lombok.Getter;
 /**
  * 是/否枚举
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Getter
 public enum YesNo {

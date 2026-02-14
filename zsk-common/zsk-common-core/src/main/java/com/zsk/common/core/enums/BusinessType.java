@@ -5,7 +5,7 @@ import lombok.Getter;
 /**
  * 业务操作类型枚举
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Getter
 public enum BusinessType {

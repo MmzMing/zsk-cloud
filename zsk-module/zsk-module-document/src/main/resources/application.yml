@@ -1,0 +1,28 @@
+# Tomcat
+server:
+  servlet:
+    context-path: /document
+  port: 20020
+
+# Spring
+spring:
+  application:
+    name: zsk-module-document
+  profiles:
+    active: dev
+  config:
+    import:
+      - optional:nacos:application.yml?group=${spring.profiles.active}&refresh=true
+      - optional:nacos:${spring.application.name}-${spring.profiles.active}.yml?group=${spring.profiles.active}&refresh=true
+  cloud:
+    nacos:
+      server-addr: 192.168.101.129:8848
+      username: nacos
+      password: 123456
+      discovery:
+        namespace: 14d6a66b-76d7-49e0-a077-40f326377790
+        group: ${spring.profiles.active}
+      config:
+        namespace: 14d6a66b-76d7-49e0-a077-40f326377790
+        file-extension: yml
+        refresh-enabled: true

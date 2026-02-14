@@ -23,7 +23,7 @@ import java.util.TimeZone;
 /**
  * Jackson配置
  *
- * @author zsk
+ * @author wuhuaming
  */
 @AutoConfiguration
 public class JacksonConfig {

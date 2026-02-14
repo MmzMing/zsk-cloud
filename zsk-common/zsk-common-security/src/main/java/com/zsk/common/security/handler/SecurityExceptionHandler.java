@@ -16,7 +16,7 @@ import java.util.Objects;
 /**
  * 安全模块异常处理器
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Slf4j
 @RestControllerAdvice

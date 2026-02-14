@@ -15,7 +15,7 @@ import java.net.UnknownHostException;
 /**
  * 系统模块
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Slf4j
 @EnableZskFeignClients

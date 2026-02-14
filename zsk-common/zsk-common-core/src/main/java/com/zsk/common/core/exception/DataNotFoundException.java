@@ -7,7 +7,7 @@ import java.io.Serial;
 /**
  * 数据不存在异常
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class DataNotFoundException extends BaseException {
 

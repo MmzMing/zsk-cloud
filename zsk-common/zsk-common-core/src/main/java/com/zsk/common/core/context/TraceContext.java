@@ -7,7 +7,7 @@ import java.util.UUID;
 /**
  * 追踪上下文 - 链路追踪
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class TraceContext {
 

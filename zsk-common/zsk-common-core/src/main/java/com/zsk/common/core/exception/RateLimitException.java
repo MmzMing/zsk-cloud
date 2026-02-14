@@ -7,7 +7,7 @@ import java.io.Serial;
 /**
  * 限流异常
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class RateLimitException extends BaseException {
 

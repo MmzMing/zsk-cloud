@@ -17,7 +17,7 @@ import java.lang.reflect.Method;
 /**
  * 权限认证切面
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Aspect
 @Component

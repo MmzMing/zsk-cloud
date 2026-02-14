@@ -7,7 +7,7 @@ import java.io.Serial;
 /**
  * 权限异常
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class PermissionException extends BaseException {
 

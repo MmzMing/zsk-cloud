@@ -5,7 +5,7 @@ import lombok.Getter;
 /**
  * 性别枚举
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Getter
 public enum Gender {

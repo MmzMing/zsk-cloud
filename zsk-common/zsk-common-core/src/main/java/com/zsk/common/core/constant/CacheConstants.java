@@ -3,7 +3,7 @@ package com.zsk.common.core.constant;
 /**
  * 缓存常量
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class CacheConstants {
 

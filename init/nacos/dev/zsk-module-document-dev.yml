@@ -1,0 +1,29 @@
+spring:
+  datasource:
+    dynamic:
+      primary: master
+      datasource:
+        master:
+          driver-class-name: com.mysql.cj.jdbc.Driver
+          url: jdbc:mysql://192.168.101.129:3306/zsk_document?useSSL=false&useUnicode=true&characterEncoding=utf-8&zeroDateTimeBehavior=convertToNull&transformedBitIsBoolean=true&tinyInt1isBit=false&allowMultiQueries=true&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+          username: root
+          password: mysql_Ck2bRf
+# OSS配置
+zsk:
+  oss:
+    enabled: true
+    # 存储类型: minio / aliyun
+    type: minio
+    # MinIO配置
+    endpoint: http://192.168.101.129:9000
+    access-key: minio_RW8nGM
+    secret-key: minio_fZEpaA
+    bucket-name: zsk-document
+    # 自定义域名（可选）
+    domain:
+    # Aliyun配置示例 (切换type为aliyun时使用)
+    # endpoint: oss-cn-hangzhou.aliyuncs.com
+    # access-key: your-access-key
+    # secret-key: your-secret-key
+    # bucket-name: your-bucket
+    # domain: https://your-bucket.oss-cn-hangzhou.aliyuncs.com

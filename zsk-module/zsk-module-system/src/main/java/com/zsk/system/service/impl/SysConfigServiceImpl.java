@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 /**
  * 参数配置管理 服务层实现
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Service
 public class SysConfigServiceImpl extends ServiceImpl<SysConfigMapper, SysConfig> implements ISysConfigService {

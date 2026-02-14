@@ -10,7 +10,7 @@ import java.lang.annotation.Target;
 /**
  * 角色认证：必须具有指定角色才能进入该方法
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.TYPE})

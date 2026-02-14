@@ -6,7 +6,7 @@ import com.zsk.system.domain.SysUser;
 /**
  * 用户表 数据层
  *
- * @author zsk
+ * @author wuhuaming
  */
 public interface SysUserMapper extends BaseMapper<SysUser> {
 }

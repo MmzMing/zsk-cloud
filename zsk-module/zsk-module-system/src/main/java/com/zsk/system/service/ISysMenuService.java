@@ -9,7 +9,7 @@ import java.util.Set;
 /**
  * 菜单管理 服务层
  *
- * @author zsk
+ * @author wuhuaming
  */
 public interface ISysMenuService extends IService<SysMenu> {
     /**

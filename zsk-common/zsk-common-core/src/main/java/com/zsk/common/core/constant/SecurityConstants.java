@@ -3,7 +3,7 @@ package com.zsk.common.core.constant;
 /**
  * 安全常量
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class SecurityConstants {
 

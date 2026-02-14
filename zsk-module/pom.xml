@@ -17,6 +17,7 @@
 
     <modules>
         <module>zsk-module-system</module>
+        <module>zsk-module-document</module>
     </modules>
 
     <dependencies>

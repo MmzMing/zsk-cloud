@@ -6,7 +6,7 @@ import com.zsk.common.core.context.SecurityContext;
 /**
  * 安全服务工具类
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class SecurityUtils {
 

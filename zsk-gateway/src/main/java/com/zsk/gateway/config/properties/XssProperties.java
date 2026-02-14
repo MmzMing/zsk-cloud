@@ -11,9 +11,9 @@ import java.util.List;
 /**
  * XSS配置属性
  *
- * @author zsk
+ * @author wuhuaming
  * @version 1.0
- * @date 2024-02-13
+ * @date 2026-02-14
  */
 @Data
 @Configuration

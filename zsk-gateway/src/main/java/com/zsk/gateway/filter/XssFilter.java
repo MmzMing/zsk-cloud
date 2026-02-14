@@ -24,9 +24,9 @@ import java.util.Map;
 /**
  * XSS 跨站脚本攻击防护过滤器
  *
- * @author zsk
+ * @author wuhuaming
  * @version 1.0
- * @date 2024-02-13
+ * @date 2026-02-14
  */
 @Slf4j
 @Component

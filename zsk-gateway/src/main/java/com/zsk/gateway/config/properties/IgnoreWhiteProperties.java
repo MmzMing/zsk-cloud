@@ -9,9 +9,9 @@ import java.util.List;
 /**
  * 安全过滤白名单配置
  *
- * @author zsk
+ * @author wuhuaming
  * @version 1.0
- * @date 2024-02-13
+ * @date 2026-02-14
  */
 @Data
 @Component

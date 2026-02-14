@@ -7,7 +7,7 @@ import java.io.Serial;
 /**
  * 认证异常
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class AuthException extends BaseException {
 

@@ -1,10 +1,12 @@
+k1: k2
+
 # 邮箱配置
 email:
   host: smtp.qq.com
   port: 465
-  username: your-email@qq.com
-  password: your-password
-  from: your-email@qq.com
+  username: 2834582612@qq.com
+  password: WHM@huaming..123
+  from: 2834582612@qq.com
   subject: 验证码
   code:
     expire: 300

@@ -12,7 +12,7 @@ import java.util.Set;
 /**
  * 权限验证工具类
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class AuthUtils {
 

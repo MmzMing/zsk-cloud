@@ -10,7 +10,7 @@ import java.util.concurrent.ThreadPoolExecutor;
 /**
  * 异步线程池配置
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Configuration
 @EnableAsync

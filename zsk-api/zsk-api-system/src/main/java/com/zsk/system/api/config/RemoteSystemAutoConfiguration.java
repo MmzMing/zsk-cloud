@@ -6,7 +6,7 @@ import org.springframework.context.annotation.ComponentScan;
 /**
  * 系统服务远程调用配置
  *
- * @author zsk
+ * @author wuhuaming
  */
 @AutoConfiguration
 @ComponentScan("com.zsk.system.api")

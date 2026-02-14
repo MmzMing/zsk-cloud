@@ -10,7 +10,7 @@ import java.util.Set;
 /**
  * 用户登录信息
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Data
 public class LoginUser implements Serializable {

@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 /**
  * Spring工具类
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Component
 public final class SpringUtil implements BeanFactoryPostProcessor {

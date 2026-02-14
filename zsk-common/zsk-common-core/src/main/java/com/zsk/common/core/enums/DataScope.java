@@ -5,7 +5,7 @@ import lombok.Getter;
 /**
  * 数据权限范围枚举
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Getter
 public enum DataScope {

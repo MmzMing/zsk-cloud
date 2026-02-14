@@ -7,7 +7,7 @@ import java.io.Serial;
 /**
  * 幂等性异常
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class IdempotencyException extends BaseException {
 

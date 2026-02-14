@@ -8,7 +8,7 @@ import java.io.Serial;
 /**
  * 多租户基础实体类
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Data
 @EqualsAndHashCode(callSuper = true)

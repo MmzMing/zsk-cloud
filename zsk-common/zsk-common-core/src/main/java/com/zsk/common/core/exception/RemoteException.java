@@ -7,7 +7,7 @@ import java.io.Serial;
 /**
  * 远程调用异常
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class RemoteException extends BaseException {
 

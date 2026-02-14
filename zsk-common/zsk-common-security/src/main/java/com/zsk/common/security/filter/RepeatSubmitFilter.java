@@ -22,9 +22,9 @@ import java.io.IOException;
 /**
  * 防止重复提交过滤器
  *
- * @author zsk
+ * @author wuhuaming
  * @version 1.0
- * @date 2024-02-13
+ * @date 2026-02-14
  */
 @Component
 @RequiredArgsConstructor

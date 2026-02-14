@@ -22,9 +22,9 @@ import org.springframework.security.web.access.intercept.AuthorizationFilter;
 /**
  * 权限配置
  *
- * @author zsk
+ * @author wuhuaming
  * @version 1.0
- * @date 2024-02-13
+ * @date 2026-02-14
  */
 @AutoConfiguration
 @RequiredArgsConstructor

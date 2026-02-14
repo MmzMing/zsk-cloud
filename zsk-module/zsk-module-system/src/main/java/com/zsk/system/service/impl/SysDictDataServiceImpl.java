@@ -11,7 +11,7 @@ import java.util.List;
 /**
  * 字典数据管理 服务层实现
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Service
 public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDictData> implements ISysDictDataService {

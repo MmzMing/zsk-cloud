@@ -7,7 +7,7 @@ import java.io.Serial;
 /**
  * 业务异常
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class BusinessException extends BaseException {
 

@@ -13,7 +13,7 @@ import java.util.List;
 /**
  * 通知公告 控制器
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Tag(name = "通知公告")
 @RestController

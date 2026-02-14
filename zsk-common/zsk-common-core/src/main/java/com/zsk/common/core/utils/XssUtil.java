@@ -7,7 +7,7 @@ import java.util.regex.Pattern;
 /**
  * XSS过滤工具类
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class XssUtil {
     private static final Pattern SCRIPT_PATTERN = Pattern.compile("<script>(.*?)</script>", Pattern.CASE_INSENSITIVE);

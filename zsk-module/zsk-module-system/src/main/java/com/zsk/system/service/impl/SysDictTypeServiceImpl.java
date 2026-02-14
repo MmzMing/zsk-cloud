@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 /**
  * 字典类型管理 服务层实现
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Service
 public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDictType> implements ISysDictTypeService {

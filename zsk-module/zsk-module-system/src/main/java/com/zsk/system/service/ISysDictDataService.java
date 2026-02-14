@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * 字典数据管理 服务层
  *
- * @author zsk
+ * @author wuhuaming
  */
 public interface ISysDictDataService extends IService<SysDictData> {
     /**

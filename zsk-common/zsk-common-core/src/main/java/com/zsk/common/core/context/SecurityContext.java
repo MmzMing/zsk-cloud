@@ -9,7 +9,7 @@ import java.util.Map;
 /**
  * 安全上下文 - 存储当前登录用户信息
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class SecurityContext {
 

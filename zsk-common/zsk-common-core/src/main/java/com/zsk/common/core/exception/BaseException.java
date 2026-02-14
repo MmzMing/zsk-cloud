@@ -8,7 +8,7 @@ import java.io.Serial;
 /**
  * 基础异常类
  *
- * @author zsk
+ * @author wuhuaming
  */
 @Getter
 public class BaseException extends RuntimeException {

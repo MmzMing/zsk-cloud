@@ -6,7 +6,7 @@ import com.zsk.system.domain.SysDictData;
 /**
  * 字典数据表 数据层
  *
- * @author zsk
+ * @author wuhuaming
  */
 public interface SysDictDataMapper extends BaseMapper<SysDictData> {
 }

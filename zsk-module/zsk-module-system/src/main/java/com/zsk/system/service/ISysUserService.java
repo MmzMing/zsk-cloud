@@ -8,7 +8,7 @@ import java.util.List;
 /**
  * 用户管理 服务层
  *
- * @author zsk
+ * @author wuhuaming
  */
 public interface ISysUserService extends IService<SysUser> {
     /**

@@ -26,9 +26,9 @@ import java.util.stream.Stream;
  * 请求头解析过滤器
  * 将请求头中的用户信息设置到当前线程上下文中，并同步到 Spring Security 上下文
  *
- * @author zsk
+ * @author wuhuaming
  * @version 1.0
- * @date 2024-02-13
+ * @date 2026-02-14
  */
 @Component
 public class HeaderContextFilter extends OncePerRequestFilter {

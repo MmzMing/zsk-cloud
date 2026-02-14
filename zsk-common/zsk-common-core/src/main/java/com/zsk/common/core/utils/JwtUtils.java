@@ -12,7 +12,7 @@ import java.util.Map;
 /**
  * Jwt工具类
  *
- * @author zsk
+ * @author wuhuaming
  */
 public class JwtUtils {
     /**
