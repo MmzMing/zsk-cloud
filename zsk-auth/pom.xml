@@ -22,6 +22,11 @@
             <artifactId>zsk-common-security</artifactId>
         </dependency>
 
+        <!-- ZSK Common Swagger -->
+        <dependency>
+            <groupId>com.zsk.cloud</groupId>
+            <artifactId>zsk-common-swagger</artifactId>
+        </dependency>
         <!-- ZSK Common Sentinel -->
         <dependency>
             <groupId>com.zsk.cloud</groupId>
@@ -32,19 +37,6 @@
         <dependency>
             <groupId>com.zsk.cloud</groupId>
             <artifactId>zsk-api-system</artifactId>
-        </dependency>
-
-
-        <!-- Spring Boot Validation -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-
-        <!-- Spring Cloud Openfeign -->
-        <dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-starter-openfeign</artifactId>
         </dependency>
 
         <!-- Spring Cloud LoadBalancer -->

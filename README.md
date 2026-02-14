@@ -130,7 +130,6 @@ sequenceDiagram
     - 启动 `ZskGatewayApplication` (网关)
     - 启动 `ZskAuthApplication` (认证)
     - 启动各业务模块应用
-4. **访问文档**: `http://localhost:8080/doc.html` (通过网关访问聚合文档)
 
 ---
 

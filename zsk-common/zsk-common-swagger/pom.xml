@@ -17,7 +17,6 @@
         swagger文档模块
     </description>
 
-
     <dependencies>
         <dependency>
             <groupId>com.github.xiaoymin</groupId>
@@ -39,4 +38,5 @@
             <optional>true</optional>
         </dependency>
     </dependencies>
+
 </project>

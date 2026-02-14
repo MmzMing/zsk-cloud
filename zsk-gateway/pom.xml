@@ -15,7 +15,7 @@
     <description>网关服务</description>
 
     <dependencies>
-        <!-- ZSK Common Security -->
+        <!-- ZSK Common Redis -->
         <dependency>
             <groupId>com.zsk.cloud</groupId>
             <artifactId>zsk-common-redis</artifactId>

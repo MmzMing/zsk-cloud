@@ -1,3 +1,5 @@
 com.zsk.common.core.config.JacksonConfig
 com.zsk.common.core.config.JwtAutoConfiguration
 com.zsk.common.core.utils.SpringUtil
+com.zsk.common.core.handler.GlobalExceptionHandler
+com.zsk.common.core.handler.GlobalWebFluxExceptionHandler

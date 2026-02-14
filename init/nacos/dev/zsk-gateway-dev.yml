@@ -15,11 +15,15 @@ spring:
               predicates:
                 - Path=/auth/**
             # 系统模块
-            - id: zsk-system
-              uri: lb://zsk-system
+            - id: zsk-module-system
+              uri: lb://zsk-module-system
               predicates:
                 - Path=/system/**
-
+            # 文档模块
+            - id: zsk-module-document
+              uri: lb://zsk-module-document
+              predicates:
+                - Path=/document/**
 
 security:
   # XSS 防护配置
@@ -38,3 +42,4 @@ security:
       - /auth/third/**
       - /auth/test/hello
       - /system/user/info/*
+      - /favicon.ico
