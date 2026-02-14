@@ -21,10 +21,10 @@
             <groupId>com.zsk.cloud</groupId>
             <artifactId>zsk-common-datasource</artifactId>
         </dependency>
-        <!-- ZSK Common Security -->
+        <!-- Common Log -->
         <dependency>
             <groupId>com.zsk.cloud</groupId>
-            <artifactId>zsk-common-security</artifactId>
+            <artifactId>zsk-common-log</artifactId>
         </dependency>
         <!-- Common OSS -->
         <dependency>
@@ -38,11 +38,7 @@
             <artifactId>zsk-common-swagger</artifactId>
         </dependency>
 
-        <!-- Common Log -->
-        <dependency>
-            <groupId>com.zsk.cloud</groupId>
-            <artifactId>zsk-common-log</artifactId>
-        </dependency>
+
 
 
     </dependencies>

@@ -17,5 +17,22 @@
         日志模块
     </description>
 
+    <dependencies>
+        <dependency>
+            <groupId>com.zsk.cloud</groupId>
+            <artifactId>zsk-common-security</artifactId>
+        </dependency>
+        <!-- Spring Data MongoDB -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-mongodb</artifactId>
+        </dependency>
 
+        <!-- AOP -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-aop</artifactId>
+        </dependency>
+
+    </dependencies>
 </project>

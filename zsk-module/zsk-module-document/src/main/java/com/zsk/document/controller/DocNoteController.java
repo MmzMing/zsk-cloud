@@ -5,6 +5,8 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zsk.common.core.domain.R;
 import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
+import com.zsk.common.log.annotation.Log;
+import com.zsk.common.log.enums.BusinessType;
 import com.zsk.document.domain.DocNote;
 import com.zsk.document.service.IDocNoteService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -32,6 +34,7 @@ public class DocNoteController {
     /**
      * 查询笔记列表
      */
+    @Log(title = "笔记管理", businessType = BusinessType.QUERY)
     @Operation(summary = "查询笔记列表")
     @GetMapping("/list")
     public R<List<DocNote>> list(DocNote docNote) {
@@ -42,6 +45,7 @@ public class DocNoteController {
     /**
      * 分页查询笔记列表
      */
+    @Log(title = "笔记管理", businessType = BusinessType.QUERY)
     @Operation(summary = "分页查询笔记列表")
     @GetMapping("/page")
     public R<PageResult<DocNote>> page(DocNote docNote, PageQuery pageQuery) {
@@ -53,6 +57,7 @@ public class DocNoteController {
     /**
      * 获取笔记详细信息
      */
+    @Log(title = "笔记管理", businessType = BusinessType.QUERY)
     @Operation(summary = "获取笔记详细信息")
     @GetMapping(value = "/{id}")
     public R<DocNote> getInfo(@PathVariable("id") Long id) {
@@ -62,6 +67,7 @@ public class DocNoteController {
     /**
      * 新增笔记
      */
+    @Log(title = "笔记管理", businessType = BusinessType.INSERT)
     @Operation(summary = "新增笔记")
     @PostMapping
     public R<Boolean> add(@RequestBody DocNote docNote) {
@@ -71,6 +77,7 @@ public class DocNoteController {
     /**
      * 修改笔记
      */
+    @Log(title = "笔记管理", businessType = BusinessType.UPDATE)
     @Operation(summary = "修改笔记")
     @PutMapping
     public R<Boolean> edit(@RequestBody DocNote docNote) {
@@ -80,6 +87,7 @@ public class DocNoteController {
     /**
      * 删除笔记
      */
+    @Log(title = "笔记管理", businessType = BusinessType.DELETE)
     @Operation(summary = "删除笔记")
     @DeleteMapping("/{ids}")
     public R<Boolean> remove(@PathVariable List<Long> ids) {

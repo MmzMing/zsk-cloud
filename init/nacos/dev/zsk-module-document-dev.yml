@@ -16,8 +16,8 @@ zsk:
     type: minio
     # MinIO配置
     endpoint: http://192.168.101.129:9000
-    access-key: minio_RW8nGM
-    secret-key: minio_fZEpaA
+    access-key: minio_5bkRbj
+    secret-key: minio_bTpeBY
     bucket-name: zsk-document
     # 自定义域名（可选）
     domain:

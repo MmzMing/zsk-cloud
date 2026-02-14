@@ -37,7 +37,6 @@
 
         <!-- 组件版本 -->
         <nacos.version>3.1.1</nacos.version>
-        <mongodb.version>5.2.0</mongodb.version>
         <rocketmq.version>5.2.0</rocketmq.version>
         <xxl-job.version>2.4.1</xxl-job.version>
         <elasticsearch.version>8.12.0</elasticsearch.version>
@@ -147,11 +146,6 @@
             </dependency>
             <dependency>
                 <groupId>com.zsk.cloud</groupId>
-                <artifactId>zsk-common-mongodb</artifactId>
-                <version>${zsk-cloud.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.zsk.cloud</groupId>
                 <artifactId>zsk-common-security</artifactId>
                 <version>${zsk-cloud.version}</version>
             </dependency>
@@ -167,27 +161,12 @@
             </dependency>
             <dependency>
                 <groupId>com.zsk.cloud</groupId>
-                <artifactId>zsk-common-rocketmq</artifactId>
-                <version>${zsk-cloud.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.zsk.cloud</groupId>
-                <artifactId>zsk-common-seata</artifactId>
-                <version>${zsk-cloud.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.zsk.cloud</groupId>
                 <artifactId>zsk-common-sentinel</artifactId>
                 <version>${zsk-cloud.version}</version>
             </dependency>
             <dependency>
                 <groupId>com.zsk.cloud</groupId>
                 <artifactId>zsk-common-xxljob</artifactId>
-                <version>${zsk-cloud.version}</version>
-            </dependency>
-            <dependency>
-                <groupId>com.zsk.cloud</groupId>
-                <artifactId>zsk-common-es</artifactId>
                 <version>${zsk-cloud.version}</version>
             </dependency>
             <dependency>
@@ -240,7 +219,7 @@
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-starter-data-mongodb</artifactId>
-                <version>${mongodb.version}</version>
+                <version>${spring-boot.version}</version>
             </dependency>
 
             <!-- ==================== 缓存 ==================== -->
