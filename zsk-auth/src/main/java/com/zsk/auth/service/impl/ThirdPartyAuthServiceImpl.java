@@ -14,7 +14,14 @@ import com.zsk.system.api.model.LoginUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -34,6 +41,8 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
     private final RemoteUserService remoteUserService;
     private final RedisService redisService;
+    
+    private final RestTemplate restTemplate = new RestTemplate();
 
     /**
      * QQ AppId
@@ -100,6 +109,9 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
      */
     @Override
     public SysUserApi getUserByAuthCode(String loginType, String authCode, String state) {
+        // 校验 state，防止 CSRF 攻击
+        validateState(loginType, state);
+
         String accessToken = getAccessToken(loginType, authCode);
         if (StringUtils.isEmpty(accessToken)) {
             throw new AuthException("获取第三方访问令牌失败");
@@ -132,6 +144,27 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
         }
 
         throw new AuthException("第三方登录自动注册失败");
+    }
+
+    /**
+     * 校验 state
+     *
+     * @param loginType 登录类型
+     * @param state     状态码
+     */
+    private void validateState(String loginType, String state) {
+        if (StringUtils.isEmpty(state)) {
+            throw new AuthException("state不能为空");
+        }
+        String stateKey = CacheConstants.THIRD_PARTY_STATE_KEY + state;
+        String savedLoginType = redisService.getCacheObject(stateKey);
+        
+        if (StringUtils.isEmpty(savedLoginType) || !savedLoginType.equals(loginType)) {
+            throw new AuthException("非法请求或state已过期");
+        }
+        
+        // 验证通过后删除 state，防止重放
+        redisService.deleteObject(stateKey);
     }
 
     /**
@@ -184,7 +217,7 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
                 + "&client_secret=" + qqAppSecret + "&code=" + authCode + "&redirect_uri=" + qqRedirectUri;
 
         try {
-            String response = sendGetRequest(url);
+            String response = restTemplate.getForObject(url, String.class);
             Map<String, Object> result = parseResponse(response);
             return result != null ? result.get("access_token").toString() : null;
         } catch (Exception e) {
@@ -204,7 +237,7 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
                 + "&secret=" + wechatAppSecret + "&code=" + authCode + "&grant_type=authorization_code";
 
         try {
-            String response = sendGetRequest(url);
+            String response = restTemplate.getForObject(url, String.class);
             Map<String, Object> result = JsonUtil.parseMap(response);
             return result != null ? result.get("access_token").toString() : null;
         } catch (Exception e) {
@@ -223,12 +256,21 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
         String url = "https://github.com/login/oauth/access_token";
 
         try {
-            Map<String, String> params = new HashMap<>();
-            params.put("client_id", githubClientId);
-            params.put("client_secret", githubClientSecret);
-            params.put("code", authCode);
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+            // 请求 JSON 格式响应，方便解析
+            headers.setAccept(java.util.Collections.singletonList(MediaType.APPLICATION_JSON));
 
-            String response = sendPostRequest(url, params);
+            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+            params.add("client_id", githubClientId);
+            params.add("client_secret", githubClientSecret);
+            params.add("code", authCode);
+
+            HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
+            
+            // 使用 exchange 发送 POST 请求
+            String response = restTemplate.postForObject(url, requestEntity, String.class);
+            
             Map<String, Object> result = parseResponse(response);
             return result != null ? result.get("access_token").toString() : null;
         } catch (Exception e) {
@@ -263,7 +305,7 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
         String url = "https://graph.qq.com/user/get_user_info?access_token=" + accessToken + "&oauth_consumer_key=" + qqAppId + "&fmt=json";
 
         try {
-            String response = sendGetRequest(url);
+            String response = restTemplate.getForObject(url, String.class);
             return JsonUtil.parseMap(response);
         } catch (Exception e) {
             log.error("获取QQ用户信息失败", e);
@@ -281,7 +323,7 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
         String url = "https://api.weixin.qq.com/sns/userinfo?access_token=" + accessToken + "&lang=zh_CN";
 
         try {
-            String response = sendGetRequest(url);
+            String response = restTemplate.getForObject(url, String.class);
             return JsonUtil.parseMap(response);
         } catch (Exception e) {
             log.error("获取微信用户信息失败", e);
@@ -299,11 +341,13 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
         String url = "https://api.github.com/user";
 
         try {
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Authorization", "token " + accessToken);
-
-            String response = sendGetRequest(url, headers);
-            return JsonUtil.parseMap(response);
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "token " + accessToken);
+            
+            HttpEntity<String> entity = new HttpEntity<>(headers);
+            
+            // 使用 exchange 发送 GET 请求带 header
+            return restTemplate.exchange(url, HttpMethod.GET, entity, Map.class).getBody();
         } catch (Exception e) {
             log.error("获取GitHub用户信息失败", e);
             return null;
@@ -356,96 +400,6 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
             case "github" -> userInfo.get("avatar_url") != null ? userInfo.get("avatar_url").toString() : "";
             default -> "";
         };
-    }
-
-    /**
-     * 发送GET请求
-     *
-     * @param url 请求URL
-     * @return 响应内容
-     */
-    private String sendGetRequest(String url) {
-        return sendGetRequest(url, null);
-    }
-
-    /**
-     * 发送GET请求（带请求头）
-     *
-     * @param url     请求URL
-     * @param headers 请求头Map
-     * @return 响应内容
-     */
-    private String sendGetRequest(String url, Map<String, String> headers) {
-        try {
-            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
-            connection.setRequestMethod("GET");
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(5000);
-
-            if (headers != null) {
-                for (Map.Entry<String, String> entry : headers.entrySet()) {
-                    connection.setRequestProperty(entry.getKey(), entry.getValue());
-                }
-            }
-
-            try (java.io.BufferedReader reader = new java.io.BufferedReader(
-                    new java.io.InputStreamReader(connection.getInputStream()))) {
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                return response.toString();
-            }
-        } catch (Exception e) {
-            log.error("发送GET请求失败: {}", url, e);
-            return null;
-        }
-    }
-
-    /**
-     * 发送POST请求
-     *
-     * @param url    请求URL
-     * @param params POST参数Map
-     * @return 响应内容
-     */
-    private String sendPostRequest(String url, Map<String, String> params) {
-        try {
-            java.net.HttpURLConnection connection = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
-            connection.setRequestMethod("POST");
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(5000);
-            connection.setDoOutput(true);
-
-            StringBuilder postData = new StringBuilder();
-            for (Map.Entry<String, String> entry : params.entrySet()) {
-                if (postData.length() > 0) {
-                    postData.append("&");
-                }
-                postData.append(java.net.URLEncoder.encode(entry.getKey(), "UTF-8"));
-                postData.append("=");
-                postData.append(java.net.URLEncoder.encode(entry.getValue(), "UTF-8"));
-            }
-
-            try (java.io.OutputStream os = connection.getOutputStream()) {
-                byte[] input = postData.toString().getBytes("UTF-8");
-                os.write(input, 0, input.length);
-            }
-
-            try (java.io.BufferedReader reader = new java.io.BufferedReader(
-                    new java.io.InputStreamReader(connection.getInputStream()))) {
-                StringBuilder response = new StringBuilder();
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    response.append(line);
-                }
-                return response.toString();
-            }
-        } catch (Exception e) {
-            log.error("发送POST请求失败: {}", url, e);
-            return null;
-        }
     }
 
     /**

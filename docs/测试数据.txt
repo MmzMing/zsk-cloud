@@ -1,9 +1,19 @@
-测试数据
 {
-  "username": "admin",
+  "username": "user1",
   "password": "123456",
-  "code": "122",
-  "uuid": "9accd9188e74432886676fe51ce81665",
+  "confirmPassword": "123456",
+  "code": "193",
+  "uuid": "e1419194c05b40639ba8576ef5b67620",
+  "userType": "00"
+}
+
+
+
+{
+  "username": "user1",
+  "password": "123456",
+  "code": "77",
+  "uuid": "b74d3d8a80404cf49d3cea682efbd0dd",
   "loginType": "password",
   "email": "",
   "emailCode": "",
@@ -11,5 +21,7 @@
   "state": ""
 }
 
-token
-eyJhbGciOiJIUzI1NiJ9.eyJ1c2VyX2lkIjoxLCJ1c2VyX25hbWUiOiJhZG1pbiIsInBlcm1pc3Npb25zIjpbXSwibmlja19uYW1lIjoiYWRtaW4iLCJyb2xlcyI6W10sInVzZXJfa2V5IjoiZGIyNWViMjgxZDI1NDBkOTkxYjE4MmQ0YmRmZGM0NzIifQ.1tH2gUeY50wfXYpKm3SnBaeNpek5fiSmFliA5dPV1Jw
+eyJhbGciOiJSUzI1NiJ9.eyJ1c2VyX2lkIjoyMDIyNjYwNTYwODIzODc3NjM0LCJ1c2VyX25hbWUiOiJ1c2VyMSIsInBlcm1pc3Npb25zIjpbXSwibmlja19uYW1lIjoidXNlcjEiLCJyb2xlcyI6W10sInVzZXJfa2V5IjoiNzJmZWQwOTg0YzBjNGY2NzlkMjA1ZDI1M2YyYWE3NTYifQ.UhEh7xLFS-IX1ypgy21yTytGJup8et-E9Y8ccREaKbQb1oTaqRv1f9Mr4dtrxYXqXh-8o4yOoHXAQXt1RTfA3pTr-HGcOq_YCvpfl8HMcXlM1EUP_hLawJlQw_MiMqVYwQEgGAkPoii500nQPRH5ZPI8HX83aWDibspabMOZVlv0h6rES0IYaRKxVKYVO5ZNbVeLt_jsoUwqQO_6ej4uTfaJ2WNNzlvC3NbowkgQRNgXdlZABYEPUejqmRIGHPS_h85QKLUv_cai3QhSjHT-M0apJu0zFZvpn8TKHuF_NwJSngbD4U3tAkzHupqCS7Xwg42G1zvapWKrOzX9uvVfjQ
+
+
+

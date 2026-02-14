@@ -2,7 +2,7 @@
 server:
   servlet:
     context-path: /auth
-  port: 10010
+  port: 11011
 
 # Spring
 spring:
