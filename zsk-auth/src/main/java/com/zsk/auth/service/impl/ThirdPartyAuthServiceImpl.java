@@ -1,11 +1,11 @@
 package com.zsk.auth.service.impl;
 
 import com.zsk.auth.service.IThirdPartyAuthService;
+import com.zsk.auth.strategy.OAuth2UserInfoStrategy;
 import com.zsk.common.core.constant.CacheConstants;
 import com.zsk.common.core.constant.CommonConstants;
 import com.zsk.common.core.domain.R;
 import com.zsk.common.core.exception.AuthException;
-import com.zsk.common.core.utils.JsonUtil;
 import com.zsk.common.core.utils.StringUtils;
 import com.zsk.common.redis.service.RedisService;
 import com.zsk.system.api.RemoteUserService;
@@ -13,19 +13,20 @@ import com.zsk.system.api.domain.SysUserApi;
 import com.zsk.system.api.model.LoginUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
-import org.springframework.http.HttpMethod;
-import org.springframework.http.MediaType;
+import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
+import org.springframework.security.oauth2.client.registration.ClientRegistration;
+import org.springframework.security.oauth2.client.registration.ClientRegistrationRepository;
+import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenResponse;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationExchange;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationRequest;
+import org.springframework.security.oauth2.core.endpoint.OAuth2AuthorizationResponse;
 import org.springframework.stereotype.Service;
-import org.springframework.util.LinkedMultiValueMap;
-import org.springframework.util.MultiValueMap;
-import org.springframework.web.client.RestTemplate;
 
-import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * 第三方认证服务实现
@@ -39,118 +40,143 @@ import java.util.UUID;
 @RequiredArgsConstructor
 public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
+    /** 远程用户服务 */
     private final RemoteUserService remoteUserService;
+
+    /** Redis服务 */
     private final RedisService redisService;
+
+    /** 客户端注册存储库 */
+    private final ClientRegistrationRepository clientRegistrationRepository;
+
+    /** OAuth2用户信息策略列表 */
+    private final List<OAuth2UserInfoStrategy> strategies;
     
-    private final RestTemplate restTemplate = new RestTemplate();
+    /** 策略缓存映射 */
+    private final Map<String, OAuth2UserInfoStrategy> strategyMap = new ConcurrentHashMap<>();
 
     /**
-     * QQ AppId
+     * 根据登录类型获取对应的用户信息策略
+     *
+     * @param loginType 登录类型（github, qq, wechat等）
+     * @return OAuth2用户信息策略
      */
-    @Value("${auth.qq.app-id}")
-    private String qqAppId;
-
-    /**
-     * QQ AppSecret
-     */
-    @Value("${auth.qq.app-secret}")
-    private String qqAppSecret;
-
-    /**
-     * QQ 重定向地址
-     */
-    @Value("${auth.qq.redirect-uri}")
-    private String qqRedirectUri;
-
-    /**
-     * 微信 AppId
-     */
-    @Value("${auth.wechat.app-id}")
-    private String wechatAppId;
-
-    /**
-     * 微信 AppSecret
-     */
-    @Value("${auth.wechat.app-secret}")
-    private String wechatAppSecret;
-
-    /**
-     * 微信 重定向地址
-     */
-    @Value("${auth.wechat.redirect-uri}")
-    private String wechatRedirectUri;
-
-    /**
-     * GitHub ClientId
-     */
-    @Value("${auth.github.client-id}")
-    private String githubClientId;
-
-    /**
-     * GitHub ClientSecret
-     */
-    @Value("${auth.github.client-secret}")
-    private String githubClientSecret;
-
-    /**
-     * GitHub 重定向地址
-     */
-    @Value("${auth.github.redirect-uri}")
-    private String githubRedirectUri;
+    private OAuth2UserInfoStrategy getStrategy(String loginType) {
+        if (strategyMap.isEmpty()) {
+            strategies.forEach(s -> strategyMap.put(s.getRegistrationId(), s));
+        }
+        return strategyMap.get(loginType);
+    }
 
     /**
      * 根据授权码获取第三方用户信息并登录/注册
      *
-     * @param loginType 登录类型（qq, wechat, github）
-     * @param authCode  授权码
-     * @param state     状态码（用于防止CSRF攻击）
+     * @param loginType 登录类型
+     * @param authCode 授权码
+     * @param state 状态码
      * @return 系统用户信息
-     * @throws AuthException 认证失败时抛出
+     * @throws AuthException 认证异常
      */
     @Override
     public SysUserApi getUserByAuthCode(String loginType, String authCode, String state) {
         // 校验 state，防止 CSRF 攻击
         validateState(loginType, state);
 
-        String accessToken = getAccessToken(loginType, authCode);
-        if (StringUtils.isEmpty(accessToken)) {
-            throw new AuthException("获取第三方访问令牌失败");
+        ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId(loginType);
+        if (clientRegistration == null) {
+            throw new AuthException("不支持的登录类型: " + loginType);
         }
 
-        Map<String, Object> userInfo = getUserInfo(loginType, accessToken);
-        if (userInfo == null || userInfo.isEmpty()) {
-            throw new AuthException("获取第三方用户信息失败");
+        OAuth2UserInfoStrategy strategy = getStrategy(loginType);
+        if (strategy == null) {
+            throw new AuthException("未找到对应的策略实现: " + loginType);
         }
 
-        String thirdPartyId = getThirdPartyId(loginType, userInfo);
-        String thirdPartyUsername = getThirdPartyUsername(loginType, userInfo);
-        String thirdPartyAvatar = getThirdPartyAvatar(loginType, userInfo);
+        // 1. 获取 Access Token
+        OAuth2AccessTokenResponse tokenResponse;
+        try {
+            tokenResponse = getTokenResponse(clientRegistration, authCode, state, strategy);
+        } catch (Exception e) {
+            log.error("获取第三方访问令牌失败", e);
+            throw new AuthException("获取第三方访问令牌失败: " + e.getMessage());
+        }
 
+        // 2. 获取用户信息
+        SysUserApi thirdPartyUser;
+        try {
+            OAuth2UserRequest userRequest = new OAuth2UserRequest(clientRegistration, tokenResponse.getAccessToken(), tokenResponse.getAdditionalParameters());
+            thirdPartyUser = strategy.getUserInfo(userRequest);
+        } catch (Exception e) {
+            log.error("获取第三方用户信息失败", e);
+            throw new AuthException("获取第三方用户信息失败: " + e.getMessage());
+        }
+
+        // 3. 登录/注册逻辑
+        return processLoginOrRegister(loginType, thirdPartyUser);
+    }
+
+    /**
+     * 获取第三方访问令牌响应
+     *
+     * @param clientRegistration 客户端注册信息
+     * @param authCode 授权码
+     * @param state 状态码
+     * @param strategy 用户信息策略
+     * @return 访问令牌响应
+     */
+    private OAuth2AccessTokenResponse getTokenResponse(ClientRegistration clientRegistration, String authCode, String state, OAuth2UserInfoStrategy strategy) {
+        // 构建 OAuth2AuthorizationRequest 和 OAuth2AuthorizationResponse 以满足 OAuth2AuthorizationExchange
+        // 注意：redirectUri 必须与发起请求时的一致
+        OAuth2AuthorizationRequest authorizationRequest = OAuth2AuthorizationRequest.authorizationCode()
+                .clientId(clientRegistration.getClientId())
+                .authorizationUri(clientRegistration.getProviderDetails().getAuthorizationUri())
+                .redirectUri(clientRegistration.getRedirectUri())
+                .scopes(clientRegistration.getScopes())
+                .state(state)
+                .attributes(Map.of(OAuth2AuthorizationRequest.class.getName(), "")) // 避免 build 校验报错
+                .build();
+
+        OAuth2AuthorizationResponse authorizationResponse = OAuth2AuthorizationResponse.success(authCode)
+                .redirectUri(clientRegistration.getRedirectUri())
+                .state(state)
+                .build();
+
+        OAuth2AuthorizationExchange authorizationExchange = new OAuth2AuthorizationExchange(authorizationRequest, authorizationResponse);
+        OAuth2AuthorizationCodeGrantRequest grantRequest = new OAuth2AuthorizationCodeGrantRequest(clientRegistration, authorizationExchange);
+        
+        return strategy.getTokenResponse(grantRequest);
+    }
+
+    /**
+     * 处理登录或注册逻辑
+     *
+     * @param loginType 登录类型
+     * @param thirdPartyUser 第三方用户信息
+     * @return 系统用户信息
+     */
+    private SysUserApi processLoginOrRegister(String loginType, SysUserApi thirdPartyUser) {
+        String thirdPartyId = thirdPartyUser.getUserName().substring(loginType.length() + 1); // remove prefix
+        
+        // 查询是否绑定
         R<LoginUser> userResult = remoteUserService.getUserByThirdPartyId(loginType, thirdPartyId, CommonConstants.REQUEST_SOURCE_INNER);
         if (userResult != null && userResult.isSuccess() && userResult.getData() != null) {
             return userResult.getData().getSysUser();
         }
 
         // 首次登录，自动注册
-        SysUserApi sysUser = new SysUserApi();
-        sysUser.setUserName(loginType + "_" + thirdPartyId);
-        sysUser.setNickName(thirdPartyUsername);
-        sysUser.setAvatar(thirdPartyAvatar);
-        sysUser.setStatus("0");
-
-        R<Boolean> createResult = remoteUserService.createUser(sysUser);
+        R<Boolean> createResult = remoteUserService.createUser(thirdPartyUser);
         if (createResult != null && createResult.isSuccess() && createResult.getData()) {
-            return sysUser;
+            return thirdPartyUser;
         }
 
         throw new AuthException("第三方登录自动注册失败");
     }
 
     /**
-     * 校验 state
+     * 校验 state，防止 CSRF 攻击
      *
      * @param loginType 登录类型
-     * @param state     状态码
+     * @param state 状态码
      */
     private void validateState(String loginType, String state) {
         if (StringUtils.isEmpty(state)) {
@@ -171,260 +197,30 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
      * 获取第三方授权登录URL
      *
      * @param loginType 登录类型
-     * @return 授权跳转URL
+     * @return 授权URL
      */
     @Override
     public String getAuthUrl(String loginType) {
+        ClientRegistration clientRegistration = clientRegistrationRepository.findByRegistrationId(loginType);
+        if (clientRegistration == null) {
+            throw new AuthException("不支持的登录类型: " + loginType);
+        }
+
         String state = UUID.randomUUID().toString().replace("-", "");
         String stateKey = CacheConstants.THIRD_PARTY_STATE_KEY + state;
         redisService.setCacheObject(stateKey, loginType, 10, java.util.concurrent.TimeUnit.MINUTES);
 
-        return switch (loginType) {
-            case "qq" -> "https://graph.qq.com/oauth2.0/authorize?response_type=code&client_id=" + qqAppId
-                    + "&redirect_uri=" + qqRedirectUri + "&state=" + state;
-            case "wechat" -> "https://open.weixin.qq.com/connect/qrconnect?appid=" + wechatAppId
-                    + "&redirect_uri=" + wechatRedirectUri + "&response_type=code&scope=snsapi_login&state=" + state;
-            case "github" -> "https://github.com/login/oauth/authorize?client_id=" + githubClientId
-                    + "&redirect_uri=" + githubRedirectUri + "&state=" + state;
-            default -> throw new AuthException("不支持的登录类型: " + loginType);
-        };
-    }
-
-    /**
-     * 获取访问令牌
-     *
-     * @param loginType 登录类型
-     * @param authCode  授权码
-     * @return 访问令牌
-     */
-    private String getAccessToken(String loginType, String authCode) {
-        return switch (loginType) {
-            case "qq" -> getQQAccessToken(authCode);
-            case "wechat" -> getWechatAccessToken(authCode);
-            case "github" -> getGithubAccessToken(authCode);
-            default -> null;
-        };
-    }
-
-    /**
-     * 获取QQ访问令牌
-     *
-     * @param authCode 授权码
-     * @return QQ访问令牌
-     */
-    private String getQQAccessToken(String authCode) {
-        String url = "https://graph.qq.com/oauth2.0/token?grant_type=authorization_code&client_id=" + qqAppId
-                + "&client_secret=" + qqAppSecret + "&code=" + authCode + "&redirect_uri=" + qqRedirectUri;
-
-        try {
-            String response = restTemplate.getForObject(url, String.class);
-            Map<String, Object> result = parseResponse(response);
-            return result != null ? result.get("access_token").toString() : null;
-        } catch (Exception e) {
-            log.error("获取QQ访问令牌失败", e);
-            return null;
+        // 构建授权URL
+        StringBuilder url = new StringBuilder(clientRegistration.getProviderDetails().getAuthorizationUri());
+        url.append("?response_type=code");
+        url.append("&client_id=").append(clientRegistration.getClientId());
+        url.append("&redirect_uri=").append(clientRegistration.getRedirectUri());
+        url.append("&state=").append(state);
+        
+        if (clientRegistration.getScopes() != null && !clientRegistration.getScopes().isEmpty()) {
+            url.append("&scope=").append(String.join(" ", clientRegistration.getScopes()));
         }
-    }
-
-    /**
-     * 获取微信访问令牌
-     *
-     * @param authCode 授权码
-     * @return 微信访问令牌
-     */
-    private String getWechatAccessToken(String authCode) {
-        String url = "https://api.weixin.qq.com/sns/oauth2/access_token?appid=" + wechatAppId
-                + "&secret=" + wechatAppSecret + "&code=" + authCode + "&grant_type=authorization_code";
-
-        try {
-            String response = restTemplate.getForObject(url, String.class);
-            Map<String, Object> result = JsonUtil.parseMap(response);
-            return result != null ? result.get("access_token").toString() : null;
-        } catch (Exception e) {
-            log.error("获取微信访问令牌失败", e);
-            return null;
-        }
-    }
-
-    /**
-     * 获取GitHub访问令牌
-     *
-     * @param authCode 授权码
-     * @return GitHub访问令牌
-     */
-    private String getGithubAccessToken(String authCode) {
-        String url = "https://github.com/login/oauth/access_token";
-
-        try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-            // 请求 JSON 格式响应，方便解析
-            headers.setAccept(java.util.Collections.singletonList(MediaType.APPLICATION_JSON));
-
-            MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-            params.add("client_id", githubClientId);
-            params.add("client_secret", githubClientSecret);
-            params.add("code", authCode);
-
-            HttpEntity<MultiValueMap<String, String>> requestEntity = new HttpEntity<>(params, headers);
-            
-            // 使用 exchange 发送 POST 请求
-            String response = restTemplate.postForObject(url, requestEntity, String.class);
-            
-            Map<String, Object> result = parseResponse(response);
-            return result != null ? result.get("access_token").toString() : null;
-        } catch (Exception e) {
-            log.error("获取GitHub访问令牌失败", e);
-            return null;
-        }
-    }
-
-    /**
-     * 获取用户信息
-     *
-     * @param loginType   登录类型
-     * @param accessToken 访问令牌
-     * @return 用户信息Map
-     */
-    private Map<String, Object> getUserInfo(String loginType, String accessToken) {
-        return switch (loginType) {
-            case "qq" -> getQQUserInfo(accessToken);
-            case "wechat" -> getWechatUserInfo(accessToken);
-            case "github" -> getGithubUserInfo(accessToken);
-            default -> null;
-        };
-    }
-
-    /**
-     * 获取QQ用户信息
-     *
-     * @param accessToken 访问令牌
-     * @return QQ用户信息Map
-     */
-    private Map<String, Object> getQQUserInfo(String accessToken) {
-        String url = "https://graph.qq.com/user/get_user_info?access_token=" + accessToken + "&oauth_consumer_key=" + qqAppId + "&fmt=json";
-
-        try {
-            String response = restTemplate.getForObject(url, String.class);
-            return JsonUtil.parseMap(response);
-        } catch (Exception e) {
-            log.error("获取QQ用户信息失败", e);
-            return null;
-        }
-    }
-
-    /**
-     * 获取微信用户信息
-     *
-     * @param accessToken 访问令牌
-     * @return 微信用户信息Map
-     */
-    private Map<String, Object> getWechatUserInfo(String accessToken) {
-        String url = "https://api.weixin.qq.com/sns/userinfo?access_token=" + accessToken + "&lang=zh_CN";
-
-        try {
-            String response = restTemplate.getForObject(url, String.class);
-            return JsonUtil.parseMap(response);
-        } catch (Exception e) {
-            log.error("获取微信用户信息失败", e);
-            return null;
-        }
-    }
-
-    /**
-     * 获取GitHub用户信息
-     *
-     * @param accessToken 访问令牌
-     * @return GitHub用户信息Map
-     */
-    private Map<String, Object> getGithubUserInfo(String accessToken) {
-        String url = "https://api.github.com/user";
-
-        try {
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("Authorization", "token " + accessToken);
-            
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            
-            // 使用 exchange 发送 GET 请求带 header
-            return restTemplate.exchange(url, HttpMethod.GET, entity, Map.class).getBody();
-        } catch (Exception e) {
-            log.error("获取GitHub用户信息失败", e);
-            return null;
-        }
-    }
-
-    /**
-     * 提取第三方唯一标识ID
-     *
-     * @param loginType 登录类型
-     * @param userInfo  用户信息Map
-     * @return 第三方唯一标识
-     */
-    private String getThirdPartyId(String loginType, Map<String, Object> userInfo) {
-        return switch (loginType) {
-            case "qq" -> userInfo.get("openid") != null ? userInfo.get("openid").toString() : "";
-            case "wechat" -> userInfo.get("openid") != null ? userInfo.get("openid").toString() : "";
-            case "github" -> userInfo.get("id") != null ? userInfo.get("id").toString() : "";
-            default -> "";
-        };
-    }
-
-    /**
-     * 提取第三方用户名
-     *
-     * @param loginType 登录类型
-     * @param userInfo  用户信息Map
-     * @return 第三方用户名
-     */
-    private String getThirdPartyUsername(String loginType, Map<String, Object> userInfo) {
-        return switch (loginType) {
-            case "qq" -> userInfo.get("nickname") != null ? userInfo.get("nickname").toString() : "";
-            case "wechat" -> userInfo.get("nickname") != null ? userInfo.get("nickname").toString() : "";
-            case "github" -> userInfo.get("login") != null ? userInfo.get("login").toString() : "";
-            default -> "";
-        };
-    }
-
-    /**
-     * 提取第三方头像URL
-     *
-     * @param loginType 登录类型
-     * @param userInfo  用户信息Map
-     * @return 第三方头像URL
-     */
-    private String getThirdPartyAvatar(String loginType, Map<String, Object> userInfo) {
-        return switch (loginType) {
-            case "qq" -> userInfo.get("figureurl_qq_2") != null ? userInfo.get("figureurl_qq_2").toString() : "";
-            case "wechat" -> userInfo.get("headimgurl") != null ? userInfo.get("headimgurl").toString() : "";
-            case "github" -> userInfo.get("avatar_url") != null ? userInfo.get("avatar_url").toString() : "";
-            default -> "";
-        };
-    }
-
-    /**
-     * 解析HTTP响应内容（支持JSON和URL查询字符串格式）
-     *
-     * @param response 原始响应字符串
-     * @return 解析后的Map
-     */
-    private Map<String, Object> parseResponse(String response) {
-        if (StringUtils.isEmpty(response)) {
-            return null;
-        }
-
-        if (response.startsWith("{")) {
-            return JsonUtil.parseMap(response);
-        }
-
-        Map<String, Object> result = new HashMap<>();
-        String[] pairs = response.split("&");
-        for (String pair : pairs) {
-            String[] keyValue = pair.split("=");
-            if (keyValue.length == 2) {
-                result.put(keyValue[0], keyValue[1]);
-            }
-        }
-        return result;
+        
+        return url.toString();
     }
 }

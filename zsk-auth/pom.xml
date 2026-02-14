@@ -16,6 +16,11 @@
 
     <dependencies>
 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-oauth2-client</artifactId>
+        </dependency>
+
         <!-- ZSK Common Security -->
         <dependency>
             <groupId>com.zsk.cloud</groupId>

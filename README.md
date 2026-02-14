@@ -62,56 +62,20 @@ zsk-cloud
 ---
 
 ### **详细调用链路**
-```mermaid
-sequenceDiagram
-    participant User as 用户 (Browser)
-    participant Front as 前端界面
-    participant Auth as 认证中心 (zsk-auth)
-    participant Platform as 第三方平台 (GitHub/QQ/微信)
-    participant System as 系统模块 (zsk-system)
 
-    Note over User, Platform: 阶段 1: 获取授权链接
-    User->>Front: 点击第三方登录图标
-    Front->>Auth: GET /third-party/url (loginType)
-    Auth->>Auth: ThirdPartyAuthServiceImpl.getAuthUrl()
-    Auth-->>Front: 返回授权 URL
-    Front->>Platform: 重定向到第三方授权页
+![oauth2](./docs/oauth2.png)
 
-    Note over User, Platform: 阶段 2: 用户授权与回调
-    User->>Platform: 登录并确认授权
-    Platform-->>Front: 重定向回前端 (携带 code & state)
-    Front->>Auth: POST /third-party/callback (code, state, loginType)
-
-    Note over User, Platform: 阶段 3: 令牌交换与数据获取
-    Auth->>Auth: AuthServiceImpl.login()
-    Auth->>Auth: ThirdPartyAuthServiceImpl.getUserByAuthCode()
-    Auth->>Platform: POST /access_token (code, client_id, client_secret)
-    Platform-->>Auth: 返回 AccessToken
-    Auth->>Platform: GET /user_info (AccessToken)
-    Platform-->>Auth: 返回用户信息 (openid, nickname, avatar)
-
-    Note over User, Platform: 阶段 4: 账号映射与登录
-    Auth->>System: Feign: RemoteUserService.getUserByThirdPartyId()
-    System-->>Auth: 返回用户信息 (如果已存在)
-    
-    alt 用户不存在 (首次登录)
-        Auth->>System: Feign: RemoteUserService.createUser()
-        System-->>Auth: 创建成功
-    end
-
-    Auth->>Auth: AuthServiceImpl.generateToken()
-    Auth-->>Front: 返回 JWT Token (LoginResponse)
-    Front->>User: 登录成功，进入系统
-```
 
 ### **核心逻辑步骤**
-1. **获取授权**: 前端请求后端接口获取第三方授权 URL，用户跳转至第三方平台登录。
-2. **回调校验**: 授权后携带 `code` 返回前端，前端调用后端回调接口进行 `state` 校验。
-3. **令牌交换**: 后端使用 `code`换取第三方 `access_token`，并拉取用户信息（OpenID、昵称、头像）。
-4. **自动注册与映射**: 
-   - 系统根据 `loginType` + `thirdPartyId` 匹配用户。
-   - **首次登录**：系统自动根据第三方信息创建新账号，完成账号绑定。
-5. **颁发令牌**: 验证通过后，后端颁发 JWT 令牌，完成登录流程。
+1. **授权引导**: 前端通过 `/third-party/url` 接口获取预构建的第三方授权地址，并在 Redis 中存储 `state` 防伪码以应对 CSRF 风险。
+2. **授权回调**: 用户在第三方平台确认授权后，浏览器重定向至前端回调页，前端提取 `code` 与 `state` 并透传至后端回调接口。
+3. **双重交换**:
+   - **令牌交换**：后端策略类（Strategy）通过授权码向第三方服务器换取 `access_token`。
+   - **信息获取**：使用令牌调用第三方用户信息 API，解析并封装为统一的 `SysUserApi` 实体。
+4. **账户联动**:
+   - **映射检测**：根据 `loginType` 与第三方唯一标识（如 OpenID）查询本地账户关联表。
+   - **静默注册**：若为新用户，系统将基于第三方基础资料（昵称、头像）自动完成账号初始化。
+5. **颁发凭证**: 认证通过后，系统签发高安全性的 JWT 访问令牌，并将登录状态同步至 Redis 缓存。
 
 ---
 
