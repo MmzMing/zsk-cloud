@@ -1,5 +1,6 @@
 package com.zsk.common.xxljob.config;
 
+import lombok.Data;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 /**
@@ -9,6 +10,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
  * @version 1.0
  * @date 2026-02-15
  */
+@Data
 @ConfigurationProperties(prefix = "xxl.job")
 public class XxlJobProperties {
 
@@ -27,33 +29,10 @@ public class XxlJobProperties {
      */
     private Admin admin = new Admin();
 
-    public boolean isEnabled() {
-        return enabled;
-    }
-
-    public void setEnabled(boolean enabled) {
-        this.enabled = enabled;
-    }
-
-    public Executor getExecutor() {
-        return executor;
-    }
-
-    public void setExecutor(Executor executor) {
-        this.executor = executor;
-    }
-
-    public Admin getAdmin() {
-        return admin;
-    }
-
-    public void setAdmin(Admin admin) {
-        this.admin = admin;
-    }
-
     /**
      * 执行器配置
      */
+    @Data
     public static class Executor {
 
         /**
@@ -95,75 +74,12 @@ public class XxlJobProperties {
          * 执行器日志文件保存天数
          */
         private int logRetentionDays = 30;
-
-        public String getAppname() {
-            return appname;
-        }
-
-        public void setAppname(String appname) {
-            this.appname = appname;
-        }
-
-        public String getTitle() {
-            return title;
-        }
-
-        public void setTitle(String title) {
-            this.title = title;
-        }
-
-        public String getAddress() {
-            return address;
-        }
-
-        public void setAddress(String address) {
-            this.address = address;
-        }
-
-        public String getIp() {
-            return ip;
-        }
-
-        public void setIp(String ip) {
-            this.ip = ip;
-        }
-
-        public int getPort() {
-            return port;
-        }
-
-        public void setPort(int port) {
-            this.port = port;
-        }
-
-        public String getAccessToken() {
-            return accessToken;
-        }
-
-        public void setAccessToken(String accessToken) {
-            this.accessToken = accessToken;
-        }
-
-        public String getLogPath() {
-            return logPath;
-        }
-
-        public void setLogPath(String logPath) {
-            this.logPath = logPath;
-        }
-
-        public int getLogRetentionDays() {
-            return logRetentionDays;
-        }
-
-        public void setLogRetentionDays(int logRetentionDays) {
-            this.logRetentionDays = logRetentionDays;
-        }
     }
 
     /**
      * Admin配置
      */
+    @Data
     public static class Admin {
 
         /**
@@ -180,29 +96,5 @@ public class XxlJobProperties {
          * 调度中心登录密码
          */
         private String password = "123456";
-
-        public String getAddresses() {
-            return addresses;
-        }
-
-        public void setAddresses(String addresses) {
-            this.addresses = addresses;
-        }
-
-        public String getUsername() {
-            return username;
-        }
-
-        public void setUsername(String username) {
-            this.username = username;
-        }
-
-        public String getPassword() {
-            return password;
-        }
-
-        public void setPassword(String password) {
-            this.password = password;
-        }
     }
 }

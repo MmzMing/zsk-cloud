@@ -3,8 +3,8 @@ package com.zsk.common.xxljob.config;
 import com.xxl.job.core.executor.impl.XxlJobSpringExecutor;
 import com.zsk.common.xxljob.register.XxlJobRegister;
 import com.zsk.common.xxljob.service.XxlJobService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -21,12 +21,12 @@ import org.springframework.context.annotation.Bean;
  * @version 1.0
  * @date 2026-02-15
  */
+@Slf4j
+@RequiredArgsConstructor
 @AutoConfiguration
 @EnableConfigurationProperties(XxlJobProperties.class)
 @ConditionalOnProperty(prefix = "xxl.job", name = "enabled", havingValue = "true", matchIfMissing = true)
 public class XxlJobAutoConfiguration implements CommandLineRunner {
-
-    private static final Logger log = LoggerFactory.getLogger(XxlJobAutoConfiguration.class);
 
     /**
      * XXL-Job配置属性
@@ -37,17 +37,6 @@ public class XxlJobAutoConfiguration implements CommandLineRunner {
      * Spring应用上下文
      */
     private final ApplicationContext applicationContext;
-
-    /**
-     * 构造函数
-     *
-     * @param properties         XXL-Job配置属性
-     * @param applicationContext Spring应用上下文
-     */
-    public XxlJobAutoConfiguration(XxlJobProperties properties, ApplicationContext applicationContext) {
-        this.properties = properties;
-        this.applicationContext = applicationContext;
-    }
 
     /**
      * 创建XXL-Job执行器

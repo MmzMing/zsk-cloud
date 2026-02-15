@@ -1,8 +1,8 @@
 package com.zsk.common.xxljob.service;
 
 import com.zsk.common.xxljob.config.XxlJobProperties;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.*;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
@@ -19,9 +19,9 @@ import java.util.Map;
  * @version 1.0
  * @date 2026-02-15
  */
+@Slf4j
+@RequiredArgsConstructor
 public class XxlJobService {
-
-    private static final Logger log = LoggerFactory.getLogger(XxlJobService.class);
 
     /**
      * 配置属性
@@ -31,22 +31,12 @@ public class XxlJobService {
     /**
      * HTTP客户端
      */
-    private final RestTemplate restTemplate;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     /**
      * 登录后的Cookie
      */
     private String cookie;
-
-    /**
-     * 构造函数
-     *
-     * @param properties XXL-Job配置属性
-     */
-    public XxlJobService(XxlJobProperties properties) {
-        this.properties = properties;
-        this.restTemplate = new RestTemplate();
-    }
 
     /**
      * 登录XXL-Job控制台

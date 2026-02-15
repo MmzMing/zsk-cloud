@@ -4,8 +4,8 @@ import com.xxl.job.core.handler.annotation.XxlJob;
 import com.zsk.common.xxljob.annotation.XxlJobAutoRegister;
 import com.zsk.common.xxljob.config.XxlJobProperties;
 import com.zsk.common.xxljob.service.XxlJobService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.aop.support.AopUtils;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.MethodIntrospector;
@@ -25,9 +25,9 @@ import java.util.concurrent.atomic.AtomicInteger;
  * @version 1.0
  * @date 2026-02-15
  */
+@Slf4j
+@RequiredArgsConstructor
 public class XxlJobRegister {
-
-    private static final Logger log = LoggerFactory.getLogger(XxlJobRegister.class);
 
     /**
      * XXL-Job配置属性
@@ -48,19 +48,6 @@ public class XxlJobRegister {
      * 执行器ID缓存
      */
     private volatile Integer executorId;
-
-    /**
-     * 构造函数
-     *
-     * @param properties         XXL-Job配置属性
-     * @param xxlJobService      XXL-Job服务
-     * @param applicationContext Spring应用上下文
-     */
-    public XxlJobRegister(XxlJobProperties properties, XxlJobService xxlJobService, ApplicationContext applicationContext) {
-        this.properties = properties;
-        this.xxlJobService = xxlJobService;
-        this.applicationContext = applicationContext;
-    }
 
     /**
      * 执行任务注册
