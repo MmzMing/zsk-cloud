@@ -3,10 +3,12 @@ package com.zsk.auth.controller;
 import com.zsk.auth.domain.CaptchaResponse;
 import com.zsk.auth.domain.LoginRequest;
 import com.zsk.auth.domain.LoginResponse;
+import com.zsk.auth.domain.PublicKeyResponse;
 import com.zsk.auth.domain.RegisterBody;
 import com.zsk.auth.service.IAuthService;
 import com.zsk.auth.service.ICaptchaService;
 import com.zsk.auth.service.IEmailService;
+import com.zsk.auth.service.IEncryptService;
 import com.zsk.auth.service.IThirdPartyAuthService;
 import com.zsk.common.core.domain.R;
 import com.zsk.common.sentinel.annotation.RateLimit;
@@ -32,6 +34,7 @@ public class AuthController {
     private final ICaptchaService captchaService;
     private final IEmailService emailService;
     private final IThirdPartyAuthService thirdPartyAuthService;
+    private final IEncryptService encryptService;
 
     /**
      * 用户注册
@@ -90,6 +93,16 @@ public class AuthController {
     @GetMapping("/captcha")
     public R<CaptchaResponse> generateCaptcha() {
         return R.ok(captchaService.generateSlideCaptcha());
+    }
+
+    /**
+     * 获取RSA公钥
+     *
+     * @return 公钥响应对象（包含公钥、有效期、版本号）
+     */
+    @GetMapping("/public-key")
+    public R<PublicKeyResponse> getPublicKey() {
+        return R.ok(encryptService.getPublicKey());
     }
 
     /**

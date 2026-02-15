@@ -67,7 +67,6 @@
 
         <!-- 监控 -->
         <micrometer.version>1.13.0</micrometer.version>
-        <prometheus.version>1.13.0</prometheus.version>
         <skywalking.version>9.1.0</skywalking.version>
 
         <!-- Maven插件版本 -->
@@ -406,11 +405,21 @@
             </dependency>
 
             <!-- ==================== 监控 ==================== -->
-            <!-- Micrometer -->
+            <!-- SkyWalking -->
             <dependency>
-                <groupId>io.micrometer</groupId>
-                <artifactId>micrometer-registry-prometheus</artifactId>
-                <version>${micrometer.version}</version>
+                <groupId>org.apache.skywalking</groupId>
+                <artifactId>apm-toolkit-trace</artifactId>
+                <version>${skywalking.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.skywalking</groupId>
+                <artifactId>apm-toolkit-logback-1.x</artifactId>
+                <version>${skywalking.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.skywalking</groupId>
+                <artifactId>apm-toolkit-webflux</artifactId>
+                <version>${skywalking.version}</version>
             </dependency>
 
         </dependencies>

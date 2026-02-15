@@ -38,6 +38,7 @@ security:
       - /auth/register
       - /auth/logout
       - /auth/captcha
+      - /auth/public-key
       - /auth/email/code
       - /auth/third/**
       - /auth/test/hello
