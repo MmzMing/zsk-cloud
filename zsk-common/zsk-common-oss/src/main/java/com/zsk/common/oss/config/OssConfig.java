@@ -12,8 +12,8 @@ import org.springframework.context.annotation.Configuration;
  * OSS自动配置类
  *
  * @author wuhuaming
- * @date 2026-02-14
  * @version 1.0
+ * @date 2026-02-14
  */
 @Configuration
 @EnableConfigurationProperties(OssProperties.class)

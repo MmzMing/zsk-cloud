@@ -40,19 +40,29 @@ import java.util.concurrent.ConcurrentHashMap;
 @RequiredArgsConstructor
 public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
-    /** 远程用户服务 */
+    /**
+     * 远程用户服务
+     */
     private final RemoteUserService remoteUserService;
 
-    /** Redis服务 */
+    /**
+     * Redis服务
+     */
     private final RedisService redisService;
 
-    /** 客户端注册存储库 */
+    /**
+     * 客户端注册存储库
+     */
     private final ClientRegistrationRepository clientRegistrationRepository;
 
-    /** OAuth2用户信息策略列表 */
+    /**
+     * OAuth2用户信息策略列表
+     */
     private final List<OAuth2UserInfoStrategy> strategies;
-    
-    /** 策略缓存映射 */
+
+    /**
+     * 策略缓存映射
+     */
     private final Map<String, OAuth2UserInfoStrategy> strategyMap = new ConcurrentHashMap<>();
 
     /**
@@ -72,8 +82,8 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
      * 根据授权码获取第三方用户信息并登录/注册
      *
      * @param loginType 登录类型
-     * @param authCode 授权码
-     * @param state 状态码
+     * @param authCode  授权码
+     * @param state     状态码
      * @return 系统用户信息
      * @throws AuthException 认证异常
      */
@@ -119,9 +129,9 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
      * 获取第三方访问令牌响应
      *
      * @param clientRegistration 客户端注册信息
-     * @param authCode 授权码
-     * @param state 状态码
-     * @param strategy 用户信息策略
+     * @param authCode           授权码
+     * @param state              状态码
+     * @param strategy           用户信息策略
      * @return 访问令牌响应
      */
     private OAuth2AccessTokenResponse getTokenResponse(ClientRegistration clientRegistration, String authCode, String state, OAuth2UserInfoStrategy strategy) {
@@ -143,20 +153,20 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
 
         OAuth2AuthorizationExchange authorizationExchange = new OAuth2AuthorizationExchange(authorizationRequest, authorizationResponse);
         OAuth2AuthorizationCodeGrantRequest grantRequest = new OAuth2AuthorizationCodeGrantRequest(clientRegistration, authorizationExchange);
-        
+
         return strategy.getTokenResponse(grantRequest);
     }
 
     /**
      * 处理登录或注册逻辑
      *
-     * @param loginType 登录类型
+     * @param loginType      登录类型
      * @param thirdPartyUser 第三方用户信息
      * @return 系统用户信息
      */
     private SysUserApi processLoginOrRegister(String loginType, SysUserApi thirdPartyUser) {
         String thirdPartyId = thirdPartyUser.getUserName().substring(loginType.length() + 1); // remove prefix
-        
+
         // 查询是否绑定
         R<LoginUser> userResult = remoteUserService.getUserByThirdPartyId(loginType, thirdPartyId, CommonConstants.REQUEST_SOURCE_INNER);
         if (userResult != null && userResult.isSuccess() && userResult.getData() != null) {
@@ -176,19 +186,19 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
      * 校验 state，防止 CSRF 攻击
      *
      * @param loginType 登录类型
-     * @param state 状态码
+     * @param state     状态码
      */
     private void validateState(String loginType, String state) {
         if (StringUtils.isEmpty(state)) {
             throw new AuthException("state不能为空");
         }
-        String stateKey = CacheConstants.THIRD_PARTY_STATE_KEY + state;
+        String stateKey = CacheConstants.CACHE_THIRD_PARTY_STATE + state;
         String savedLoginType = redisService.getCacheObject(stateKey);
-        
+
         if (StringUtils.isEmpty(savedLoginType) || !savedLoginType.equals(loginType)) {
             throw new AuthException("非法请求或state已过期");
         }
-        
+
         // 验证通过后删除 state，防止重放
         redisService.deleteObject(stateKey);
     }
@@ -207,7 +217,7 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
         }
 
         String state = UUID.randomUUID().toString().replace("-", "");
-        String stateKey = CacheConstants.THIRD_PARTY_STATE_KEY + state;
+        String stateKey = CacheConstants.CACHE_THIRD_PARTY_STATE + state;
         redisService.setCacheObject(stateKey, loginType, 10, java.util.concurrent.TimeUnit.MINUTES);
 
         // 构建授权URL
@@ -216,11 +226,11 @@ public class ThirdPartyAuthServiceImpl implements IThirdPartyAuthService {
         url.append("&client_id=").append(clientRegistration.getClientId());
         url.append("&redirect_uri=").append(clientRegistration.getRedirectUri());
         url.append("&state=").append(state);
-        
+
         if (clientRegistration.getScopes() != null && !clientRegistration.getScopes().isEmpty()) {
             url.append("&scope=").append(String.join(" ", clientRegistration.getScopes()));
         }
-        
+
         return url.toString();
     }
 }

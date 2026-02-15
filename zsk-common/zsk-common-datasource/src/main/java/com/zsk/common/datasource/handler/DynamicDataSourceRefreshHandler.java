@@ -1,13 +1,13 @@
 package com.zsk.common.datasource.handler;
 
 import com.baomidou.dynamic.datasource.DynamicRoutingDataSource;
-import com.baomidou.dynamic.datasource.creator.DefaultDataSourceCreator;
 import com.baomidou.dynamic.datasource.creator.DataSourceProperty;
+import com.baomidou.dynamic.datasource.creator.DefaultDataSourceCreator;
 import com.baomidou.dynamic.datasource.spring.boot.autoconfigure.DynamicDataSourceProperties;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.context.annotation.Lazy;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
 import org.springframework.cloud.context.environment.EnvironmentChangeEvent;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Component;
 
@@ -32,20 +32,26 @@ import java.util.Set;
 @Component
 public class DynamicDataSourceRefreshHandler {
 
-    /** 核心动态路由数据源（主数据源代理） */
+    /**
+     * 核心动态路由数据源（主数据源代理）
+     */
     private final DataSource dataSource;
-    /** 数据源创建器，用于将配置转换为实际的 DataSource 实例 */
+    /**
+     * 数据源创建器，用于将配置转换为实际的 DataSource 实例
+     */
     private final DefaultDataSourceCreator dataSourceCreator;
-    /** 动态数据源配置属性，对应 spring.datasource.dynamic */
+    /**
+     * 动态数据源配置属性，对应 spring.datasource.dynamic
+     */
     private final DynamicDataSourceProperties properties;
 
     /**
      * 构造方法
      * 使用 @Lazy 避免在数据源完全初始化前产生循环依赖
      *
-     * @param dataSource         动态路由数据源
-     * @param dataSourceCreator  数据源创建器
-     * @param properties         数据源配置
+     * @param dataSource        动态路由数据源
+     * @param dataSourceCreator 数据源创建器
+     * @param properties        数据源配置
      */
     public DynamicDataSourceRefreshHandler(@Lazy DataSource dataSource,
                                            @Lazy DefaultDataSourceCreator dataSourceCreator,

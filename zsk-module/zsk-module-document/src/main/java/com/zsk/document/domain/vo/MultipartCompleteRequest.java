@@ -3,6 +3,7 @@ package com.zsk.document.domain.vo;
 import com.zsk.common.oss.model.OssPart;
 import lombok.Data;
 import io.swagger.v3.oas.annotations.media.Schema;
+
 import java.util.List;
 
 @Data

@@ -12,8 +12,8 @@ import org.springframework.web.bind.annotation.*;
  * OSS配置管理
  *
  * @author wuhuaming
- * @date 2026-02-14
  * @version 1.0
+ * @date 2026-02-14
  */
 @Tag(name = "OSS配置管理")
 @RestController

@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 /**
  * 视频详情Mapper接口
- * 
+ *
  * @author wuhuaming
  * @date 2026-02-14
  */

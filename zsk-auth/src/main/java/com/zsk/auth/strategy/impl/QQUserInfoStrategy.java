@@ -28,20 +28,20 @@ import java.util.Map;
  * </p>
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Slf4j
 @Component
 public class QQUserInfoStrategy implements OAuth2UserInfoStrategy {
 
-    /** 
+    /**
      * 通用的 RestClient 实例
      * 用于调用 QQ 的 OpenID 接口及获取详细用户信息接口
      */
     private final RestClient restClient = RestClient.create();
-    
-    /** 
+
+    /**
      * OAuth2 令牌响应客户端
      * 封装了向 QQ 换取 Access Token 的逻辑，并定制了消息转换器以支持多种媒体类型
      */
@@ -65,7 +65,7 @@ public class QQUserInfoStrategy implements OAuth2UserInfoStrategy {
                 MediaType.TEXT_HTML,
                 new MediaType("application", "x-javascript")
         ));
-        
+
         RestClient restClient = RestClient.builder()
                 .messageConverters(messageConverters -> {
                     messageConverters.add(0, new FormHttpMessageConverter());
@@ -124,16 +124,16 @@ public class QQUserInfoStrategy implements OAuth2UserInfoStrategy {
                 .retrieve()
                 .body(String.class);
         String openId = parseOpenId(openIdResponse);
-        
+
         if (openId == null) {
             throw new RuntimeException("获取QQ OpenID失败");
         }
 
         // 2. 获取用户信息
-        String userInfoUrl = "https://graph.qq.com/user/get_user_info?access_token=" + accessToken + 
-                             "&oauth_consumer_key=" + clientId + 
-                             "&openid=" + openId + "&fmt=json";
-        
+        String userInfoUrl = "https://graph.qq.com/user/get_user_info?access_token=" + accessToken +
+                "&oauth_consumer_key=" + clientId +
+                "&openid=" + openId + "&fmt=json";
+
         String userInfoResponse = restClient.get()
                 .uri(userInfoUrl)
                 .retrieve()
@@ -143,10 +143,10 @@ public class QQUserInfoStrategy implements OAuth2UserInfoStrategy {
         if (attributes == null || attributes.isEmpty()) {
             throw new RuntimeException("获取QQ用户信息失败");
         }
-        
+
         // ret 为 0 表示成功
         if (attributes.containsKey("ret") && (Integer) attributes.get("ret") != 0) {
-             throw new RuntimeException("获取QQ用户信息失败: " + attributes.get("msg"));
+            throw new RuntimeException("获取QQ用户信息失败: " + attributes.get("msg"));
         }
 
         SysUserApi user = new SysUserApi();
@@ -159,7 +159,7 @@ public class QQUserInfoStrategy implements OAuth2UserInfoStrategy {
         user.setStatus("0");
         return user;
     }
-    
+
     /**
      * 从 QQ 的 JSONP 格式响应中提取 OpenID
      *

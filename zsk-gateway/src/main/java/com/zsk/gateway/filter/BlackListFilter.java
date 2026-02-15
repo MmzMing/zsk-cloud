@@ -41,7 +41,7 @@ public class BlackListFilter implements GlobalFilter, Ordered {
                 ? exchange.getRequest().getRemoteAddress().getAddress().getHostAddress()
                 : "unknown";
 
-        Set<String> blackList = redisService.getCacheSet(CacheConstants.GATEWAY_BLACKLIST_KEY);
+        Set<String> blackList = redisService.getCacheSet(CacheConstants.CACHE_GATEWAY_BLACKLIST);
         if (blackList != null && blackList.contains(remoteAddr)) {
             log.warn("黑名单IP拦截: {}", remoteAddr);
             exchange.getResponse().setStatusCode(HttpStatus.FORBIDDEN);

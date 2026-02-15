@@ -84,7 +84,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
 
             // 获取 Token 唯一标识 (jti/uuid)
             String uuid = (String) claims.get(SecurityConstants.USER_KEY);
-            String tokenKey = CacheConstants.LOGIN_TOKEN_KEY + uuid;
+            String tokenKey = CacheConstants.CACHE_LOGIN_TOKEN + uuid;
 
             // 检查 Redis 中是否存在该 Key (状态管控)
             boolean hasKey = redisService.hasKey(tokenKey);

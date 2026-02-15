@@ -1,23 +1,17 @@
 package com.zsk.common.oss.core;
 
 import cn.hutool.core.util.IdUtil;
-import com.google.common.collect.Multimap;
 import com.zsk.common.oss.model.OssPart;
 import com.zsk.common.oss.properties.OssProperties;
 import io.minio.*;
-import io.minio.errors.*;
 import io.minio.http.Method;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
 
-import java.io.IOException;
 import java.io.InputStream;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.Comparator;
 import java.util.List;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
@@ -25,16 +19,20 @@ import java.util.stream.Collectors;
  * MinIO实现类
  *
  * @author wuhuaming
- * @date 2026-02-14
  * @version 1.0
+ * @date 2026-02-14
  */
 @RequiredArgsConstructor
 public class MinioTemplate implements OssTemplate {
 
-    /** Minio客户端 */
+    /**
+     * Minio客户端
+     */
     private final MinioClient minioClient;
-    
-    /** OSS配置属性 */
+
+    /**
+     * OSS配置属性
+     */
     private final OssProperties ossProperties;
 
 
@@ -77,9 +75,9 @@ public class MinioTemplate implements OssTemplate {
     /**
      * 文件上传
      *
-     * @param bucketName 桶名称
-     * @param objectName 文件名
-     * @param stream     输入流
+     * @param bucketName  桶名称
+     * @param objectName  文件名
+     * @param stream      输入流
      * @param contentType 文件类型
      */
     @Override
@@ -88,19 +86,19 @@ public class MinioTemplate implements OssTemplate {
         if (!bucketExists(bucketName)) {
             makeBucket(bucketName);
         }
-            minioClient.putObject(PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(objectName)
-                    .stream(stream, stream.available(), -1)
-                    .contentType(contentType)
-                    .build());
+        minioClient.putObject(PutObjectArgs.builder()
+                .bucket(bucketName)
+                .object(objectName)
+                .stream(stream, stream.available(), -1)
+                .contentType(contentType)
+                .build());
     }
 
     /**
      * 文件上传（使用默认桶）
      *
-     * @param objectName 文件名
-     * @param stream     输入流
+     * @param objectName  文件名
+     * @param stream      输入流
      * @param contentType 文件类型
      */
     @Override
@@ -176,8 +174,8 @@ public class MinioTemplate implements OssTemplate {
     /**
      * 初始化分片上传
      *
-     * @param bucketName 桶名称
-     * @param objectName 文件名
+     * @param bucketName  桶名称
+     * @param objectName  文件名
      * @param contentType 文件类型
      * @return String uploadId
      */
@@ -195,22 +193,22 @@ public class MinioTemplate implements OssTemplate {
      *
      * @param bucketName 桶名称
      * @param objectName 文件名
-     * @param uploadId 上传ID
+     * @param uploadId   上传ID
      * @param partNumber 分片号
-     * @param stream 输入流
-     * @param size 分片大小
+     * @param stream     输入流
+     * @param size       分片大小
      * @return String ETag
      */
     @Override
     @SneakyThrows
     public String uploadPart(String bucketName, String objectName, String uploadId, int partNumber, InputStream stream, long size) {
         String chunkObjectName = getChunkObjectName(objectName, uploadId, partNumber);
-            ObjectWriteResponse response = minioClient.putObject(PutObjectArgs.builder()
-                    .bucket(bucketName)
-                    .object(chunkObjectName)
-                    .stream(stream, size, -1)
-                    .build());
-            return response.etag();
+        ObjectWriteResponse response = minioClient.putObject(PutObjectArgs.builder()
+                .bucket(bucketName)
+                .object(chunkObjectName)
+                .stream(stream, size, -1)
+                .build());
+        return response.etag();
     }
 
     /**
@@ -218,8 +216,8 @@ public class MinioTemplate implements OssTemplate {
      *
      * @param bucketName 桶名称
      * @param objectName 文件名
-     * @param uploadId 上传ID
-     * @param parts 分片列表
+     * @param uploadId   上传ID
+     * @param parts      分片列表
      */
     @Override
     @SneakyThrows
@@ -251,7 +249,7 @@ public class MinioTemplate implements OssTemplate {
      *
      * @param bucketName 桶名称
      * @param objectName 文件名
-     * @param uploadId 上传ID
+     * @param uploadId   上传ID
      */
     @Override
     @SneakyThrows
@@ -271,7 +269,7 @@ public class MinioTemplate implements OssTemplate {
      * 获取分片对象名称
      *
      * @param objectName 文件名
-     * @param uploadId 上传ID
+     * @param uploadId   上传ID
      * @param partNumber 分片号
      * @return String 分片对象名称
      */

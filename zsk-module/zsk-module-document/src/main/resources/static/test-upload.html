@@ -12,28 +12,33 @@
             background-color: #f5f7fa;
             color: #333;
         }
+
         .container {
             max-width: 800px;
             margin: 0 auto;
             background: #fff;
             padding: 30px;
             border-radius: 8px;
-            box-shadow: 0 2px 12px 0 rgba(0,0,0,0.1);
+            box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
         }
+
         h2 {
             margin-top: 0;
             color: #409EFF;
             border-bottom: 2px solid #ebeef5;
             padding-bottom: 10px;
         }
+
         .form-item {
             margin-bottom: 20px;
         }
+
         label {
             display: block;
             margin-bottom: 8px;
             font-weight: bold;
         }
+
         input[type="file"] {
             display: block;
             width: 100%;
@@ -42,6 +47,7 @@
             border-radius: 4px;
             cursor: pointer;
         }
+
         .btn {
             background-color: #409EFF;
             color: white;
@@ -52,23 +58,38 @@
             font-size: 16px;
             transition: background 0.3s;
         }
+
         .btn:disabled {
             background-color: #a0cfff;
             cursor: not-allowed;
         }
+
         .btn:hover:not(:disabled) {
             background-color: #66b1ff;
         }
+
         #status {
             margin-top: 20px;
             padding: 15px;
             border-radius: 4px;
             display: none;
         }
-        .info { background-color: #f4f4f5; color: #909399; }
-        .success { background-color: #f0f9eb; color: #67c23a; }
-        .error { background-color: #fef0f0; color: #f56c6c; }
-        
+
+        .info {
+            background-color: #f4f4f5;
+            color: #909399;
+        }
+
+        .success {
+            background-color: #f0f9eb;
+            color: #67c23a;
+        }
+
+        .error {
+            background-color: #fef0f0;
+            color: #f56c6c;
+        }
+
         .progress-container {
             margin-top: 20px;
             height: 20px;
@@ -77,12 +98,14 @@
             overflow: hidden;
             display: none;
         }
+
         #progress-bar {
             height: 100%;
             background-color: #67c23a;
             width: 0%;
             transition: width 0.3s;
         }
+
         #log {
             margin-top: 20px;
             padding: 10px;
@@ -94,17 +117,22 @@
             border-radius: 4px;
             font-size: 12px;
         }
-        .log-item { margin-bottom: 4px; }
+
+        .log-item {
+            margin-bottom: 4px;
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <h2>文件分块上传测试</h2>
-    
+
     <div class="form-item">
         <label>接口基本路径 (Base URL)</label>
-        <input type="text" id="baseUrlInput" value="http://127.0.0.1:20020/document" placeholder="例如: http://127.0.0.1:20020/document" style="width: 100%; padding: 10px; border: 1px solid #dcdfe6; border-radius: 4px; box-sizing: border-box;">
+        <input type="text" id="baseUrlInput" value="http://127.0.0.1:20020/document"
+               placeholder="例如: http://127.0.0.1:20020/document"
+               style="width: 100%; padding: 10px; border: 1px solid #dcdfe6; border-radius: 4px; box-sizing: border-box;">
     </div>
 
     <div class="form-item">
@@ -146,10 +174,10 @@
         return path.substring(0, index); // 示例: "/document"
     };
     const baseUrlInput = document.getElementById('baseUrlInput');
-    
+
     // 初始化 BASE_URL
     let BASE_URL = baseUrlInput.value || getContextPath();
-    
+
     // 监听输入框变化更新 BASE_URL
     baseUrlInput.addEventListener('input', (e) => {
         BASE_URL = e.target.value;
@@ -178,8 +206,8 @@
             let currentChunk = 0;
 
             log(`开始计算文件MD5, 总分片数: ${chunks}`);
-            
-            reader.onload = function(e) {
+
+            reader.onload = function (e) {
                 spark.append(e.target.result);
                 currentChunk++;
 
@@ -224,7 +252,7 @@
             log(`正在初始化分片上传, 请求地址: ${BASE_URL}/files/multipart/init`);
             const initRes = await fetch(`${BASE_URL}/files/multipart/init`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     fileName: file.name,
                     contentType: file.type || 'application/octet-stream',
@@ -253,7 +281,7 @@
                 const chunk = file.slice(start, end);
 
                 log(`正在上传第 ${partNumber}/${chunks} 个分片...`);
-                
+
                 const formData = new FormData();
                 formData.append('file', chunk);
 
@@ -269,12 +297,12 @@
                 });
 
                 if (uploadRes.code !== 200) throw new Error(`分片 ${partNumber} 上传失败: ${uploadRes.msg}`);
-                
+
                 const etag = uploadRes.data;
                 log(`分片 ${partNumber} 上传成功, etag: ${etag}`);
-                
-                parts.push({ partNumber, etag });
-                
+
+                parts.push({partNumber, etag});
+
                 // 更新进度条
                 const percent = Math.round(((i + 1) / chunks) * 100);
                 progressBar.style.width = percent + '%';
@@ -284,7 +312,7 @@
             log('所有分片上传完成，正在合并...');
             const completeRes = await fetch(`${BASE_URL}/files/multipart/complete`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {'Content-Type': 'application/json'},
                 body: JSON.stringify({
                     fileName: file.name,
                     uploadId: uploadId,

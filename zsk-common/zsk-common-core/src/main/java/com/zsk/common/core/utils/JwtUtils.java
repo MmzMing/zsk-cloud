@@ -45,8 +45,8 @@ public class JwtUtils {
     /**
      * 初始化密钥信息
      *
-     * @param secret       对称加密密钥
-     * @param publicKeyStr 非对称加密公钥（Base64）
+     * @param secret        对称加密密钥
+     * @param publicKeyStr  非对称加密公钥（Base64）
      * @param privateKeyStr 非对称加密私钥（Base64）
      */
     public static void init(String secret, String publicKeyStr, String privateKeyStr) {

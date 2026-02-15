@@ -246,7 +246,7 @@ public class AuthServiceImpl implements IAuthService {
         SysUserApi user = loginUser.getSysUser();
         // 生成唯一标识 jti (JWT ID)，作为 Redis Key
         String uuid = UUID.randomUUID().toString().replace("-", "");
-        String tokenKey = CacheConstants.LOGIN_TOKEN_KEY + uuid;
+        String tokenKey = CacheConstants.CACHE_LOGIN_TOKEN + uuid;
 
         Map<String, Object> claims = new HashMap<>();
         claims.put(SecurityConstants.USER_KEY, uuid); // 存入 uuid 用于后续验证 Redis 状态
@@ -288,7 +288,7 @@ public class AuthServiceImpl implements IAuthService {
             throw new AuthException("刷新令牌无效");
         }
         // 根据 uuid 获取 redis 中的缓存
-        String tokenKey = CacheConstants.LOGIN_TOKEN_KEY + uuid;
+        String tokenKey = CacheConstants.CACHE_LOGIN_TOKEN + uuid;
         Object userId = redisService.getCacheObject(tokenKey);
         if (userId == null) {
             throw new AuthException("刷新令牌已过期或不存在");
@@ -319,7 +319,7 @@ public class AuthServiceImpl implements IAuthService {
             String uuid = JwtUtils.getUserKey(token);
             if (StringUtils.isNotEmpty(uuid)) {
                 // 根据 uuid 删除 redis 缓存
-                String tokenKey = CacheConstants.LOGIN_TOKEN_KEY + uuid;
+                String tokenKey = CacheConstants.CACHE_LOGIN_TOKEN + uuid;
                 redisService.deleteObject(tokenKey);
             }
         } catch (Exception e) {

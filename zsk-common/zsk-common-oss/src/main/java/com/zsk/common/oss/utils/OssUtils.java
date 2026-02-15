@@ -46,14 +46,14 @@ public class OssUtils {
         // 2. 获取类型名称
         FileType fileType = FileType.getByExtension(extension);
         String typeName = fileType.getName();
-        
+
         // 3. 校验MD5，为空则生成随机UUID
         if (StrUtil.isBlank(md5)) {
-             md5 = IdUtil.simpleUUID();
+            md5 = IdUtil.simpleUUID();
         }
         // 确保MD5长度至少为2
         if (md5.length() < 2) {
-             md5 = StrUtil.padPre(md5, 2, "0");
+            md5 = StrUtil.padPre(md5, 2, "0");
         }
 
         // 4. 构建路径
@@ -61,11 +61,11 @@ public class OssUtils {
         String subDir = md5.substring(0, 1) + "/" + md5.substring(1, 2);
         // 时间：年/月/日
         String datePath = DateUtil.format(new Date(), "yyyy/MM/dd");
-        
+
         // 完整路径：类型名称/MD5首字符/MD5第二字符/年/月/日/MD5.扩展名
         return StrUtil.format("{}/{}/{}/{}.{}", typeName, subDir, datePath, md5, extension);
     }
-    
+
     /**
      * 获取分块文件存储路径
      * 规则：在文件路径基础上增加 /chunk/

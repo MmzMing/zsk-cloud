@@ -21,69 +21,69 @@ import java.util.List;
  * </p>
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Configuration
 public class OAuth2ClientConfig {
 
-    /** 
+    /**
      * QQ 应用标识 (App ID)
      * 从配置文件 auth.qq.app-id 获取
      */
     @Value("${auth.qq.app-id}")
     private String qqAppId;
 
-    /** 
+    /**
      * QQ 应用密钥 (App Secret)
      * 从配置文件 auth.qq.app-secret 获取
      */
     @Value("${auth.qq.app-secret}")
     private String qqAppSecret;
 
-    /** 
+    /**
      * QQ 认证回调地址
      * 用户在 QQ 授权后将跳转回此地址
      */
     @Value("${auth.qq.redirect-uri}")
     private String qqRedirectUri;
 
-    /** 
+    /**
      * 微信应用标识 (App ID)
      * 从配置文件 auth.wechat.app-id 获取
      */
     @Value("${auth.wechat.app-id}")
     private String wechatAppId;
 
-    /** 
+    /**
      * 微信应用密钥 (App Secret)
      * 从配置文件 auth.wechat.app-secret 获取
      */
     @Value("${auth.wechat.app-secret}")
     private String wechatAppSecret;
 
-    /** 
+    /**
      * 微信认证回调地址
      * 用户在微信扫码授权后将跳转回此地址
      */
     @Value("${auth.wechat.redirect-uri}")
     private String wechatRedirectUri;
 
-    /** 
+    /**
      * GitHub 客户端标识 (Client ID)
      * 从配置文件 auth.github.client-id 获取
      */
     @Value("${auth.github.client-id}")
     private String githubClientId;
 
-    /** 
+    /**
      * GitHub 客户端密钥 (Client Secret)
      * 从配置文件 auth.github.client-secret 获取
      */
     @Value("${auth.github.client-secret}")
     private String githubClientSecret;
 
-    /** 
+    /**
      * GitHub 认证回调地址
      * 用户在 GitHub 授权后将跳转回此地址
      */

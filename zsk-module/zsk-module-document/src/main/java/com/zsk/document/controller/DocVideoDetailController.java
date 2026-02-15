@@ -19,10 +19,10 @@ import java.util.List;
 
 /**
  * 视频详情Controller
- * 
+ *
  * @author wuhuaming
- * @date 2026-02-14
  * @version 1.0
+ * @date 2026-02-14
  */
 @Tag(name = "视频详情管理")
 @RestController
@@ -80,10 +80,10 @@ public class DocVideoDetailController {
     public R<Boolean> upload(@RequestPart("file") MultipartFile file, DocVideoDetail docVideoDetail) {
         // 1. 上传文件
         DocFiles docFile = docFilesService.uploadFile(file);
-        
+
         // 2. 设置文件关联ID
         docVideoDetail.setFileId(docFile.getFileId());
-        
+
         // 3. 保存视频详情
         return R.ok(docVideoDetailService.save(docVideoDetail));
     }

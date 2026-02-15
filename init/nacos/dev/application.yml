@@ -57,6 +57,21 @@ logging:
     org.springframework: warn
     com.alibaba.nacos: warn
 
+xxl:
+  job:
+    enabled: true
+    admin:
+      addresses: http://localhost:8080/xxl-job-admin
+      username: admin
+      password: 123456
+    executor:
+      appname: zsk-executor
+      title: ZSK执行器
+      port: 9999
+      log-path: logs/xxl-job/jobhandler
+      log-retention-days: 30
+      access-token: 
+
 # 安全配置
 security:
   jwt:
@@ -66,3 +81,4 @@ security:
     public-key: MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAmVnclVQlicl2v36UOTQluOLblRV+xgLmhErA+rdvQ25QCBZ4/BRrZq1iklaD85wUCLAACADgqIIqGgzELC8EhI5P+ExjlycjEhkSKVaFh45C7u7IVO3w7ZwfweQPh5OQkqRJqhjGGmZl9BfO0+aUVARHgp6C/n4yUvKIPPs4UBtR7SB5sXJKTbN3bRrI60m6Dan3bYT4+kKBN66Cpvpxe0zg3z7Nw76O+GPSLvtn2EqEd1UJkZgivss9ArU4j42NhRKYDzmPqujzSs92CA+JsaM0j9zrF17J6BsOVWzEMfcAbdZW9V+wpZdI88SCm8mkM7QEXSB0vQE/r6wY3RoGsQIDAQAB
     # 私钥（非对称加密使用，Base64 编码）
     private-key: MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCZWdyVVCWJyXa/fpQ5NCW44tuVFX7GAuaESsD6t29DblAIFnj8FGtmrWKSVoPznBQIsAAIAOCogioaDMQsLwSEjk/4TGOXJyMSGRIpVoWHjkLu7shU7fDtnB/B5A+Hk5CSpEmqGMYaZmX0F87T5pRUBEeCnoL+fjJS8og8+zhQG1HtIHmxckpNs3dtGsjrSboNqfdthPj6QoE3roKm+nF7TODfPs3Dvo74Y9Iu+2fYSoR3VQmRmCK+yz0CtTiPjY2FEpgPOY+q6PNKz3YID4mxozSP3OsXXsnoGw5VbMQx9wBt1lb1X7Cll0jzxIKbyaQztARdIHS9AT+vrBjdGgaxAgMBAAECggEAA8hYNzi+ekwMHYQ2SWZop+Y7XeHPkDhxMz7B9Sgt2rNlcD02TJtkprPnsOIev3pGSZnwhCcTSJ4NiYrNBR64uk6HMIHcmaZF/L0cXX5oJmsFrXsnWWY26D5cLdx3BveyZ/EPbUNwfZ6VrL496Vt8Hsnj6wpzOOQTu/cM29OWA/wA14sbAi9sMfZi5eNLBh5ResJXS7hsP6XfpN5hka6+iK60v9XwaiPzRJMzbH1fr0ddCItoSJHkTD6N0p2F7ZRNehjqhlT6arMiSCq2VLYVLLjllUkDLJW13ICztIfJpXiyI3o2/BgPNWf/LoZXYg1JZ4Jeiz8DKvZpa5PE+jpUNwKBgQC5nKgRynHt3huB71RQYZEmaa5cpOubYaRF8EyAz67030oBWpT/1PY91esCV5CCtdV41EbOpHW/IBg6l//DZwi5VV9XSQ1MCnvIs9y2lTpJzSzAeSRluxdnG3HEA7clIHYH42xh7WTpSSRAnieSpbdj1yzTlKCpsF5q+pq2Q68tmwKBgQDTgUqjs0phedDbn1e7Tjw/Tgu9kDzanIuXH6Nu1F+39ffvpdfzxMJEkwFersWBJqAWSnlfVzE2dgtrN5UYUS1Xfxs6MSZhzt09RTa0ybZVOzZ26RKOVYzS1OPmtduRG7Fu1ZzygK6Fd58mymawJVcjKMrLU2+cunaBBwLJUF5HowKBgGGrk6048FaRB7yJ6b4aeTzTY5MQnYI4ES9UUY1+u7vTO6gWuE0fDSxgwreKyFpfwKNCYLggRm16QAWlMkrqjuani/HsWPjok1Z7fur8/50SQDhQBt0ZZCk3gdf5dIgu2q0v+TpWp0Ey4ca28m/yj9wTwFzd2uUwD58PnBXI7Ad9AoGBAMPnitoL9IZLDdCPS/S7J4S/ZpKD6knXHFizPm8mmS5MzwUTiO5KvmJEA83OdjQFMdzTyI4ttfCq8DK0Pg5TCntzySViZxnLQRNCa8SS3acefHkxszVROmoCNMH6ilBi5Tsy8vePh5cqUKjearUXMRno68XfF4+FCsTCWKtdHKafAoGALV63OVdamooPlaalhOg0T/I2FkPrHRom1okgObEELiZunxs3SHjUbgXwWEU8pc2856DxyT0Nnd3gY4z5AIJm3+qt0tPgXw3/HGgjNQHmDGoxu3+xJMPF/nSAg63AiDgQWsVQHaQWul8Iy/WBztm4PH53RW59W9F/9A4TTqXUMpg=
+

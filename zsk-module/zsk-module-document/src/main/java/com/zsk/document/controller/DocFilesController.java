@@ -20,10 +20,10 @@ import java.io.InputStream;
 
 /**
  * 文件Controller
- * 
+ *
  * @author wuhuaming
- * @date 2026-02-14
  * @version 1.0
+ * @date 2026-02-14
  */
 @Tag(name = "文件管理")
 @RestController
@@ -69,7 +69,7 @@ public class DocFilesController {
      * 初始化分片上传
      * 该方法是先在数据库中保存文件记录，并返回一个分片上传ID（uploadId），用于后续分片上传和完成操作
      * 如果网络断开，请确保在完成分片上传之前，已上传的分片文件都保存在数据库中。
-     * 
+     *
      * @param request 分片上传初始化请求对象，包含文件名、文件类型、MD5等信息
      * @return 响应结果，成功时返回分片上传ID（uploadId），用于后续分片上传和完成操作
      */

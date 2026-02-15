@@ -8,16 +8,20 @@ import lombok.NoArgsConstructor;
  * OSS分片信息
  *
  * @author wuhuaming
- * @date 2026-02-14
  * @version 1.0
+ * @date 2026-02-14
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class OssPart {
-    /** 分片号 */
+    /**
+     * 分片号
+     */
     private Integer partNumber;
 
-    /** ETag */
+    /**
+     * ETag
+     */
     private String etag;
 }

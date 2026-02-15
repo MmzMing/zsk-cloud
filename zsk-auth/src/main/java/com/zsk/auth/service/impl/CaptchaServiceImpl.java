@@ -71,7 +71,7 @@ public class CaptchaServiceImpl implements ICaptchaService {
 
             // 6. 缓存X坐标用于校验
             String uuid = UUID.randomUUID().toString().replace("-", "");
-            String captchaKey = CacheConstants.CAPTCHA_CODE_KEY + uuid;
+            String captchaKey = CacheConstants.CACHE_CAPTCHA_CODE + uuid;
             redisService.setCacheObject(captchaKey, String.valueOf(x), 1, TimeUnit.MINUTES);
 
             return CaptchaResponse.builder()
@@ -170,7 +170,7 @@ public class CaptchaServiceImpl implements ICaptchaService {
             throw new AuthException("验证码不能为空");
         }
 
-        String captchaKey = CacheConstants.CAPTCHA_CODE_KEY + uuid;
+        String captchaKey = CacheConstants.CACHE_CAPTCHA_CODE + uuid;
         String cachedX = redisService.getCacheObject(captchaKey);
 
         if (StringUtils.isEmpty(cachedX)) {

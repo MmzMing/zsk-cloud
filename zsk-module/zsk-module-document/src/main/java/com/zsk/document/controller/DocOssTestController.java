@@ -20,8 +20,8 @@ import java.io.InputStream;
  * OSS上传测试接口
  *
  * @author wuhuaming
- * @date 2026-02-14
  * @version 1.0
+ * @date 2026-02-14
  */
 @Tag(name = "OSS上传测试")
 @Slf4j
@@ -46,8 +46,8 @@ public class DocOssTestController {
             String suffix = FileUtil.getSuffix(originalFilename);
             String fileName = IdUtil.simpleUUID() + "." + suffix;
             String contentType = file.getContentType();
-            
-            log.info("开始测试OSS上传: originalFilename={}, fileName={}, contentType={}", 
+
+            log.info("开始测试OSS上传: originalFilename={}, fileName={}, contentType={}",
                     originalFilename, fileName, contentType);
 
             // 执行上传
@@ -57,7 +57,7 @@ public class DocOssTestController {
 
             // 获取访问地址
             String url = ossTemplate.getObjectUrl(fileName);
-            
+
             log.info("OSS上传测试成功: url={}", url);
             return R.ok("上传成功", url);
         } catch (Exception e) {

@@ -10,10 +10,10 @@ import java.io.InputStream;
 
 /**
  * 文件Service接口
- * 
+ *
  * @author wuhuaming
- * @date 2026-02-14
  * @version 1.0
+ * @date 2026-02-14
  */
 public interface IDocFilesService extends IService<DocFiles> {
     /**
@@ -35,10 +35,10 @@ public interface IDocFilesService extends IService<DocFiles> {
     /**
      * 上传分片
      *
-     * @param uploadId 上传ID
+     * @param uploadId   上传ID
      * @param partNumber 分片号
-     * @param stream   输入流
-     * @param size     分片大小
+     * @param stream     输入流
+     * @param size       分片大小
      * @return ETag
      */
     String uploadPart(String uploadId, Integer partNumber, InputStream stream, long size);

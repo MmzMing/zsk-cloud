@@ -22,7 +22,6 @@ import org.springframework.web.context.request.ServletRequestAttributes;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Map;
 
@@ -41,7 +40,8 @@ public class LogAspect {
 
     // 配置织入点 - 拦截 com.zsk 包下所有 controller
     @Pointcut("execution(public * com.zsk..controller..*.*(..))")
-    public void logPointCut() {}
+    public void logPointCut() {
+    }
 
     @Around("logPointCut()")
     public Object around(ProceedingJoinPoint point) throws Throwable {
@@ -77,21 +77,21 @@ public class LogAspect {
                 operLog.setOperIp(IpUtils.getIpAddr(request));
                 operLog.setRequestMethod(request.getMethod());
                 operLog.setOperName(SecurityUtils.getUserName());
-                
+
                 if (controllerLog == null || controllerLog.isSaveRequestData()) {
                     if (joinPoint.getArgs().length > 0) {
-                         try {
+                        try {
                             String params = argsArrayToString(joinPoint.getArgs());
                             operLog.setOperParam(StrUtil.sub(params, 0, 2000));
-                         } catch (Exception e) {
-                             // ignore
-                         }
+                        } catch (Exception e) {
+                            // ignore
+                        }
                     }
                 }
             }
-            
+
             operLog.setMethod(joinPoint.getSignature().getName());
-            
+
             if (controllerLog != null) {
                 operLog.setBusinessType(controllerLog.businessType().ordinal());
                 operLog.setTitle(controllerLog.title());
@@ -99,16 +99,16 @@ public class LogAspect {
 
             if (result != null && !isFilterObject(result)) {
                 if (controllerLog == null || controllerLog.isSaveResponseData()) {
-                     try {
+                    try {
                         operLog.setJsonResult(StrUtil.sub(JSONUtil.toJsonStr(result), 0, 2000));
-                     } catch (Exception e) {
-                         // ignore
-                     }
+                    } catch (Exception e) {
+                        // ignore
+                    }
                 }
             }
 
             mongoTemplate.save(operLog);
-            
+
         } catch (Exception e) {
             log.error("保存操作日志异常:{}", e.getMessage());
         }
@@ -128,7 +128,7 @@ public class LogAspect {
         }
         return null;
     }
-    
+
     /**
      * 参数拼装
      */
@@ -150,7 +150,7 @@ public class LogAspect {
 
     /**
      * 判断是否需要过滤的对象
-     * 
+     *
      * @param o 对象信息。
      * @return 如果是需要过滤的对象，则返回true；否则返回false。
      */

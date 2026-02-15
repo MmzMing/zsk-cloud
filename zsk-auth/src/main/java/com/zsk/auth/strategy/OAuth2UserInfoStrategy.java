@@ -11,10 +11,10 @@ import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenRespon
  * 定义了第三方登录（OAuth2）的核心操作流程，包括获取注册标识、换取访问令牌以及解析用户信息。
  * 不同的第三方平台（如 GitHub、QQ、微信）需实现此接口以处理其特有的协议逻辑。
  * </p>
- * 
+ *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 public interface OAuth2UserInfoStrategy {
 

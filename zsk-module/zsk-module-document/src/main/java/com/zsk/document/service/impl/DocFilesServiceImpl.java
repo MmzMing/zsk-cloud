@@ -24,10 +24,10 @@ import java.time.LocalDateTime;
 
 /**
  * 文件Service业务层处理
- * 
+ *
  * @author wuhuaming
- * @date 2026-02-14
  * @version 1.0
+ * @date 2026-02-14
  */
 @Service
 @RequiredArgsConstructor
@@ -50,18 +50,18 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
         try (InputStream is = file.getInputStream()) {
             md5 = OssUtils.getMd5(is);
         }
-        
+
         // 生成存储路径
         String objectName = OssUtils.getPath(originalFilename, md5);
-        
+
         // 上传到OSS
         try (InputStream is = file.getInputStream()) {
             ossTemplate.putObject(objectName, is, file.getContentType());
         }
-        
+
         // 获取URL
         String url = ossTemplate.getObjectUrl(objectName);
-        
+
         // 保存记录
         return saveFileRecord(file, IdUtil.simpleUUID(), objectName, originalFilename, url);
     }
@@ -90,13 +90,13 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
         }
         // 生成存储路径
         String objectName = OssUtils.getPath(fileName, md5);
-        
+
         // 获取BucketName
         String bucketName = getBucketName();
-        
+
         // 初始化分片上传
         String uploadId = ossTemplate.initiateMultipartUpload(bucketName, objectName, contentType);
-        
+
         // 保存初始化记录 (状态为0-上传中)
         DocFiles docFile = new DocFiles();
         docFile.setFileId(uploadId); // 使用uploadId作为fileId
@@ -107,17 +107,17 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
         docFile.setBucket(bucketName);
         docFile.setStatus(1); // 上传中
         save(docFile);
-        
+
         return uploadId;
     }
 
     /**
      * 上传分片
      *
-     * @param uploadId 上传ID
+     * @param uploadId   上传ID
      * @param partNumber 分片号
-     * @param stream   输入流
-     * @param size     分片大小
+     * @param stream     输入流
+     * @param size       分片大小
      * @return ETag
      */
     @Override
@@ -128,7 +128,7 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
         if (docFile == null) {
             throw new BusinessException("文件记录不存在");
         }
-        
+
         // 上传分片 (使用记录中的FilePath)
         try (InputStream is = stream) {
             return ossTemplate.uploadPart(docFile.getBucket(), docFile.getFilePath(), uploadId, partNumber, is, size);
@@ -144,26 +144,26 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
     @SneakyThrows
     public void completeMultipartUpload(MultipartCompleteRequest request) {
         String uploadId = request.getUploadId();
-        
+
         // 查询文件记录
         DocFiles docFile = getByFileId(uploadId);
         if (docFile == null) {
             throw new BusinessException("文件记录不存在");
         }
-        
+
         // 完成分片上传
         ossTemplate.completeMultipartUpload(docFile.getBucket(), docFile.getFilePath(), uploadId, request.getParts());
-        
+
         // 校验文件MD5
         // 1. 获取路径中的MD5 (文件名就是MD5)
         String expectedMd5 = FileNameUtil.mainName(docFile.getFilePath());
-        
+
         // 2. 计算实际文件的MD5
         String actualMd5;
         try (InputStream is = ossTemplate.getObject(docFile.getBucket(), docFile.getFilePath())) {
             actualMd5 = OssUtils.getMd5(is);
         }
-        
+
         // 3. 比较MD5
         if (!expectedMd5.equalsIgnoreCase(actualMd5)) {
             // MD5不一致，删除文件和记录
@@ -171,7 +171,7 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
             removeById(docFile.getId());
             throw new BusinessException("文件校验失败：MD5值不一致，文件可能已损坏或被篡改");
         }
-        
+
         // 更新记录URL
         docFile.setUrl(ossTemplate.getObjectUrl(docFile.getBucket(), docFile.getFilePath()));
         docFile.setStatus(2); // 已上传
@@ -223,6 +223,6 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
             return ((DynamicOssTemplate) ossTemplate).getProperties().getBucketName();
         }
         // 默认处理
-        return "default"; 
+        return "default";
     }
 }

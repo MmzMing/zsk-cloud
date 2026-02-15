@@ -13,16 +13,20 @@ import java.util.List;
  * 动态OSS操作模板，支持运行时切换
  *
  * @author wuhuaming
- * @date 2026-02-14
  * @version 1.0
+ * @date 2026-02-14
  */
 @Slf4j
 public class DynamicOssTemplate implements OssTemplate {
 
-    /** 当前使用的模板实现 */
+    /**
+     * 当前使用的模板实现
+     */
     private volatile OssTemplate currentTemplate;
-    
-    /** 当前OSS配置属性 */
+
+    /**
+     * 当前OSS配置属性
+     */
     private volatile OssProperties currentProperties;
 
     /**
@@ -103,9 +107,9 @@ public class DynamicOssTemplate implements OssTemplate {
     /**
      * 文件上传
      *
-     * @param bucketName 桶名称
-     * @param objectName 文件名
-     * @param stream     输入流
+     * @param bucketName  桶名称
+     * @param objectName  文件名
+     * @param stream      输入流
      * @param contentType 文件类型
      */
     @Override
@@ -116,8 +120,8 @@ public class DynamicOssTemplate implements OssTemplate {
     /**
      * 文件上传（使用默认桶）
      *
-     * @param objectName 文件名
-     * @param stream     输入流
+     * @param objectName  文件名
+     * @param stream      输入流
      * @param contentType 文件类型
      */
     @Override
@@ -174,8 +178,8 @@ public class DynamicOssTemplate implements OssTemplate {
     /**
      * 初始化分片上传
      *
-     * @param bucketName 桶名称
-     * @param objectName 文件名
+     * @param bucketName  桶名称
+     * @param objectName  文件名
      * @param contentType 文件类型
      * @return String uploadId
      */
@@ -189,10 +193,10 @@ public class DynamicOssTemplate implements OssTemplate {
      *
      * @param bucketName 桶名称
      * @param objectName 文件名
-     * @param uploadId 上传ID
+     * @param uploadId   上传ID
      * @param partNumber 分片号
-     * @param stream 输入流
-     * @param size 分片大小
+     * @param stream     输入流
+     * @param size       分片大小
      * @return String ETag
      */
     @Override
@@ -205,8 +209,8 @@ public class DynamicOssTemplate implements OssTemplate {
      *
      * @param bucketName 桶名称
      * @param objectName 文件名
-     * @param uploadId 上传ID
-     * @param parts 分片列表
+     * @param uploadId   上传ID
+     * @param parts      分片列表
      */
     @Override
     public void completeMultipartUpload(String bucketName, String objectName, String uploadId, List<OssPart> parts) {
@@ -218,7 +222,7 @@ public class DynamicOssTemplate implements OssTemplate {
      *
      * @param bucketName 桶名称
      * @param objectName 文件名
-     * @param uploadId 上传ID
+     * @param uploadId   上传ID
      */
     @Override
     public void abortMultipartUpload(String bucketName, String objectName, String uploadId) {

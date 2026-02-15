@@ -5,10 +5,10 @@ import com.zsk.document.domain.DocNote;
 
 /**
  * 笔记Service接口
- * 
+ *
  * @author wuhuaming
- * @date 2026-02-14
  * @version 1.0
+ * @date 2026-02-14
  */
 public interface IDocNoteService extends IService<DocNote> {
 }

@@ -20,16 +20,18 @@ import java.util.Map;
  * </p>
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Component
 public class GithubUserInfoStrategy implements OAuth2UserInfoStrategy {
 
-    /** 默认OAuth2用户服务，用于加载并解析 GitHub 返回的用户原始属性 */
+    /**
+     * 默认OAuth2用户服务，用于加载并解析 GitHub 返回的用户原始属性
+     */
     private final DefaultOAuth2UserService userService = new DefaultOAuth2UserService();
-    
-    /** 
+
+    /**
      * 基于 RestClient 的授权码令牌响应客户端
      * 用于通过 Authorization Code 换取 GitHub 的 Access Token
      */

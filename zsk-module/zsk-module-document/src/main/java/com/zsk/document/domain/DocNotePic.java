@@ -10,7 +10,7 @@ import java.io.Serial;
 
 /**
  * 笔记多图关联表对象 doc_note_pic
- * 
+ *
  * @author wuhuaming
  */
 @Data
@@ -21,15 +21,21 @@ public class DocNotePic extends TenantEntity {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** 笔记ID */
+    /**
+     * 笔记ID
+     */
     @Schema(description = "笔记ID")
     private Long noteId;
 
-    /** 图片URL */
+    /**
+     * 图片URL
+     */
     @Schema(description = "图片URL")
     private String picUrl;
 
-    /** 排序 */
+    /**
+     * 排序
+     */
     @Schema(description = "排序")
     private Integer sort;
 }

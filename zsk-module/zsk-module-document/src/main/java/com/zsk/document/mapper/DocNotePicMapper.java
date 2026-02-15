@@ -6,7 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 /**
  * 笔记图片Mapper接口
- * 
+ *
  * @author wuhuaming
  */
 @Mapper

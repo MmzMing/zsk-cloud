@@ -38,6 +38,12 @@
             <artifactId>zsk-common-swagger</artifactId>
         </dependency>
 
+        <!-- Common XXL-Job -->
+        <dependency>
+            <groupId>com.zsk.cloud</groupId>
+            <artifactId>zsk-common-xxljob</artifactId>
+        </dependency>
+
     </dependencies>
 
     <build>

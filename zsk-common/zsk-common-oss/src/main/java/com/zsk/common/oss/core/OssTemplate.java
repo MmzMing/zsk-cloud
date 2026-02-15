@@ -1,15 +1,16 @@
 package com.zsk.common.oss.core;
 
 import com.zsk.common.oss.model.OssPart;
+
 import java.io.InputStream;
 import java.util.List;
 
 /**
  * OSS操作模板接口
- * 
+ *
  * @author wuhuaming
- * @date 2026-02-14
  * @version 1.0
+ * @date 2026-02-14
  */
 public interface OssTemplate {
 
@@ -38,9 +39,9 @@ public interface OssTemplate {
     /**
      * 文件上传
      *
-     * @param bucketName 桶名称
-     * @param objectName 文件名
-     * @param stream     输入流
+     * @param bucketName  桶名称
+     * @param objectName  文件名
+     * @param stream      输入流
      * @param contentType 文件类型
      */
     void putObject(String bucketName, String objectName, InputStream stream, String contentType);
@@ -48,8 +49,8 @@ public interface OssTemplate {
     /**
      * 文件上传（使用默认桶）
      *
-     * @param objectName 文件名
-     * @param stream     输入流
+     * @param objectName  文件名
+     * @param stream      输入流
      * @param contentType 文件类型
      */
     void putObject(String objectName, InputStream stream, String contentType);
@@ -91,8 +92,8 @@ public interface OssTemplate {
     /**
      * 初始化分片上传
      *
-     * @param bucketName 桶名称
-     * @param objectName 文件名
+     * @param bucketName  桶名称
+     * @param objectName  文件名
      * @param contentType 文件类型
      * @return String uploadId
      */
@@ -103,10 +104,10 @@ public interface OssTemplate {
      *
      * @param bucketName 桶名称
      * @param objectName 文件名
-     * @param uploadId 上传ID
+     * @param uploadId   上传ID
      * @param partNumber 分片号
-     * @param stream 输入流
-     * @param size 分片大小
+     * @param stream     输入流
+     * @param size       分片大小
      * @return String ETag
      */
     String uploadPart(String bucketName, String objectName, String uploadId, int partNumber, InputStream stream, long size);
@@ -116,8 +117,8 @@ public interface OssTemplate {
      *
      * @param bucketName 桶名称
      * @param objectName 文件名
-     * @param uploadId 上传ID
-     * @param parts 分片列表
+     * @param uploadId   上传ID
+     * @param parts      分片列表
      */
     void completeMultipartUpload(String bucketName, String objectName, String uploadId, List<OssPart> parts);
 
@@ -126,7 +127,7 @@ public interface OssTemplate {
      *
      * @param bucketName 桶名称
      * @param objectName 文件名
-     * @param uploadId 上传ID
+     * @param uploadId   上传ID
      */
     void abortMultipartUpload(String bucketName, String objectName, String uploadId);
 }

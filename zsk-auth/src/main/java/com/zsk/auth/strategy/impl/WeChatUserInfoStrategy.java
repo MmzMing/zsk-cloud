@@ -4,19 +4,13 @@ import com.zsk.auth.strategy.OAuth2UserInfoStrategy;
 import com.zsk.common.core.utils.JsonUtil;
 import com.zsk.system.api.domain.SysUserApi;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.MediaType;
-import org.springframework.http.converter.FormHttpMessageConverter;
-import org.springframework.security.oauth2.client.endpoint.OAuth2AccessTokenResponseClient;
 import org.springframework.security.oauth2.client.endpoint.OAuth2AuthorizationCodeGrantRequest;
 import org.springframework.security.oauth2.client.endpoint.RestClientAuthorizationCodeTokenResponseClient;
-import org.springframework.security.oauth2.client.http.OAuth2ErrorResponseErrorHandler;
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.endpoint.OAuth2AccessTokenResponse;
-import org.springframework.security.oauth2.core.http.converter.OAuth2AccessTokenResponseHttpMessageConverter;
 import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClient;
 
-import java.util.Arrays;
 import java.util.Map;
 
 /**
@@ -27,20 +21,20 @@ import java.util.Map;
  * </p>
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Slf4j
 @Component
 public class WeChatUserInfoStrategy implements OAuth2UserInfoStrategy {
 
-    /** 
+    /**
      * 通用的 RestClient 实例
      * 用于调用微信用户信息接口 sns/userinfo
      */
     private final RestClient restClient = RestClient.create();
-    
-    /** 
+
+    /**
      * 基于 RestClient 的令牌响应客户端
      * 微信的 Access Token 响应格式虽然符合 JSON，但通常建议通过定制化客户端来处理可能的非标字段
      */
@@ -94,9 +88,9 @@ public class WeChatUserInfoStrategy implements OAuth2UserInfoStrategy {
         }
 
         // 调用微信用户信息接口
-        String userInfoUrl = "https://api.weixin.qq.com/sns/userinfo?access_token=" + accessToken + 
-                             "&openid=" + openId + "&lang=zh_CN";
-        
+        String userInfoUrl = "https://api.weixin.qq.com/sns/userinfo?access_token=" + accessToken +
+                "&openid=" + openId + "&lang=zh_CN";
+
         String userInfoResponse = restClient.get()
                 .uri(userInfoUrl)
                 .retrieve()

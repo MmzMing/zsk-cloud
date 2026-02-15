@@ -84,7 +84,7 @@ public class EmailServiceImpl implements IEmailService {
         }
 
         String code = generateEmailCode();
-        String emailKey = CacheConstants.EMAIL_CODE_KEY + email;
+        String emailKey = CacheConstants.CACHE_EMAIL_CODE + email;
 
         redisService.setCacheObject(emailKey, code, emailCodeExpire, TimeUnit.SECONDS);
 
@@ -120,7 +120,7 @@ public class EmailServiceImpl implements IEmailService {
             throw new AuthException("邮箱和验证码不能为空");
         }
 
-        String emailKey = CacheConstants.EMAIL_CODE_KEY + email;
+        String emailKey = CacheConstants.CACHE_EMAIL_CODE + email;
         String cachedCode = redisService.getCacheObject(emailKey);
 
         if (StringUtils.isEmpty(cachedCode)) {

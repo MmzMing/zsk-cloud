@@ -46,7 +46,7 @@ public class DictUtils {
      * 清空字典缓存
      */
     public static void clearDictCache() {
-        Collection<String> keys = getRedisService().keys(CacheConstants.DICT_KEY + "*");
+        Collection<String> keys = getRedisService().keys(CacheConstants.CACHE_DICT + "*");
         getRedisService().deleteObject(keys);
     }
 
@@ -57,7 +57,7 @@ public class DictUtils {
      * @return 缓存键key
      */
     public static String getCacheKey(String configKey) {
-        return CacheConstants.DICT_KEY + configKey;
+        return CacheConstants.CACHE_DICT + configKey;
     }
 
     private static RedisService getRedisService() {

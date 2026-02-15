@@ -16,16 +16,20 @@ import java.util.stream.Collectors;
  * 阿里云OSS实现类
  *
  * @author wuhuaming
- * @date 2026-02-14
  * @version 1.0
+ * @date 2026-02-14
  */
 @RequiredArgsConstructor
 public class AliyunTemplate implements OssTemplate {
 
-    /** 阿里云OSS客户端 */
+    /**
+     * 阿里云OSS客户端
+     */
     private final OSS ossClient;
-    
-    /** OSS配置属性 */
+
+    /**
+     * OSS配置属性
+     */
     private final OssProperties ossProperties;
 
     /**
@@ -64,9 +68,9 @@ public class AliyunTemplate implements OssTemplate {
     /**
      * 文件上传
      *
-     * @param bucketName 桶名称
-     * @param objectName 文件名
-     * @param stream     输入流
+     * @param bucketName  桶名称
+     * @param objectName  文件名
+     * @param stream      输入流
      * @param contentType 文件类型
      */
     @Override
@@ -79,8 +83,8 @@ public class AliyunTemplate implements OssTemplate {
     /**
      * 文件上传（使用默认桶）
      *
-     * @param objectName 文件名
-     * @param stream     输入流
+     * @param objectName  文件名
+     * @param stream      输入流
      * @param contentType 文件类型
      */
     @Override
@@ -144,8 +148,8 @@ public class AliyunTemplate implements OssTemplate {
     /**
      * 初始化分片上传
      *
-     * @param bucketName 桶名称
-     * @param objectName 文件名
+     * @param bucketName  桶名称
+     * @param objectName  文件名
      * @param contentType 文件类型
      * @return String uploadId
      */
@@ -164,10 +168,10 @@ public class AliyunTemplate implements OssTemplate {
      *
      * @param bucketName 桶名称
      * @param objectName 文件名
-     * @param uploadId 上传ID
+     * @param uploadId   上传ID
      * @param partNumber 分片号
-     * @param stream 输入流
-     * @param size 分片大小
+     * @param stream     输入流
+     * @param size       分片大小
      * @return String ETag
      */
     @Override
@@ -188,15 +192,15 @@ public class AliyunTemplate implements OssTemplate {
      *
      * @param bucketName 桶名称
      * @param objectName 文件名
-     * @param uploadId 上传ID
-     * @param parts 分片列表
+     * @param uploadId   上传ID
+     * @param parts      分片列表
      */
     @Override
     public void completeMultipartUpload(String bucketName, String objectName, String uploadId, List<OssPart> parts) {
         List<PartETag> partETags = parts.stream()
                 .map(p -> new PartETag(p.getPartNumber(), p.getEtag()))
                 .collect(Collectors.toList());
-        
+
         CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(bucketName, objectName, uploadId, partETags);
         ossClient.completeMultipartUpload(request);
     }
@@ -206,7 +210,7 @@ public class AliyunTemplate implements OssTemplate {
      *
      * @param bucketName 桶名称
      * @param objectName 文件名
-     * @param uploadId 上传ID
+     * @param uploadId   上传ID
      */
     @Override
     public void abortMultipartUpload(String bucketName, String objectName, String uploadId) {

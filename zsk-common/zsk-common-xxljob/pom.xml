@@ -17,5 +17,22 @@
         定时调度模块
     </description>
 
+    <dependencies>
+        <dependency>
+            <groupId>com.zsk.cloud</groupId>
+            <artifactId>zsk-common-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>com.xuxueli</groupId>
+            <artifactId>xxl-job-core</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-configuration-processor</artifactId>
+            <optional>true</optional>
+        </dependency>
+    </dependencies>
 
 </project>
