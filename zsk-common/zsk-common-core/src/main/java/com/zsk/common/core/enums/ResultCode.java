@@ -109,11 +109,11 @@ public enum ResultCode {
     /**
      * 状态信息
      */
-    private final String message;
+    private final String msg;
 
-    ResultCode(Integer code, String message) {
+    ResultCode(Integer code, String msg) {
         this.code = code;
-        this.message = message;
+        this.msg = msg;
     }
 
     /**

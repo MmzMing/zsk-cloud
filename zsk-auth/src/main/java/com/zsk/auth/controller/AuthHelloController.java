@@ -17,11 +17,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/test")
 public class AuthHelloController {
 
-    /**
-     * 测试配置项
-     */
-    @Value(value = "${k1}")
-    String k1;
 
     /**
      * 测试接口
@@ -30,7 +25,7 @@ public class AuthHelloController {
      */
     @GetMapping("/hello")
     public String hello() {
-        return k1;
+        return "hello world";
     }
 
     /**
@@ -41,6 +36,6 @@ public class AuthHelloController {
     @GetMapping("/helloAuth")
     @PreAuthorize("hasRole('ADMIN')")
     public String helloAuth() {
-        return k1;
+        return "hello world";
     }
 }

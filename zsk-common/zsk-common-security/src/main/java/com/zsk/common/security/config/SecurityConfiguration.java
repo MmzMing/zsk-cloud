@@ -71,8 +71,8 @@ public class SecurityConfiguration {
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         // 禁用 CSRF，因为在微服务架构下，通常使用 Token 验证，不需要 CSRF 防护
         http.csrf(AbstractHttpConfigurer::disable)
-                // 开启跨域配置
-                .cors(Customizer.withDefaults())
+                // 开启跨域配置 (交由网关统一处理，此处无需开启，避免重复配置导致 CORS 错误)
+                // .cors(Customizer.withDefaults())
                 // 禁用 Session，使用无状态（STATELESS）策略，完全依赖 Token 认证
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // 配置请求权限控制，允许所有请求，通过注解控制权限
@@ -102,8 +102,9 @@ public class SecurityConfiguration {
     }
 
     /**
-     * 跨域资源配置
+     * 跨域资源配置 (已注释，交由网关统一处理)
      */
+    /*
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
@@ -123,6 +124,7 @@ public class SecurityConfiguration {
         source.registerCorsConfiguration("/**", config);
         return source;
     }
+    */
 
     /**
      * 写入未认证响应

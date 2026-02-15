@@ -56,21 +56,21 @@ public class BaseException extends RuntimeException {
     }
 
     public BaseException(ResultCode resultCode) {
-        super(resultCode.getMessage());
+        super(resultCode.getMsg());
         this.code = resultCode.getCode();
-        this.message = resultCode.getMessage();
+        this.message = resultCode.getMsg();
     }
 
     public BaseException(ResultCode resultCode, Throwable cause) {
-        super(resultCode.getMessage(), cause);
+        super(resultCode.getMsg(), cause);
         this.code = resultCode.getCode();
-        this.message = resultCode.getMessage();
+        this.message = resultCode.getMsg();
     }
 
     public BaseException(ResultCode resultCode, Object data) {
-        super(resultCode.getMessage());
+        super(resultCode.getMsg());
         this.code = resultCode.getCode();
-        this.message = resultCode.getMessage();
+        this.message = resultCode.getMsg();
         this.data = data;
     }
 

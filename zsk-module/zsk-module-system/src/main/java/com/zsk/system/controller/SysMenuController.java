@@ -14,6 +14,8 @@ import java.util.List;
  * 菜单管理 控制器
  *
  * @author wuhuaming
+ * @date 2026-02-15
+ * @version 1.0
  */
 @Tag(name = "菜单管理")
 @RestController
@@ -25,6 +27,9 @@ public class SysMenuController {
 
     /**
      * 查询菜单列表
+     *
+     * @param menu 查询条件
+     * @return 菜单列表
      */
     @Operation(summary = "查询菜单列表")
     @GetMapping("/list")
@@ -34,6 +39,9 @@ public class SysMenuController {
 
     /**
      * 根据用户ID查询菜单树列表
+     *
+     * @param userId 用户ID
+     * @return 菜单树列表
      */
     @Operation(summary = "根据用户ID查询菜单树列表")
     @GetMapping("/user/{userId}")
@@ -43,6 +51,9 @@ public class SysMenuController {
 
     /**
      * 获取菜单详细信息
+     *
+     * @param id 菜单ID
+     * @return 菜单详情
      */
     @Operation(summary = "获取菜单详细信息")
     @GetMapping("/{id}")
@@ -52,6 +63,9 @@ public class SysMenuController {
 
     /**
      * 新增菜单
+     *
+     * @param menu 菜单信息
+     * @return 是否成功
      */
     @Operation(summary = "新增菜单")
     @PostMapping
@@ -61,6 +75,9 @@ public class SysMenuController {
 
     /**
      * 修改菜单
+     *
+     * @param menu 菜单信息
+     * @return 是否成功
      */
     @Operation(summary = "修改菜单")
     @PutMapping
@@ -69,11 +86,26 @@ public class SysMenuController {
     }
 
     /**
-     * 删除菜单
+     * 批量更新菜单（用于拖拽排序等场景）
+     *
+     * @param menuList 菜单列表
+     * @return 是否成功
+     */
+    @Operation(summary = "批量更新菜单")
+    @PutMapping("/batch")
+    public R<Void> batchUpdate(@RequestBody List<SysMenu> menuList) {
+        return menuService.updateBatchById(menuList) ? R.ok() : R.fail();
+    }
+
+    /**
+     * 删除菜单（支持批量删除）
+     *
+     * @param ids 菜单ID列表（多个ID用逗号分隔）
+     * @return 是否成功
      */
     @Operation(summary = "删除菜单")
-    @DeleteMapping("/{id}")
-    public R<Void> remove(@PathVariable Long id) {
-        return menuService.removeById(id) ? R.ok() : R.fail();
+    @DeleteMapping("/{ids}")
+    public R<Void> remove(@PathVariable List<Long> ids) {
+        return menuService.removeByIds(ids) ? R.ok() : R.fail();
     }
 }

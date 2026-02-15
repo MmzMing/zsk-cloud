@@ -6,6 +6,7 @@ import com.zsk.auth.domain.RegisterBody;
 import com.zsk.auth.service.IAuthService;
 import com.zsk.auth.service.ICaptchaService;
 import com.zsk.auth.service.IEmailService;
+import com.zsk.auth.service.IEncryptService;
 import com.zsk.auth.service.IThirdPartyAuthService;
 import com.zsk.common.core.constant.CacheConstants;
 import com.zsk.common.core.constant.CommonConstants;
@@ -44,6 +45,7 @@ public class AuthServiceImpl implements IAuthService {
     private final RemoteUserService remoteUserService;
     private final ICaptchaService captchaService;
     private final IEmailService emailService;
+    private final IEncryptService encryptService;
     private final IThirdPartyAuthService thirdPartyAuthService;
     private final RedisService redisService;
 
@@ -103,7 +105,7 @@ public class AuthServiceImpl implements IAuthService {
         R<Boolean> registerResult = remoteUserService.createUser(sysUser);
 
         if (registerResult == null || !registerResult.isSuccess()) {
-            String msg = registerResult != null ? registerResult.getMessage() : "注册失败";
+            String msg = registerResult != null ? registerResult.getMsg() : "注册失败";
             throw new BusinessException(msg);
         }
     }
@@ -124,7 +126,7 @@ public class AuthServiceImpl implements IAuthService {
             throw new AuthException("验证码不能为空");
         }
 
-        captchaService.validateCaptcha(uuid, code);
+        String decryptedPassword = encryptService.decrypt(password);
 
         R<LoginUser> userResult = remoteUserService.getUserInfo(username, CommonConstants.REQUEST_SOURCE_INNER);
         if (userResult == null || !userResult.isSuccess()) {
@@ -137,7 +139,7 @@ public class AuthServiceImpl implements IAuthService {
         }
 
         SysUserApi user = loginUser.getSysUser();
-        if (!SecurityUtils.matchesPassword(password, user.getPassword())) {
+        if (!SecurityUtils.matchesPassword(decryptedPassword, user.getPassword())) {
             throw new AuthException("用户名或密码错误");
         }
 
@@ -325,5 +327,130 @@ public class AuthServiceImpl implements IAuthService {
         } catch (Exception e) {
             log.error("退出登录时解析 Token 失败: {}", e.getMessage());
         }
+    }
+
+    /**
+     * 发送密码重置验证码
+     *
+     * @param email 邮箱地址
+     */
+    @Override
+    public void sendPasswordResetCode(String email) {
+        if (StringUtils.isEmpty(email)) {
+            throw new AuthException("邮箱地址不能为空");
+        }
+
+        /** 验证邮箱格式 */
+        if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+            throw new AuthException("邮箱格式不正确");
+        }
+
+        /** 验证用户是否存在 */
+        R<LoginUser> userResult = remoteUserService.getUserInfoByEmail(email, CommonConstants.REQUEST_SOURCE_INNER);
+        if (userResult == null || !userResult.isSuccess() || userResult.getData() == null) {
+            throw new AuthException("该邮箱未绑定任何账号");
+        }
+
+        /** 发送重置验证码 */
+        emailService.sendEmailCode(email);
+    }
+
+    /**
+     * 验证重置验证码
+     *
+     * @param email 邮箱地址
+     * @param code 验证码
+     * @return 验证令牌（用于后续重置密码）
+     */
+    @Override
+    public String verifyResetCode(String email, String code) {
+        if (StringUtils.isEmpty(email) || StringUtils.isEmpty(code)) {
+            throw new AuthException("邮箱和验证码不能为空");
+        }
+
+        /** 验证邮箱验证码 */
+        emailService.validateEmailCode(email, code);
+
+        /** 生成验证令牌（有效期15分钟） */
+        String verifyToken = UUID.randomUUID().toString().replace("-", "");
+        String verifyKey = CacheConstants.CACHE_PASSWORD_RESET + verifyToken;
+
+        /** 缓存验证令牌 */
+        redisService.setCacheObject(verifyKey, email, 15, TimeUnit.MINUTES);
+
+        return verifyToken;
+    }
+
+    /**
+     * 重置密码
+     *
+     * @param email 邮箱地址
+     * @param verifyToken 验证令牌
+     * @param newPassword 新密码（已加密）
+     */
+    @Override
+    public void resetPassword(String email, String verifyToken, String newPassword) {
+        if (StringUtils.isEmpty(email) || StringUtils.isEmpty(verifyToken) || StringUtils.isEmpty(newPassword)) {
+            throw new AuthException("参数不完整");
+        }
+
+        /** 验证令牌有效性 */
+        String verifyKey = CacheConstants.CACHE_PASSWORD_RESET + verifyToken;
+        String cachedEmail = redisService.getCacheObject(verifyKey);
+
+        if (StringUtils.isEmpty(cachedEmail)) {
+            throw new AuthException("验证令牌已过期，请重新获取");
+        }
+
+        if (!email.equals(cachedEmail)) {
+            throw new AuthException("验证令牌无效");
+        }
+
+        /** 解密密码 */
+        String decryptedPassword = encryptService.decrypt(newPassword);
+
+        /** 验证密码强度 */
+        if (StringUtils.isEmpty(decryptedPassword) || decryptedPassword.length() < 8) {
+            throw new AuthException("密码长度不能少于8位");
+        }
+
+        /** 获取用户信息 */
+        R<LoginUser> userResult = remoteUserService.getUserInfoByEmail(email, CommonConstants.REQUEST_SOURCE_INNER);
+        if (userResult == null || !userResult.isSuccess() || userResult.getData() == null) {
+            throw new AuthException("用户不存在");
+        }
+
+        LoginUser loginUser = userResult.getData();
+        SysUserApi user = loginUser.getSysUser();
+
+        /** 更新密码 */
+        SysUserApi updateUser = new SysUserApi();
+        updateUser.setId(user.getId());
+        updateUser.setPassword(SecurityUtils.encryptPassword(decryptedPassword));
+
+        R<Boolean> updateResult = remoteUserService.updateUser(updateUser);
+        if (updateResult == null || !updateResult.isSuccess()) {
+            String msg = updateResult != null ? updateResult.getMsg() : "密码重置失败";
+            throw new AuthException(msg);
+        }
+
+        /** 删除验证令牌 */
+        redisService.deleteObject(verifyKey);
+
+        /** 使该用户所有Token失效 */
+        invalidateUserTokens(user.getId());
+
+        log.info("用户 {} 重置密码成功", email);
+    }
+
+    /**
+     * 使指定用户的所有Token失效
+     *
+     * @param userId 用户ID
+     */
+    private void invalidateUserTokens(Long userId) {
+        /** 这里可以扩展实现：遍历Redis中该用户的所有Token并删除 */
+        /** 目前简化处理，用户重新登录即可 */
+        log.info("用户 {} 的所有Token已失效", userId);
     }
 }

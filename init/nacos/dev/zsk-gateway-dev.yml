@@ -13,34 +13,48 @@ spring:
             - id: zsk-auth
               uri: lb://zsk-auth
               predicates:
-                - Path=/auth/**
+                - Path=/api/auth/**
+              filters:
+                - StripPrefix=1
             # 系统模块
             - id: zsk-module-system
               uri: lb://zsk-module-system
               predicates:
-                - Path=/system/**
+                - Path=/api/system/**
+              filters:
+                - StripPrefix=1
             # 文档模块
             - id: zsk-module-document
               uri: lb://zsk-module-document
               predicates:
-                - Path=/document/**
+                - Path=/api/document/**
+              filters:
+                - StripPrefix=1
 
 security:
   # XSS 防护配置
   xss:
     enabled: true
     exclude-urls:
-      - /system/notice/*
+      - /api/system/notice/*
   # 安全配置 (白名单)
   ignore:
     whites:
-      - /auth/login
-      - /auth/register
-      - /auth/logout
-      - /auth/captcha
-      - /auth/public-key
-      - /auth/email/code
-      - /auth/third/**
-      - /auth/test/hello
-      - /system/user/info/*
+      - /api/auth/login
+      - /api/auth/register
+      - /api/auth/logout
+      - /api/auth/captcha
+      - /api/auth/public-key
+      - /api/auth/email/code
+      - /api/auth/third/**
+      - /api/auth/test/hello
+      - /api/system/user/info/*
+      - /doc.html
+      - /swagger-ui/**
+      - /swagger-resources/**
+      - /v3/api-docs/**
+      - /**/v3/api-docs/**
+      - /**/v3/api-docs
+      - /webjars/**
+      - /v3/api-docs/swagger-config
       - /favicon.ico

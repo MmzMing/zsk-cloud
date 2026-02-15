@@ -9,8 +9,11 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.crypto.Cipher;
+import javax.crypto.spec.OAEPParameterSpec;
+import javax.crypto.spec.PSource;
 import java.security.KeyFactory;
 import java.security.PrivateKey;
+import java.security.spec.MGF1ParameterSpec;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -62,8 +65,19 @@ public class EncryptServiceImpl implements IEncryptService {
     public String decrypt(String encryptedData) {
         try {
             PrivateKey privateKey = getPrivateKey();
-            Cipher cipher = Cipher.getInstance(RSA_ALGORITHM);
-            cipher.init(Cipher.DECRYPT_MODE, privateKey);
+            // 1. 指定 RSA-OAEP 算法，匹配前端的 SHA-256 哈希
+            Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+
+            // 2. 配置 OAEP 参数（和前端 SHA-256 对应）
+            OAEPParameterSpec oaepParams = new OAEPParameterSpec(
+                    "SHA-256",  // 哈希算法，匹配前端的 hash: "SHA-256"
+                    "MGF1",     // 掩码生成函数
+                    MGF1ParameterSpec.SHA256,  // MGF1 的哈希算法
+                    PSource.PSpecified.DEFAULT // 明文参数
+            );
+
+            // 3. 初始化解密模式，传入 OAEP 参数
+            cipher.init(Cipher.DECRYPT_MODE, privateKey, oaepParams);
             byte[] decryptedBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedData));
             return new String(decryptedBytes);
         } catch (Exception e) {

@@ -17,6 +17,8 @@ import java.util.List;
  * 字典数据 控制器
  *
  * @author wuhuaming
+ * @date 2026-02-15
+ * @version 1.0
  */
 @Tag(name = "字典数据")
 @RestController
@@ -28,6 +30,9 @@ public class SysDictDataController {
 
     /**
      * 查询字典数据列表
+     *
+     * @param dictData 查询条件
+     * @return 字典数据列表
      */
     @Operation(summary = "查询字典数据列表")
     @GetMapping("/list")
@@ -42,6 +47,9 @@ public class SysDictDataController {
 
     /**
      * 根据字典类型查询字典数据信息
+     *
+     * @param dictType 字典类型
+     * @return 字典数据列表
      */
     @Operation(summary = "根据字典类型查询字典数据信息")
     @GetMapping(value = "/type/{dictType}")
@@ -51,6 +59,9 @@ public class SysDictDataController {
 
     /**
      * 获取字典数据详细信息
+     *
+     * @param id 字典ID
+     * @return 字典数据详情
      */
     @Operation(summary = "获取字典数据详细信息")
     @GetMapping(value = "/{id}")
@@ -60,6 +71,9 @@ public class SysDictDataController {
 
     /**
      * 新增字典数据
+     *
+     * @param dictData 字典数据
+     * @return 是否成功
      */
     @Operation(summary = "新增字典数据")
     @PostMapping
@@ -69,6 +83,9 @@ public class SysDictDataController {
 
     /**
      * 修改字典数据
+     *
+     * @param dictData 字典数据
+     * @return 是否成功
      */
     @Operation(summary = "修改字典数据")
     @PutMapping
@@ -78,10 +95,39 @@ public class SysDictDataController {
 
     /**
      * 删除字典数据
+     *
+     * @param ids 字典ID列表
+     * @return 是否成功
      */
     @Operation(summary = "删除字典数据")
     @DeleteMapping("/{ids}")
     public R<Void> remove(@PathVariable List<Long> ids) {
         return dictDataService.removeByIds(ids) ? R.ok() : R.fail();
+    }
+
+    /**
+     * 切换字典状态
+     *
+     * @param id 字典ID
+     * @param status 状态（0正常 1停用）
+     * @return 是否成功
+     */
+    @Operation(summary = "切换字典状态")
+    @PutMapping("/toggleStatus")
+    public R<Void> toggleStatus(@RequestParam Long id, @RequestParam String status) {
+        return dictDataService.toggleStatus(id, status) ? R.ok() : R.fail();
+    }
+
+    /**
+     * 批量切换字典状态
+     *
+     * @param ids 字典ID列表
+     * @param status 状态（0正常 1停用）
+     * @return 是否成功
+     */
+    @Operation(summary = "批量切换字典状态")
+    @PutMapping("/batchToggleStatus")
+    public R<Void> batchToggleStatus(@RequestBody List<Long> ids, @RequestParam String status) {
+        return dictDataService.batchToggleStatus(ids, status) ? R.ok() : R.fail();
     }
 }

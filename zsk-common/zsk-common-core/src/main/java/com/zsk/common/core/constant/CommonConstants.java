@@ -63,6 +63,11 @@ public class CommonConstants {
     public static final String REQUEST_SOURCE_INNER = "inner";
 
     /**
+     * 内部调用标识
+     */
+    public static final String INNER = "inner";
+
+    /**
      * 默认页码
      */
     public static final Long DEFAULT_PAGE_NUM = 1L;

@@ -1,5 +1,6 @@
 package com.zsk.document;
 
+import com.zsk.common.security.annotation.EnableZskFeignClients;
 import lombok.extern.slf4j.Slf4j;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
@@ -18,6 +19,7 @@ import java.net.UnknownHostException;
  * @author wuhuaming
  */
 @Slf4j
+@EnableZskFeignClients
 @EnableDiscoveryClient
 @SpringBootApplication(scanBasePackages = "com.zsk")
 @MapperScan("com.zsk.document.mapper")

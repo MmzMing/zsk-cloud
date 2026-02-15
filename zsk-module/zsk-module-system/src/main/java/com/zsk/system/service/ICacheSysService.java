@@ -1,13 +1,14 @@
 package com.zsk.system.service;
 
 import com.zsk.system.domain.CacheSysInfo;
+import com.zsk.system.domain.SysCacheLog;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 缓存系统管理 服务层
+ * 缓存管理 服务层
  *
  * @author wuhuaming
  * @version 1.0
@@ -109,4 +110,91 @@ public interface ICacheSysService {
      * @return 是否存在
      */
     boolean hasCacheKey(String cacheKey);
+
+    /**
+     * 获取缓存实例信息
+     *
+     * @return 实例信息列表
+     */
+    List<Map<String, Object>> getInstances();
+
+    /**
+     * 获取缓存日志列表
+     *
+     * @param instanceId 实例ID
+     * @return 日志列表
+     */
+    List<SysCacheLog> getLogs(String instanceId);
+
+    /**
+     * 获取缓存命中率趋势
+     *
+     * @param instanceId 实例ID
+     * @return 趋势数据
+     */
+    List<Map<String, Object>> getHitRateTrend(String instanceId);
+
+    /**
+     * 获取缓存QPS趋势
+     *
+     * @param instanceId 实例ID
+     * @return 趋势数据
+     */
+    List<Map<String, Object>> getQpsTrend(String instanceId);
+
+    /**
+     * 获取缓存键列表（分页）
+     *
+     * @param keyword 关键字
+     * @param pageNum 页码
+     * @param pageSize 每页大小
+     * @return 键列表及总数
+     */
+    Map<String, Object> getKeys(String keyword, Integer pageNum, Integer pageSize);
+
+    /**
+     * 刷新缓存键
+     *
+     * @param key 键名
+     * @return 是否成功
+     */
+    boolean refreshKey(String key);
+
+    /**
+     * 删除缓存键
+     *
+     * @param key 键名
+     * @return 是否成功
+     */
+    boolean deleteKey(String key);
+
+    /**
+     * 批量刷新缓存键
+     *
+     * @param keys 键名列表
+     * @return 是否成功
+     */
+    boolean batchRefreshKeys(List<String> keys);
+
+    /**
+     * 批量删除缓存键
+     *
+     * @param keys 键名列表
+     * @return 是否成功
+     */
+    boolean batchDeleteKeys(List<String> keys);
+
+    /**
+     * 清空缓存实例
+     *
+     * @return 是否成功
+     */
+    boolean clearInstance();
+
+    /**
+     * 获取Redis信息
+     *
+     * @return Redis信息
+     */
+    Map<String, Object> getRedisInfo();
 }

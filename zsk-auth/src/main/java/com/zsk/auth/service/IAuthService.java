@@ -41,4 +41,29 @@ public interface IAuthService {
      * @param token 访问令牌
      */
     void logout(String token);
+
+    /**
+     * 发送密码重置验证码
+     *
+     * @param email 邮箱地址
+     */
+    void sendPasswordResetCode(String email);
+
+    /**
+     * 验证重置验证码
+     *
+     * @param email 邮箱地址
+     * @param code 验证码
+     * @return 验证令牌（用于后续重置密码）
+     */
+    String verifyResetCode(String email, String code);
+
+    /**
+     * 重置密码
+     *
+     * @param email 邮箱地址
+     * @param verifyToken 验证令牌
+     * @param newPassword 新密码（已加密）
+     */
+    void resetPassword(String email, String verifyToken, String newPassword);
 }

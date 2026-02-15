@@ -10,6 +10,8 @@ import java.util.Set;
  * 角色管理 服务层
  *
  * @author wuhuaming
+ * @date 2026-02-15
+ * @version 1.0
  */
 public interface ISysRoleService extends IService<SysRole> {
     /**
@@ -43,4 +45,12 @@ public interface ISysRoleService extends IService<SysRole> {
      * @return 结果
      */
     boolean deleteRoleByIds(List<Long> roleIds);
+
+    /**
+     * 批量复制角色
+     *
+     * @param roleIds 角色ID列表
+     * @return 结果
+     */
+    boolean copyRoles(List<Long> roleIds);
 }

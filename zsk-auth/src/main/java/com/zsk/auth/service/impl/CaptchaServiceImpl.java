@@ -78,6 +78,7 @@ public class CaptchaServiceImpl implements ICaptchaService {
                     .uuid(uuid)
                     .bgUrl(bgBase64)
                     .puzzleUrl(puzzleBase64)
+                    .y(y)
                     .build();
 
         } catch (Exception e) {

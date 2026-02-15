@@ -12,8 +12,8 @@ import java.io.InputStream;
  * 文件Service接口
  *
  * @author wuhuaming
- * @version 1.0
  * @date 2026-02-14
+ * @version 1.0
  */
 public interface IDocFilesService extends IService<DocFiles> {
     /**
@@ -23,6 +23,14 @@ public interface IDocFilesService extends IService<DocFiles> {
      * @return 结果
      */
     DocFiles uploadFile(MultipartFile file);
+
+    /**
+     * 根据文件ID查询文件信息
+     *
+     * @param fileId 文件ID
+     * @return 文件信息
+     */
+    DocFiles getByFileId(String fileId);
 
     /**
      * 初始化分片上传

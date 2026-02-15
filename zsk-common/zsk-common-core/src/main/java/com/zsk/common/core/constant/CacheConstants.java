@@ -147,6 +147,21 @@ public class CacheConstants {
      */
     public static final String CACHE_FOLLOW_USER = CACHE_PREFIX + "follow:user:";
 
+    /**
+     * 密码重置验证令牌缓存键前缀
+     */
+    public static final String CACHE_PASSWORD_RESET = CACHE_PREFIX + "password:reset:";
+
+    /**
+     * 视频分类缓存键
+     */
+    public static final String CACHE_VIDEO_CATEGORY = CACHE_PREFIX + "video:category:list";
+
+    /**
+     * 视频标签缓存键
+     */
+    public static final String CACHE_VIDEO_TAG = CACHE_PREFIX + "video:tag:list";
+
     private CacheConstants() {
         throw new AssertionError("常量类禁止实例化");
     }

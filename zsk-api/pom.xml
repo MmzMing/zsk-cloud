@@ -17,5 +17,6 @@
 
     <modules>
         <module>zsk-api-system</module>
+        <module>zsk-api-document</module>
     </modules>
 </project>

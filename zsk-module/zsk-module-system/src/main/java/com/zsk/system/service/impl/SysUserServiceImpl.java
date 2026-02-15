@@ -2,6 +2,7 @@ package com.zsk.system.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zsk.common.security.utils.SecurityUtils;
 import com.zsk.system.domain.SysUser;
 import com.zsk.system.domain.SysUserRole;
 import com.zsk.system.mapper.SysUserMapper;
@@ -17,6 +18,8 @@ import java.util.List;
  * 用户管理 服务层实现
  *
  * @author wuhuaming
+ * @date 2026-02-15
+ * @version 1.0
  */
 @Service
 @RequiredArgsConstructor
@@ -24,20 +27,40 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
 
     private final SysUserRoleMapper userRoleMapper;
 
+    /** 默认密码 */
+    private static final String DEFAULT_PASSWORD = "123456";
+
+    /**
+     * 通过用户名查询用户信息
+     *
+     * @param username 用户名
+     * @return 用户信息
+     */
     @Override
     public SysUser selectUserByUserName(String username) {
         return lambdaQuery().eq(SysUser::getUserName, username).one();
     }
 
+    /**
+     * 通过邮箱查询用户信息
+     *
+     * @param email 邮箱
+     * @return 用户信息
+     */
     @Override
     public SysUser selectUserByEmail(String email) {
         return lambdaQuery().eq(SysUser::getEmail, email).one();
     }
 
+    /**
+     * 通过第三方ID查询用户信息
+     *
+     * @param loginType 登录类型
+     * @param thirdPartyId 第三方ID
+     * @return 用户信息
+     */
     @Override
     public SysUser selectUserByThirdPartyId(String loginType, String thirdPartyId) {
-        // 假设第三方登录ID存储在某个字段，或者根据用户名规则匹配
-        // 这里简单实现为匹配用户名 loginType + "_" + thirdPartyId
         String username = loginType + "_" + thirdPartyId;
         return selectUserByUserName(username);
     }
@@ -69,9 +92,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean insertUser(SysUser user) {
-        // 新增用户信息
         boolean rows = save(user);
-        // 新增用户岗位关联
         insertUserRole(user);
         return rows;
     }
@@ -86,9 +107,7 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Transactional(rollbackFor = Exception.class)
     public boolean updateUser(SysUser user) {
         Long userId = user.getId();
-        // 删除用户与角色关联
         userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, userId));
-        // 新增用户与角色管理
         insertUserRole(user);
         return updateById(user);
     }
@@ -103,10 +122,37 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteUserByIds(List<Long> userIds) {
         for (Long userId : userIds) {
-            // 删除用户与角色关联
             userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, userId));
         }
         return removeBatchByIds(userIds);
+    }
+
+    /**
+     * 重置用户密码
+     *
+     * @param userId 用户ID
+     * @return 结果
+     */
+    @Override
+    public boolean resetPassword(Long userId) {
+        SysUser user = new SysUser();
+        user.setId(userId);
+        user.setPassword(SecurityUtils.encryptPassword(DEFAULT_PASSWORD));
+        return updateById(user);
+    }
+
+    /**
+     * 批量重置用户密码
+     *
+     * @param userIds 用户ID列表
+     * @return 结果
+     */
+    @Override
+    public boolean batchResetPassword(List<Long> userIds) {
+        for (Long userId : userIds) {
+            resetPassword(userId);
+        }
+        return true;
     }
 
     /**
@@ -117,7 +163,6 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     public void insertUserRole(SysUser user) {
         Long[] roles = user.getRoleIds();
         if (roles != null && roles.length > 0) {
-            // 新增用户与角色管理
             for (Long roleId : roles) {
                 SysUserRole ur = new SysUserRole();
                 ur.setUserId(user.getId());

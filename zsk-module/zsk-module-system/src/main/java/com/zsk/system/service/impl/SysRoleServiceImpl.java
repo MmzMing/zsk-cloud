@@ -19,6 +19,8 @@ import java.util.Set;
  * 角色管理 服务层实现
  *
  * @author wuhuaming
+ * @date 2026-02-15
+ * @version 1.0
  */
 @Service
 @RequiredArgsConstructor
@@ -26,6 +28,12 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
     private final SysRoleMenuMapper roleMenuMapper;
 
+    /**
+     * 根据用户ID查询角色权限
+     *
+     * @param userId 用户ID
+     * @return 角色权限列表
+     */
     @Override
     public Set<String> selectRolePermissionByUserId(Long userId) {
         return new HashSet<>(baseMapper.selectRolePermissionByUserId(userId));
@@ -40,9 +48,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean insertRole(SysRole role) {
-        // 新增角色信息
         boolean result = save(role);
-        // 新增角色菜单信息
         insertRoleMenu(role);
         return result;
     }
@@ -56,11 +62,8 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateRole(SysRole role) {
-        // 修改角色信息
         boolean result = updateById(role);
-        // 删除角色与菜单关联
         roleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, role.getId()));
-        // 新增角色菜单信息
         insertRoleMenu(role);
         return result;
     }
@@ -81,12 +84,48 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     }
 
     /**
+     * 批量复制角色
+     *
+     * @param roleIds 角色ID列表
+     * @return 结果
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean copyRoles(List<Long> roleIds) {
+        for (Long roleId : roleIds) {
+            SysRole original = getById(roleId);
+            if (original != null) {
+                SysRole copy = new SysRole();
+                copy.setRoleName(original.getRoleName() + "_副本");
+                copy.setRoleKey(original.getRoleKey() + "_copy");
+                copy.setRoleSort(original.getRoleSort());
+                copy.setDataScope(original.getDataScope());
+                copy.setMenuCheckStrictly(original.getMenuCheckStrictly());
+                copy.setDeptCheckStrictly(original.getDeptCheckStrictly());
+                copy.setStatus(original.getStatus());
+                save(copy);
+
+                List<SysRoleMenu> menuList = roleMenuMapper.selectList(
+                        new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, roleId));
+                for (SysRoleMenu rm : menuList) {
+                    SysRoleMenu newRm = new SysRoleMenu();
+                    newRm.setRoleId(copy.getId());
+                    newRm.setMenuId(rm.getMenuId());
+                    roleMenuMapper.insert(newRm);
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
      * 新增角色菜单信息
+     *
+     * @param role 角色对象
      */
     public void insertRoleMenu(SysRole role) {
         Long[] menuIds = role.getMenuIds();
         if (menuIds != null) {
-            // 新增用户与角色管理
             for (Long menuId : menuIds) {
                 SysRoleMenu rm = new SysRoleMenu();
                 rm.setRoleId(role.getId());

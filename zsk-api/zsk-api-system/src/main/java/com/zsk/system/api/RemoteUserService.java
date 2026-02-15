@@ -64,4 +64,13 @@ public interface RemoteUserService {
      */
     @PostMapping("/system/user")
     public R<Boolean> createUser(@RequestBody SysUserApi user);
+
+    /**
+     * 更新用户信息
+     *
+     * @param user 用户信息
+     * @return 结果
+     */
+    @PutMapping("/system/user/inner")
+    public R<Boolean> updateUser(@RequestBody SysUserApi user);
 }

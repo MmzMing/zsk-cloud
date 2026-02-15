@@ -10,15 +10,40 @@ ZSK-Cloud 是一款基于最新技术栈构建的企业级微服务开发脚手�
 ---
 
 ## 🛠️ 技术栈
-| 类别 | 关键技术 | 说明 |
-| :--- | :--- | :--- |
-| **开发环境** | JDK 21 / Maven 3.9+ | 享受最新 Java 特性 |
-| **核心框架** | Spring Boot 3.5 / Spring Cloud 2025 / Spring AI | 官方推荐稳定版本 |
-| **服务治理** | Nacos / Sentinel / Gateway | 全套微服务治理方案 |
-| **持久层** | MyBatis-Plus / MongoDB / MySQL 8 / | 灵活高效的 ORM 框架 |
-| **缓存/队列** | Redis (Redisson) / RocketMQ  | 高性能数据处理 |
-| **安全认证** | Spring Security / JWT / BCrypt / OAuth2 | 严密的权限控制体系 |
-| **文档/监控** | Knife4j / Prometheus / SkyWalking | 完善的 API 与运维监控 |
+| 类别 | 关键技术 | 版本 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **开发环境** | JDK / Maven | 21 / 3.9+ | 享受最新 Java 特性 |
+| **核心框架** | Spring Boot | 3.5.0 | 官方推荐稳定版本 |
+| | Spring Cloud | 2025.0.0 | 微服务架构 |
+| | Spring Cloud Alibaba | 2025.0.0.0 | 阿里微服务生态 |
+| **服务治理** | Nacos | 3.1.1 | 服务注册与配置中心 |
+| | Sentinel | 3.1.1 (集成) | 流量控制与熔断降级 |
+| | Spring Cloud Gateway | 4.x | API 网关 |
+| **持久层** | MyBatis-Plus | 3.5.7 | 灵活高效的 ORM 框架 |
+| | MySQL | 8.3.0 | 关系型数据库 |
+| | MongoDB | 6.x | NoSQL 数据库 |
+| | Druid | 1.2.23 | 数据库连接池 |
+| | Dynamic Datasource | 4.3.1 | 动态数据源 |
+| **缓存/队列** | Redis | 3.4.1 | 缓存数据库 |
+| | Redisson | 3.27.0 | 分布式锁与工具 |
+| | RocketMQ | 5.2.0 | 消息队列 (待集成) |
+| | Caffeine | 3.1.8 | 本地缓存 |
+| **安全认证** | Spring Security | 6.x | 权限控制 |
+| | JWT | 0.12.5 | 令牌认证 |
+| | Bouncy Castle | 1.78 | 加密算法 |
+| | OAuth2 | - | 第三方登录 |
+| **文件存储** | MinIO | 8.5.8 | 对象存储 |
+| | 阿里云 OSS | 3.18.1 | 云存储 |
+| **工具类** | Hutool | 5.8.40 | Java 工具集 |
+| | Guava | 33.0.0-jre | Google 工具库 |
+| | MapStruct | 1.5.5.Final | 对象映射 |
+| | Lombok | 1.18.36 | 代码简化 |
+| | EasyExcel | 4.0.3 | Excel 处理 |
+| **文档/监控** | Knife4j | 4.5.0 | OpenAPI 3 文档 |
+| | SpringDoc | 2.8.4 | API 文档 |
+| | SkyWalking | 9.1.0 | 链路追踪 (待集成) |
+| | Micrometer | 1.13.0 | 监控指标 |
+| **任务调度** | XXL-JOB | 2.4.1 | 分布式调度 (待集成) |
 
 ---
 
@@ -26,33 +51,70 @@ ZSK-Cloud 是一款基于最新技术栈构建的企业级微服务开发脚手�
 ```text
 zsk-cloud
 ├── zsk-api               // 接口模块 (Feign 客户端)
+│   ├── zsk-api-system    // 系统模块远程接口
+│   └── zsk-api-document  // 文档模块远程接口
 ├── zsk-auth              // 认证中心 (登录、鉴权、第三方登录)
-├── zsk-common            // 通用组件 (Core, Security, Redis, OSS, Log等)
+├── zsk-common            // 通用组件
+│   ├── zsk-common-core      // 核心工具类、异常处理、统一响应
+│   ├── zsk-common-security  // 权限控制与权限注解
+│   ├── zsk-common-redis     // Redis / Redisson 分布式缓存
+│   ├── zsk-common-oss       // 统一对象存储 (MinIO / OSS)
+│   ├── zsk-common-datasource// 动态数据源支持
+│   ├── zsk-common-log       // 日志采集
+│   ├── zsk-common-swagger   // API 文档 (Knife4j)
+│   ├── zsk-common-sentinel  // Sentinel 限流熔断
+│   ├── zsk-common-xxljob    // XXL-JOB 分布式调度 (待实现)
 ├── zsk-gateway           // 网关中心 (动态路由、限流、黑名单)
 ├── zsk-module            // 业务模块
-│   ├── zsk-module-system   // 系统管理 (用户、角色、权限、字典)
-│   └── zsk-module-document // 文档管理 (笔记、文件、视频评论、流程)
-├── zsk-visual            // 图形化监控 (Monitor, Sentinel DashBoard等)
-├── sql                   // 数据库脚本
-└── init                  // 环境初始化配置 (Nacos 配置文件等)
+│   ├── zsk-module-system   // 系统管理 (用户、角色、权限、字典、监控)
+│   └── zsk-module-document // 文档管理 (笔记、文件、视频、流程)
+├── zsk-visual            // 图形化监控
+│   └── zsk-visual-monitor  // 监控中心 (已集成SkyWalking)
+├── init                  // 环境初始化配置
+│   ├── nacos             // Nacos 配置文件
+│   └── sql               // 数据库脚本
+└── docs                  // 项目文档
 ```
 
 ---
 
 ## ✨ 已实现功能
-- **统一鉴权**: 基于 JWT 的令牌机制，支持单点登录、滑块验证码及邮箱验证。采用“私钥签名、公钥验证”模式，并支持 `keyLocator` 自动兼容对称与非对称算法。
-- **权限管理**: 完善的 RBAC 模型，细粒度的权限注解控制。
-- **第三方登录**: 集成 QQ、微信、GitHub 授权登录，支持 OAuth2 流程及账号自动映射。
-- **系统工具**: 动态数据源切换、全局异常拦截、统一响应格式、操作日志采集。
-- **业务场景**: 实现了完整的文档笔记管理流程、文件上传预览、视频互动评论等。
+
+### 基础架构
+- **网关服务 (`zsk-gateway`)**: 集成 Spring Cloud Gateway，实现鉴权过滤、黑名单校验、日志记录、XSS 防护及 Sentinel 分布式限流。
+- **认证服务 (`zsk-auth`)**: 基于 JWT 的令牌机制，支持图形验证码、邮箱验证及第三方登录（QQ、微信、GitHub）。采用"私钥签名、公钥验证"模式，支持 `keyLocator` 自动兼容对称与非对称算法。
+- **通用组件 (`zsk-common`)**:
+  - `core`: 核心工具类、全局异常拦截、统一响应格式
+  - `security`: 基于 Spring Security 的权限控制与权限注解
+  - `redis`: 集成 Redisson 实现分布式缓存与分布式锁
+  - `oss`: 统一对象存储接口，支持 MinIO 与阿里云 OSS
+  - `datasource`: 动态数据源切换支持
+  - `swagger`: 集成 Knife4j 实现 OpenAPI 3 文档
+  - `sentinel`: Sentinel 限流熔断集成
+  - `log`: 操作日志采集
+
+### 业务模块
+- **系统管理 (`zsk-module-system`)**: 完整的 RBAC 模型（用户、角色、菜单）、字典管理、参数配置、通知公告、系统监控、操作日志等。
+- **文档管理 (`zsk-module-document`)**: 笔记管理（笔记、评论、图片）、文件管理、视频管理、视频评论、流程管理及历史记录、用户互动（点赞、收藏、关注）等。
 ---
 
 ## 🚧 待开发与规划
-- **分布式调度**: 深度集成 XXL-JOB 任务调度。
-- **监控大屏**: 完善可视化监控面板与链路追踪（SkyWalking）。
-- **工作流引擎**: 集成 Flowable 实现更复杂的 BPMN 2.0 业务流。
-- **AI-QQ-BOT**: 使用Spring AI集成大模型，对接QQ机器人，在QQ群中提供智能客服与文档助手功能，配合nacos的MCP和Skill实现动态配置。
-- **容器化部署**: Docker-compose 和 Jenkinsfile 。
+
+### 核心组件完善
+- **分布式消息队列**: 集成 RocketMQ，完成消息生产者与消费者示例。
+- **搜索引擎**: 集成 Elasticsearch，实现全文搜索功能。
+
+### 业务模块扩展
+- **工作流引擎**: 集成 Flowable 或 Activiti 实现 BPMN 2.0 工作流，增强流程管理能力。
+- **跨模块调用**: 完善 `zsk-api` 模块，实现各业务模块间的 Feign 远程调用。
+
+### 工程化与运维
+- **自动化测试**: 补充单元测试（JUnit/Mockito）与集成测试用例。
+- **容器化部署**: 提供 Dockerfile、Docker-compose 及 Jenkinsfile 部署脚本。
+- **日志采集**: 集成 ELK (Elasticsearch, Logstash, Kibana) 实现统一日志采集。
+
+### AI 与智能应用
+- **AI-QQ-BOT**: 使用 Spring AI 集成大模型，对接 QQ 机器人，在 QQ 群中提供智能客服与文档助手功能，配合 Nacos 的 MCP 和 Skill 实现动态配置。
 
 ---
 

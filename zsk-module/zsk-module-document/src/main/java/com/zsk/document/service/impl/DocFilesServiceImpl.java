@@ -26,8 +26,8 @@ import java.time.LocalDateTime;
  * 文件Service业务层处理
  *
  * @author wuhuaming
- * @version 1.0
  * @date 2026-02-14
+ * @version 1.0
  */
 @Service
 @RequiredArgsConstructor
@@ -184,7 +184,8 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
      * @param fileId 文件ID
      * @return 文件记录
      */
-    private DocFiles getByFileId(String fileId) {
+    @Override
+    public DocFiles getByFileId(String fileId) {
         return getOne(new LambdaQueryWrapper<DocFiles>().eq(DocFiles::getFileId, fileId));
     }
 

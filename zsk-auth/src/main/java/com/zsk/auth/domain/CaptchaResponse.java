@@ -31,4 +31,9 @@ public class CaptchaResponse {
      * 拼图图片（Base64）
      */
     private String puzzleUrl;
+
+    /**
+     * 滑块Y轴坐标
+     */
+    private Integer y;
 }

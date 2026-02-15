@@ -16,6 +16,12 @@
 
     <dependencies>
 
+        <!-- ZSK API System -->
+        <dependency>
+            <groupId>com.zsk.cloud</groupId>
+            <artifactId>zsk-api-system</artifactId>
+        </dependency>
+
         <!-- ZSK Common Datasource -->
         <dependency>
             <groupId>com.zsk.cloud</groupId>

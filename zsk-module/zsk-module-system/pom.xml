@@ -18,6 +18,19 @@
 
     <dependencies>
 
+        <!-- OSHI 系统监控 -->
+        <dependency>
+            <groupId>com.github.oshi</groupId>
+            <artifactId>oshi-core</artifactId>
+            <version>6.4.0</version>
+        </dependency>
+
+        <!-- ZSK API System -->
+        <dependency>
+            <groupId>com.zsk.cloud</groupId>
+            <artifactId>zsk-api-system</artifactId>
+        </dependency>
+
         <!-- ZSK Common Datasource -->
         <dependency>
             <groupId>com.zsk.cloud</groupId>
@@ -36,10 +49,10 @@
             <artifactId>zsk-common-swagger</artifactId>
         </dependency>
 
-        <!-- ZSK API System -->
+        <!-- ZSK API Document -->
         <dependency>
             <groupId>com.zsk.cloud</groupId>
-            <artifactId>zsk-api-system</artifactId>
+            <artifactId>zsk-api-document</artifactId>
         </dependency>
 
     </dependencies>

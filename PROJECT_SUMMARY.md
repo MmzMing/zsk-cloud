@@ -22,7 +22,7 @@ ZSK-Cloud 是一个基于 **Java 21**、**Spring Boot 3.5.0** 和 **Spring Cloud
 
 ### 2.3 开发规范与文档
 - 建立了完善的 [包命名、类命名及接口规范](.trae/rules/prorules.md)。
-- 提供了详细的 [数据库设计脚本](./sql) 及 [环境初始化配置](./init)。
+- 提供了详细的 [数据库设计脚本](init/sql) 及 [环境初始化配置](./init)。
 
 ---
 

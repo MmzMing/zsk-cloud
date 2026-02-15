@@ -180,6 +180,11 @@
                 <artifactId>zsk-api-system</artifactId>
                 <version>${zsk-cloud.version}</version>
             </dependency>
+            <dependency>
+                <groupId>com.zsk.cloud</groupId>
+                <artifactId>zsk-api-document</artifactId>
+                <version>${zsk-cloud.version}</version>
+            </dependency>
 
             <!-- ==================== 数据库 ==================== -->
             <!-- MySQL -->
