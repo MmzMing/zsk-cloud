@@ -244,4 +244,15 @@ public class RedisService {
     public Collection<String> keys(final String pattern) {
         return redisTemplate.keys(pattern);
     }
+
+    /**
+     * 递增
+     *
+     * @param key   键
+     * @param delta 要增加几(大于0)
+     * @return
+     */
+    public Long increment(String key, long delta) {
+        return redisTemplate.opsForValue().increment(key, delta);
+    }
 }

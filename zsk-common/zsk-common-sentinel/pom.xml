@@ -24,6 +24,12 @@
             <artifactId>zsk-common-core</artifactId>
         </dependency>
 
+        <!-- ZSK Common Redis -->
+        <dependency>
+            <groupId>com.zsk.cloud</groupId>
+            <artifactId>zsk-common-redis</artifactId>
+        </dependency>
+
         <!-- Sentinel Core -->
         <dependency>
             <groupId>com.alibaba.cloud</groupId>

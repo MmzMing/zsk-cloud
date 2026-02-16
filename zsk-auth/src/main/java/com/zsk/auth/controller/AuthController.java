@@ -1,16 +1,7 @@
 package com.zsk.auth.controller;
 
-import com.zsk.auth.domain.CaptchaCheckRequest;
-import com.zsk.auth.domain.CaptchaResponse;
-import com.zsk.auth.domain.LoginRequest;
-import com.zsk.auth.domain.LoginResponse;
-import com.zsk.auth.domain.PublicKeyResponse;
-import com.zsk.auth.domain.RegisterBody;
-import com.zsk.auth.service.IAuthService;
-import com.zsk.auth.service.ICaptchaService;
-import com.zsk.auth.service.IEmailService;
-import com.zsk.auth.service.IEncryptService;
-import com.zsk.auth.service.IThirdPartyAuthService;
+import com.zsk.auth.domain.*;
+import com.zsk.auth.service.*;
 import com.zsk.common.core.domain.R;
 import com.zsk.common.sentinel.annotation.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
@@ -50,6 +41,7 @@ public class AuthController {
      */
     @Operation(summary = "用户注册")
     @PostMapping("/register")
+    @RateLimit(resource = "auth:register", key = "#registerBody.email", count = 10, timeUnit = TimeUnit.MINUTES)
     public R<Void> register(@RequestBody @Valid RegisterBody registerBody) {
         authService.register(registerBody);
         return R.ok();
@@ -63,7 +55,7 @@ public class AuthController {
      */
     @Operation(summary = "用户登录")
     @PostMapping("/login")
-    @RateLimit(resource = "auth:login", count = 10, timeUnit = java.util.concurrent.TimeUnit.MINUTES)
+    @RateLimit(resource = "auth:login", key = "#request.username", count = 10, timeUnit = TimeUnit.MINUTES)
     public R<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
         LoginResponse response = authService.login(request);
         return R.ok(response);
@@ -137,7 +129,7 @@ public class AuthController {
      */
     @Operation(summary = "发送邮箱验证码")
     @PostMapping("/email/code")
-    @RateLimit(resource = "auth:email:code", count = 5, timeUnit = TimeUnit.MINUTES)
+    @RateLimit(resource = "auth:email:code",key = "#email", count = 5, timeUnit = TimeUnit.MINUTES)
     public R<Void> sendEmailCode(@RequestParam String email, @RequestParam String captchaVerification) {
         // 验证滑块验证码凭证
         captchaService.verifyCaptchaToken(captchaVerification);
@@ -188,7 +180,7 @@ public class AuthController {
      */
     @Operation(summary = "根据用户名发送邮箱验证码")
     @PostMapping("/email/code/username")
-    @RateLimit(resource = "auth:email:code:username", count = 5, timeUnit = TimeUnit.MINUTES)
+    @RateLimit(resource = "auth:email:code:username", key = "#username", count = 5, timeUnit = TimeUnit.MINUTES)
     public R<Void> sendEmailCodeByUsername(@RequestParam String username, @RequestParam String captchaVerification) {
         authService.sendEmailCodeByUsername(username, captchaVerification);
         return R.ok();
@@ -197,13 +189,13 @@ public class AuthController {
     /**
      * 发送密码重置验证码
      *
-     * @param email 邮箱地址
+     * @param email               邮箱地址
      * @param captchaVerification 验证码验证凭证
      * @return 响应结果
      */
     @Operation(summary = "发送密码重置验证码")
     @PostMapping("/password/reset/code")
-    @RateLimit(resource = "auth:password:reset", count = 3, timeUnit = java.util.concurrent.TimeUnit.MINUTES)
+    @RateLimit(resource = "auth:password:reset", key = "#email", count = 3, timeUnit = java.util.concurrent.TimeUnit.MINUTES)
     public R<Void> sendPasswordResetCode(@RequestParam String email, @RequestParam String captchaVerification) {
         authService.sendPasswordResetCode(email, captchaVerification);
         return R.ok();
@@ -213,7 +205,7 @@ public class AuthController {
      * 验证重置验证码
      *
      * @param email 邮箱地址
-     * @param code 验证码
+     * @param code  验证码
      * @return 验证令牌（用于后续重置密码）
      */
     @Operation(summary = "验证重置验证码")
@@ -226,7 +218,7 @@ public class AuthController {
     /**
      * 重置密码
      *
-     * @param email 邮箱地址
+     * @param email       邮箱地址
      * @param verifyToken 验证令牌
      * @param newPassword 新密码（RSA加密后）
      * @return 响应结果

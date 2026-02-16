@@ -19,6 +19,17 @@ public @interface RateLimit {
     String resource() default "";
 
     /**
+     * 业务Key (支持SpEL表达式)
+     * 例如: "#user.id"
+     */
+    String key() default "";
+
+    /**
+     * 限流提示信息
+     */
+    String message() default "请求过于频繁，请稍后再试";
+
+    /**
      * 限流阈值
      */
     double count() default 5;
