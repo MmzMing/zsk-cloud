@@ -30,13 +30,12 @@ spring:
                 - Path=/api/document/**
               filters:
                 - StripPrefix=1
-
 security:
   # XSS 防护配置
   xss:
     enabled: true
     exclude-urls:
-      - /api/system/notice/*
+      - /system/notice/*
   # 安全配置 (白名单)
   ignore:
     whites:
@@ -44,9 +43,10 @@ security:
       - /api/auth/register
       - /api/auth/logout
       - /api/auth/captcha
+      - /api/auth/captcha/check
       - /api/auth/public-key
-      - /api/auth/email/code
-      - /api/auth/third/**
+      - /api/auth/email/code/**
+      - /api/auth/third-party/**
       - /api/auth/test/hello
       - /api/system/user/info/*
       - /doc.html

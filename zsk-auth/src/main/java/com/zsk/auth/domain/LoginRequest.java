@@ -3,6 +3,7 @@ package com.zsk.auth.domain;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import org.hibernate.validator.constraints.Length;
 
 /**
  * 登录请求对象
@@ -16,7 +17,7 @@ public class LoginRequest {
     /**
      * 用户名
      */
-    @NotBlank(message = "用户名不能为空")
+    @Length(min = 2, max = 20, message = "用户名长度必须在2到20个字符之间")
     private String username;
 
     /**
@@ -26,8 +27,9 @@ public class LoginRequest {
     private String password;
 
     /**
-     * 图形验证码内容
+     * 邮箱验证码
      */
+    @NotBlank(message = "验证码不能为空")
     private String code;
 
     /**

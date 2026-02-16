@@ -33,6 +33,11 @@ public class CacheConstants {
     public static final String CACHE_CAPTCHA_CODE = CACHE_PREFIX + "captcha:";
 
     /**
+     * 验证码验证通过凭证缓存键前缀
+     */
+    public static final String CACHE_CAPTCHA_VERIFIED = CACHE_PREFIX + "captcha:verified:";
+
+    /**
      * 字典数据缓存键前缀
      */
     public static final String CACHE_DICT = CACHE_PREFIX + "dict:";

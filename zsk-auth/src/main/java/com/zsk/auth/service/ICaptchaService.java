@@ -22,6 +22,14 @@ public interface ICaptchaService {
      *
      * @param uuid 验证码标识
      * @param code 验证码内容（X坐标移动距离）
+     * @return 验证通过的凭证Token
      */
-    void validateCaptcha(String uuid, String code);
+    String validateCaptcha(String uuid, String code);
+
+    /**
+     * 校验验证码凭证
+     *
+     * @param token 验证凭证
+     */
+    void verifyCaptchaToken(String token);
 }

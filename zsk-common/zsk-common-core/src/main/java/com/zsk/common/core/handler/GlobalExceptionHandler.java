@@ -7,7 +7,9 @@ import com.zsk.common.core.exception.BusinessException;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
+import org.springframework.validation.BindException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -47,6 +49,26 @@ public class GlobalExceptionHandler {
     public R<?> handleBaseException(BaseException e, HttpServletRequest request) {
         log.error("基础异常: {}", e.getMessage());
         return R.fail(e.getCode(), e.getMessage());
+    }
+
+    /**
+     * 自定义验证异常
+     */
+    @ExceptionHandler(BindException.class)
+    public R<?> handleBindException(BindException e) {
+        log.error(e.getMessage());
+        String message = e.getAllErrors().get(0).getDefaultMessage();
+        return R.fail(ResultCode.PARAM_ERROR.getCode(), message);
+    }
+
+    /**
+     * 自定义验证异常，@Validated注解
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public R<?> handleMethodArgumentNotValidException(MethodArgumentNotValidException e) {
+        log.error(e.getMessage());
+        String message = e.getBindingResult().getFieldError().getDefaultMessage();
+        return R.fail(ResultCode.PARAM_ERROR.getCode(), message);
     }
 
     /**

@@ -43,11 +43,20 @@ public interface IAuthService {
     void logout(String token);
 
     /**
+     * 根据用户名发送邮箱验证码
+     *
+     * @param username 用户名
+     * @param captchaVerification 验证码验证凭证
+     */
+    void sendEmailCodeByUsername(String username, String captchaVerification);
+
+    /**
      * 发送密码重置验证码
      *
      * @param email 邮箱地址
+     * @param captchaVerification 验证码验证凭证
      */
-    void sendPasswordResetCode(String email);
+    void sendPasswordResetCode(String email, String captchaVerification);
 
     /**
      * 验证重置验证码

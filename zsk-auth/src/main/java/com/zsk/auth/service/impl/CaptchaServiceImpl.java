@@ -163,10 +163,11 @@ public class CaptchaServiceImpl implements ICaptchaService {
      *
      * @param uuid 验证码唯一标识
      * @param code 用户输入的X坐标移动距离
+     * @return 验证通过的凭证Token
      * @throws AuthException 验证码无效或错误时抛出
      */
     @Override
-    public void validateCaptcha(String uuid, String code) {
+    public String validateCaptcha(String uuid, String code) {
         if (StringUtils.isEmpty(uuid) || StringUtils.isEmpty(code)) {
             throw new AuthException("验证码不能为空");
         }
@@ -190,5 +191,30 @@ public class CaptchaServiceImpl implements ICaptchaService {
         }
 
         redisService.deleteObject(captchaKey);
+        
+        // 生成验证通过凭证
+        String verifyToken = UUID.randomUUID().toString().replace("-", "");
+        String verifyKey = CacheConstants.CACHE_CAPTCHA_VERIFIED + verifyToken;
+        redisService.setCacheObject(verifyKey, "true", 5, TimeUnit.MINUTES);
+        
+        return verifyToken;
+    }
+
+    /**
+     * 校验验证码凭证
+     *
+     * @param token 验证凭证
+     */
+    @Override
+    public void verifyCaptchaToken(String token) {
+        if (StringUtils.isEmpty(token)) {
+            throw new AuthException("请先完成滑块验证");
+        }
+        String verifyKey = CacheConstants.CACHE_CAPTCHA_VERIFIED + token;
+        if (!redisService.hasKey(verifyKey)) {
+            throw new AuthException("验证码凭证已过期或无效，请重新验证");
+        }
+        // 验证通过后删除凭证（一次性使用）
+        redisService.deleteObject(verifyKey);
     }
 }

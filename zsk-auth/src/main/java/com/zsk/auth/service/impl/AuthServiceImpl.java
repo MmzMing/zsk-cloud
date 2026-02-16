@@ -77,13 +77,23 @@ public class AuthServiceImpl implements IAuthService {
     @Override
     public void register(RegisterBody registerBody) {
         String username = registerBody.getUsername();
-        String password = registerBody.getPassword();
-        String confirmPassword = registerBody.getConfirmPassword();
+        String password = encryptService.decrypt(registerBody.getPassword());
+        String confirmPassword = encryptService.decrypt(registerBody.getConfirmPassword());
         String code = registerBody.getCode();
         String uuid = registerBody.getUuid();
+        String email = registerBody.getEmail();
 
-        // 验证验证码
-        captchaService.validateCaptcha(uuid, code);
+        // 验证邮箱验证码
+        emailService.validateEmailCode(email, code);
+
+
+        if (StringUtils.isBlank(password)) {
+            throw new BusinessException("密码不能为空");
+        }
+
+        if (password.length() < 8 || password.length() > 20) {
+            throw new BusinessException("密码长度必须在8到20个字符之间");
+        }
 
         if (!password.equals(confirmPassword)) {
             throw new BusinessException("密码和确认密码不一致");
@@ -98,9 +108,10 @@ public class AuthServiceImpl implements IAuthService {
         SysUserApi sysUser = new SysUserApi();
         sysUser.setUserName(username);
         sysUser.setNickName(username);
+        sysUser.setEmail(email);
         sysUser.setPassword(SecurityUtils.encryptPassword(password));
         sysUser.setStatus("0"); // 正常状态
-        sysUser.setUserType("00"); // 系统用户
+        sysUser.setUserType(StringUtils.defaultIfBlank(registerBody.getUserType(), "1001")); // 默认注册用户类型为1001
 
         R<Boolean> registerResult = remoteUserService.createUser(sysUser);
 
@@ -122,22 +133,23 @@ public class AuthServiceImpl implements IAuthService {
         String code = request.getCode();
         String uuid = request.getUuid();
 
-        if (StringUtils.isEmpty(code) || StringUtils.isEmpty(uuid)) {
+        if (StringUtils.isEmpty(code)) {
             throw new AuthException("验证码不能为空");
         }
-
-        String decryptedPassword = encryptService.decrypt(password);
-
+        //校验用户
         R<LoginUser> userResult = remoteUserService.getUserInfo(username, CommonConstants.REQUEST_SOURCE_INNER);
         if (userResult == null || !userResult.isSuccess()) {
             throw new AuthException("用户不存在");
         }
-
         LoginUser loginUser = userResult.getData();
         if (loginUser == null || loginUser.getSysUser() == null) {
             throw new AuthException("用户不存在");
         }
 
+        // 邮箱验证码验证
+        emailService.validateEmailCode(loginUser.getSysUser().getEmail(), code);
+        // 密码验证
+        String decryptedPassword = encryptService.decrypt(password);
         SysUserApi user = loginUser.getSysUser();
         if (!SecurityUtils.matchesPassword(decryptedPassword, user.getPassword())) {
             throw new AuthException("用户名或密码错误");
@@ -159,6 +171,7 @@ public class AuthServiceImpl implements IAuthService {
     private LoginResponse emailLogin(LoginRequest request) {
         String email = request.getEmail();
         String emailCode = request.getEmailCode();
+        String password = request.getPassword();
 
         if (StringUtils.isEmpty(email) || StringUtils.isEmpty(emailCode)) {
             throw new AuthException("邮箱和验证码不能为空");
@@ -177,6 +190,15 @@ public class AuthServiceImpl implements IAuthService {
         }
 
         SysUserApi user = loginUser.getSysUser();
+        
+        // 校验密码
+        if (StringUtils.isNotEmpty(password)) {
+             String decryptedPassword = encryptService.decrypt(password);
+             if (!SecurityUtils.matchesPassword(decryptedPassword, user.getPassword())) {
+                 throw new AuthException("邮箱或密码错误");
+             }
+        }
+
         if ("1".equals(user.getStatus())) {
             throw new AuthException("账号已被停用");
         }
@@ -329,16 +351,42 @@ public class AuthServiceImpl implements IAuthService {
         }
     }
 
+    @Override
+    public void sendEmailCodeByUsername(String username, String captchaVerification) {
+        // 验证滑块验证码凭证
+        captchaService.verifyCaptchaToken(captchaVerification);
+
+        R<LoginUser> userResult = remoteUserService.getUserInfo(username, CommonConstants.REQUEST_SOURCE_INNER);
+        if (userResult == null || !userResult.isSuccess()) {
+            throw new AuthException("用户不存在");
+        }
+        
+        LoginUser loginUser = userResult.getData();
+        if (loginUser == null || loginUser.getSysUser() == null) {
+            throw new AuthException("用户不存在");
+        }
+        
+        String email = loginUser.getSysUser().getEmail();
+        if (StringUtils.isEmpty(email)) {
+            throw new AuthException("该用户未绑定邮箱");
+        }
+        
+        emailService.sendEmailCode(email);
+    }
+
     /**
      * 发送密码重置验证码
      *
      * @param email 邮箱地址
      */
     @Override
-    public void sendPasswordResetCode(String email) {
+    public void sendPasswordResetCode(String email, String captchaVerification) {
         if (StringUtils.isEmpty(email)) {
             throw new AuthException("邮箱地址不能为空");
         }
+        
+        // 验证滑块验证码凭证
+        captchaService.verifyCaptchaToken(captchaVerification);
 
         /** 验证邮箱格式 */
         if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
@@ -449,8 +497,8 @@ public class AuthServiceImpl implements IAuthService {
      * @param userId 用户ID
      */
     private void invalidateUserTokens(Long userId) {
-        /** 这里可以扩展实现：遍历Redis中该用户的所有Token并删除 */
-        /** 目前简化处理，用户重新登录即可 */
+        // 这里可以扩展实现：遍历Redis中该用户的所有Token并删除
+        // 目前简化处理，用户重新登录即可
         log.info("用户 {} 的所有Token已失效", userId);
     }
 }

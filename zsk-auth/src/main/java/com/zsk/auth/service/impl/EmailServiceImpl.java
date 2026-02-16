@@ -8,7 +8,7 @@ import com.zsk.common.redis.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.mail.EmailException;
-import org.apache.commons.mail.SimpleEmail;
+import org.apache.commons.mail.HtmlEmail;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
@@ -89,16 +89,17 @@ public class EmailServiceImpl implements IEmailService {
         redisService.setCacheObject(emailKey, code, emailCodeExpire, TimeUnit.SECONDS);
 
         try {
-            SimpleEmail simpleEmail = new SimpleEmail();
-            simpleEmail.setHostName(emailHost);
-            simpleEmail.setSmtpPort(emailPort);
-            simpleEmail.setSSLOnConnect(true);
-            simpleEmail.setAuthentication(emailUsername, emailPassword);
-            simpleEmail.setFrom(emailFrom);
-            simpleEmail.setSubject(emailSubject);
-            simpleEmail.setMsg("您的验证码是：" + code + "，5分钟内有效。");
-            simpleEmail.addTo(email);
-            simpleEmail.send();
+            HtmlEmail htmlEmail = new HtmlEmail();
+            htmlEmail.setHostName(emailHost);
+            htmlEmail.setSmtpPort(emailPort);
+            htmlEmail.setSSLOnConnect(true);
+            htmlEmail.setAuthentication(emailUsername, emailPassword);
+            htmlEmail.setFrom(emailFrom);
+            htmlEmail.setSubject(emailSubject);
+            htmlEmail.setCharset("UTF-8");
+            htmlEmail.setHtmlMsg(getHtmlTemplate(code));
+            htmlEmail.addTo(email);
+            htmlEmail.send();
 
             log.info("邮箱验证码发送成功: {}", email);
         } catch (EmailException e) {
@@ -146,5 +147,53 @@ public class EmailServiceImpl implements IEmailService {
             code.append(random.nextInt(10));
         }
         return code.toString();
+    }
+
+    /**
+     * 获取HTML邮件模板
+     *
+     * @param code 验证码
+     * @return HTML内容
+     */
+    private String getHtmlTemplate(String code) {
+        return String.format("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>验证码</title>
+                <style>
+                    body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+                    .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+                    .header { text-align: center; padding-bottom: 30px; border-bottom: 1px solid #eeeeee; margin-bottom: 30px; }
+                    .header h2 { color: #333333; margin: 0; font-size: 24px; font-weight: 500; }
+                    .content { text-align: center; color: #555555; }
+                    .message { font-size: 16px; line-height: 1.6; margin-bottom: 25px; }
+                    .code-box { background-color: #f8f9fa; border-radius: 6px; padding: 20px; margin: 0 auto 25px; display: inline-block; min-width: 200px; border: 1px solid #e9ecef; }
+                    .code { font-size: 36px; font-weight: bold; color: #0056b3; letter-spacing: 8px; font-family: monospace; margin: 0; }
+                    .footer { text-align: center; padding-top: 30px; border-top: 1px solid #eeeeee; color: #999999; font-size: 13px; margin-top: 30px; }
+                    .footer p { margin: 5px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h2>安全验证</h2>
+                    </div>
+                    <div class="content">
+                        <p class="message">您好！您正在进行身份验证，您的验证码为：</p>
+                        <div class="code-box">
+                            <p class="code">%s</p>
+                        </div>
+                        <p class="message">该验证码5分钟内有效，为了您的账号安全，请勿泄露给他人。</p>
+                    </div>
+                    <div class="footer">
+                        <p>此邮件由系统自动发送，请勿回复。</p>
+                        <p>&copy; 2026 ZSK Cloud. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """, code);
     }
 }

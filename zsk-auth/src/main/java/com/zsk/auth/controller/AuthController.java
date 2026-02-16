@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.concurrent.TimeUnit;
+
 /**
  * 认证管理 控制器
  *
@@ -112,9 +114,8 @@ public class AuthController {
      */
     @Operation(summary = "校验滑块验证码")
     @PostMapping("/captcha/check")
-    public R<Void> checkCaptcha(@RequestBody CaptchaCheckRequest request) {
-        captchaService.validateCaptcha(request.getUuid(), request.getCode());
-        return R.ok();
+    public R<String> checkCaptcha(@RequestBody CaptchaCheckRequest request) {
+        return R.ok(captchaService.validateCaptcha(request.getUuid(), request.getCode()));
     }
 
     /**
@@ -136,8 +137,10 @@ public class AuthController {
      */
     @Operation(summary = "发送邮箱验证码")
     @PostMapping("/email/code")
-    @RateLimit(resource = "auth:email:code", count = 5, timeUnit = java.util.concurrent.TimeUnit.MINUTES)
-    public R<Void> sendEmailCode(@RequestParam String email) {
+    @RateLimit(resource = "auth:email:code", count = 5, timeUnit = TimeUnit.MINUTES)
+    public R<Void> sendEmailCode(@RequestParam String email, @RequestParam String captchaVerification) {
+        // 验证滑块验证码凭证
+        captchaService.verifyCaptchaToken(captchaVerification);
         emailService.sendEmailCode(email);
         return R.ok();
     }
@@ -178,16 +181,31 @@ public class AuthController {
     }
 
     /**
+     * 根据用户名发送邮箱验证码
+     *
+     * @param username 用户名
+     * @return 响应结果
+     */
+    @Operation(summary = "根据用户名发送邮箱验证码")
+    @PostMapping("/email/code/username")
+    @RateLimit(resource = "auth:email:code:username", count = 5, timeUnit = TimeUnit.MINUTES)
+    public R<Void> sendEmailCodeByUsername(@RequestParam String username, @RequestParam String captchaVerification) {
+        authService.sendEmailCodeByUsername(username, captchaVerification);
+        return R.ok();
+    }
+
+    /**
      * 发送密码重置验证码
      *
      * @param email 邮箱地址
+     * @param captchaVerification 验证码验证凭证
      * @return 响应结果
      */
     @Operation(summary = "发送密码重置验证码")
     @PostMapping("/password/reset/code")
     @RateLimit(resource = "auth:password:reset", count = 3, timeUnit = java.util.concurrent.TimeUnit.MINUTES)
-    public R<Void> sendPasswordResetCode(@RequestParam String email) {
-        authService.sendPasswordResetCode(email);
+    public R<Void> sendPasswordResetCode(@RequestParam String email, @RequestParam String captchaVerification) {
+        authService.sendPasswordResetCode(email, captchaVerification);
         return R.ok();
     }
 
