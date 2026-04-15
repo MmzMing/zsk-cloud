@@ -2,6 +2,7 @@ package com.zsk.system.controller;
 
 import com.zsk.common.core.constant.CommonConstants;
 import com.zsk.common.core.domain.R;
+import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.system.api.domain.SysUserApi;
 import com.zsk.system.api.model.LoginUser;
 import com.zsk.system.domain.SysUser;
@@ -150,12 +151,16 @@ public class SysUserController {
      * 查询用户列表
      *
      * @param user 查询条件
-     * @return 用户列表
+     * @param pageNum 当前页码
+     * @param pageSize 每页大小
+     * @return 分页结果
      */
     @Operation(summary = "查询用户列表")
     @GetMapping("/list")
-    public R<List<SysUser>> list(SysUser user) {
-        return R.ok(userService.list());
+    public R<PageResult<SysUser>> list(SysUser user, 
+                                      @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum, 
+                                      @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
+        return R.ok(userService.selectUserPage(user, pageNum, pageSize));
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.zsk.auth.controller;
 
+import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.zsk.auth.domain.*;
 import com.zsk.auth.service.*;
 import com.zsk.common.core.domain.R;

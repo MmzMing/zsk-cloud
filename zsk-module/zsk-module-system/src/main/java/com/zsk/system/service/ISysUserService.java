@@ -1,6 +1,7 @@
 package com.zsk.system.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.system.domain.SysUser;
 
 import java.util.List;
@@ -85,4 +86,22 @@ public interface ISysUserService extends IService<SysUser> {
      * @return 结果
      */
     boolean batchResetPassword(List<Long> userIds);
+
+    /**
+     * 根据条件查询用户列表
+     *
+     * @param user 查询条件
+     * @return 用户列表
+     */
+    List<SysUser> selectUserList(SysUser user);
+
+    /**
+     * 根据条件分页查询用户列表
+     *
+     * @param user 查询条件
+     * @param pageNum 当前页码
+     * @param pageSize 每页大小
+     * @return 分页结果
+     */
+    PageResult<SysUser> selectUserPage(SysUser user, Integer pageNum, Integer pageSize);
 }

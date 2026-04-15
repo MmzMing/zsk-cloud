@@ -1,7 +1,9 @@
 package com.zsk.system.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.common.security.utils.SecurityUtils;
 import com.zsk.system.domain.SysUser;
 import com.zsk.system.domain.SysUserRole;
@@ -153,6 +155,54 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             resetPassword(userId);
         }
         return true;
+    }
+
+    /**
+     * 根据条件查询用户列表
+     *
+     * @param user 查询条件
+     * @return 用户列表
+     */
+    @Override
+    public List<SysUser> selectUserList(SysUser user) {
+        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
+        if (user.getStatus() != null) {
+            queryWrapper.eq(SysUser::getStatus, user.getStatus());
+        }
+        if (user.getUserName() != null) {
+            queryWrapper.like(SysUser::getUserName, user.getUserName());
+        }
+        if (user.getPhonenumber() != null) {
+            queryWrapper.like(SysUser::getPhonenumber, user.getPhonenumber());
+        }
+        queryWrapper.eq(SysUser::getDeleted, 0);
+        return list(queryWrapper);
+    }
+
+    /**
+     * 根据条件分页查询用户列表
+     *
+     * @param user 查询条件
+     * @param pageNum 当前页码
+     * @param pageSize 每页大小
+     * @return 分页结果
+     */
+    @Override
+    public PageResult<SysUser> selectUserPage(SysUser user, Integer pageNum, Integer pageSize) {
+        Page<SysUser> page = new Page<>(pageNum, pageSize);
+        LambdaQueryWrapper<SysUser> queryWrapper = new LambdaQueryWrapper<>();
+        if (user.getStatus() != null) {
+            queryWrapper.eq(SysUser::getStatus, user.getStatus());
+        }
+        if (user.getUserName() != null) {
+            queryWrapper.like(SysUser::getUserName, user.getUserName());
+        }
+        if (user.getPhonenumber() != null) {
+            queryWrapper.like(SysUser::getPhonenumber, user.getPhonenumber());
+        }
+        queryWrapper.eq(SysUser::getDeleted, 0);
+        Page<SysUser> result = page(page, queryWrapper);
+        return PageResult.build(result);
     }
 
     /**

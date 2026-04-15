@@ -22,4 +22,12 @@ public interface SysRoleMapper extends BaseMapper<SysRole> {
             "left join sys_user_role ur on ur.role_id = r.id " +
             "where ur.user_id = #{userId} and r.deleted = 0 and r.status = 0")
     List<String> selectRolePermissionByUserId(Long userId);
+
+    /**
+     * 查询最大角色排序值
+     *
+     * @return 最大排序值
+     */
+    @Select("select max(role_sort) from sys_role where deleted = 0")
+    Long selectMaxRoleSort();
 }

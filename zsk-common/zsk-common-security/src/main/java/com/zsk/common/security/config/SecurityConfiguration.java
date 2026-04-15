@@ -76,9 +76,16 @@ public class SecurityConfiguration {
                 // 禁用 Session，使用无状态（STATELESS）策略，完全依赖 Token 认证
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // 配置请求权限控制，允许所有请求，通过注解控制权限
-                .authorizeHttpRequests(auth -> {
-                    auth.anyRequest().permitAll();
-                })
+                .authorizeHttpRequests(auth -> auth
+                        .anyRequest().permitAll()
+
+                        //最具体、最宽松的规则放最前面
+                        //.requestMatchers("/auth", "/public/**").permitAll()
+                        //某个请求需要权限
+                        //.requestMatchers(contextPath + "/test/helloAuth/**").hasRole("ADMIN")
+                        //剩下的请求都需要认证
+                        //.anyRequest().authenticated()
+                )
                 // 配置异常处理逻辑
                 .exceptionHandling(ex -> ex
                         // 未认证（未登录）处理器

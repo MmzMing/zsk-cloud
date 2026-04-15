@@ -48,6 +48,13 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean insertRole(SysRole role) {
+        if (role.getRoleKey() == null || role.getRoleKey().isEmpty()) {
+            role.setRoleKey("role_" + System.currentTimeMillis());
+        }
+        if (role.getRoleSort() == null) {
+            Long maxSort = baseMapper.selectMaxRoleSort();
+            role.setRoleSort(maxSort == null ? 1 : maxSort.intValue() + 1);
+        }
         boolean result = save(role);
         insertRoleMenu(role);
         return result;
