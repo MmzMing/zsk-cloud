@@ -172,27 +172,27 @@ CREATE TABLE `sys_notice` (
 -- ----------------------------
 -- 9. 系统令牌表
 -- ----------------------------
-DROP TABLE IF EXISTS `sys_token`;
-CREATE TABLE `sys_token` (
-  `id` bigint(20) NOT NULL COMMENT '主键ID（雪花算法）',
-  `token_name` varchar(100) NOT NULL COMMENT '令牌名称',
-  `token_value` varchar(500) NOT NULL COMMENT '令牌值',
-  `token_type` varchar(20) NOT NULL DEFAULT 'api' COMMENT '令牌类型（api-接口令牌 personal-个人令牌 internal-内部令牌）',
-  `bound_user_id` bigint(20) DEFAULT NULL COMMENT '绑定用户ID',
-  `bound_user_name` varchar(50) DEFAULT NULL COMMENT '绑定用户名',
-  `expire_time` datetime DEFAULT NULL COMMENT '过期时间',
-  `last_used_time` datetime DEFAULT NULL COMMENT '最后使用时间',
-  `status` varchar(20) NOT NULL DEFAULT 'active' COMMENT '状态（active-有效 expired-已过期 revoked-已吊销）',
-  `deleted` tinyint(1) DEFAULT 0 COMMENT '是否已删除(0否 1是)',
-  `create_name` varchar(100) DEFAULT NULL COMMENT '创建者姓名',
-  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_name` varchar(100) DEFAULT NULL COMMENT '更新者姓名',
-  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
-  `remark` varchar(500) DEFAULT NULL COMMENT '备注',
-  PRIMARY KEY (`id`),
-  INDEX `idx_token_value` (`token_value`(100)),
-  INDEX `idx_bound_user` (`bound_user_id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='系统令牌表';
+-- DROP TABLE IF EXISTS `sys_token`;
+-- CREATE TABLE `sys_token` (
+--   `id` bigint(20) NOT NULL COMMENT '主键ID（雪花算法）',
+--   `token_name` varchar(100) NOT NULL COMMENT '令牌名称',
+--   `token_value` varchar(500) NOT NULL COMMENT '令牌值',
+--   `token_type` varchar(20) NOT NULL DEFAULT 'api' COMMENT '令牌类型（api-接口令牌 personal-个人令牌 internal-内部令牌）',
+--   `bound_user_id` bigint(20) DEFAULT NULL COMMENT '绑定用户ID',
+--   `bound_user_name` varchar(50) DEFAULT NULL COMMENT '绑定用户名',
+--   `expire_time` datetime DEFAULT NULL COMMENT '过期时间',
+--   `last_used_time` datetime DEFAULT NULL COMMENT '最后使用时间',
+--   `status` varchar(20) NOT NULL DEFAULT 'active' COMMENT '状态（active-有效 expired-已过期 revoked-已吊销）',
+--   `deleted` tinyint(1) DEFAULT 0 COMMENT '是否已删除(0否 1是)',
+--   `create_name` varchar(100) DEFAULT NULL COMMENT '创建者姓名',
+--   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+--   `update_name` varchar(100) DEFAULT NULL COMMENT '更新者姓名',
+--   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+--   `remark` varchar(500) DEFAULT NULL COMMENT '备注',
+--   PRIMARY KEY (`id`),
+--   INDEX `idx_token_value` (`token_value`(100)),
+--   INDEX `idx_bound_user` (`bound_user_id`)
+-- ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='系统令牌表';
 
 -- ----------------------------
 -- 10. 字典数据 - 视频分类
