@@ -22,4 +22,12 @@ public interface IEmailService {
      * @param code  验证码内容
      */
     void validateEmailCode(String email, String code);
+
+    /**
+     * 发送魔法链接邮件
+     *
+     * @param email 邮箱地址
+     * @param token 魔法链接Token
+     */
+    void sendMagicLinkEmail(String email, String token);
 }

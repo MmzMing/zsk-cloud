@@ -32,4 +32,14 @@ public interface ICaptchaService {
      * @param token 验证凭证
      */
     void verifyCaptchaToken(String token);
+
+    /**
+     * 验证 Cloudflare Turnstile Token（内部使用）
+     *
+     * @param token Turnstile验证Token
+     * @return 验证结果
+     */
+    boolean verifyTurnstileToken(String token);
+
+    
 }

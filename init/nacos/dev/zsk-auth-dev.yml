@@ -33,3 +33,13 @@ auth:
     client-id: your-github-client-id
     client-secret: your-github-client-secret
     redirect-uri: http://localhost:8080/auth/github/callback
+
+# Cloudflare Turnstile 配置
+turnstile:
+  secret-key: ${TURNSTILE_SECRET_KEY:}
+  site-key: ${TURNSTILE_SITE_KEY:}
+  verify-url: https://challenges.cloudflare.com/turnstile/v0/siteverify
+
+# 魔法链接配置
+magic-link:
+  redirect-url: ${MAGIC_LINK_REDIRECT_URL:http://localhost:5173/}

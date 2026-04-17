@@ -75,4 +75,20 @@ public interface IAuthService {
      * @param newPassword 新密码（已加密）
      */
     void resetPassword(String email, String verifyToken, String newPassword);
+
+    /**
+     * 发送魔法链接
+     *
+     * @param email 邮箱地址
+     * @param turnstileToken Cloudflare Turnstile验证Token
+     */
+    void sendMagicLink(String email, String turnstileToken);
+
+    /**
+     * 验证魔法链接并生成登录态
+     *
+     * @param token 魔法链接Token
+     * @return 登录结果
+     */
+    LoginResponse verifyMagicLink(String token);
 }

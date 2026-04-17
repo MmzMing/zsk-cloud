@@ -501,4 +501,127 @@ public class AuthServiceImpl implements IAuthService {
         // 目前简化处理，用户重新登录即可
         log.info("用户 {} 的所有Token已失效", userId);
     }
+
+    /**
+     * 发送魔法链接
+     * <p>处理流程：
+     * 1. 校验邮箱格式
+     * 2. 调用 Cloudflare Turnstile API 验证人机校验Token
+     * 3. 生成UUID作为魔法链接Token
+     * 4. 缓存Token与邮箱的映射关系（15分钟过期）
+     * 5. 发送包含魔法链接的邮件
+     * <p>限流由 Controller 层 @RateLimit 注解控制
+     *
+     * @param email 邮箱地址
+     * @param turnstileToken Cloudflare Turnstile验证Token
+     * @throws AuthException 参数校验失败或人机校验失败
+     */
+    @Override
+    public void sendMagicLink(String email, String turnstileToken) {
+        if (StringUtils.isEmpty(email)) {
+            throw new AuthException("邮箱地址不能为空");
+        }
+
+        if (!email.matches("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$")) {
+            throw new AuthException("邮箱格式不正确");
+        }
+
+        if (!captchaService.verifyTurnstileToken(turnstileToken)) {
+            throw new AuthException("人机校验失败，请重试");
+        }
+
+        String magicToken = UUID.randomUUID().toString().replace("-", "");
+        String magicLinkKey = CacheConstants.CACHE_MAGIC_LINK + magicToken;
+
+        redisService.setCacheObject(magicLinkKey, email, 15, TimeUnit.MINUTES);
+
+        emailService.sendMagicLinkEmail(email, magicToken);
+
+        log.info("魔法链接已发送至邮箱: {}", email);
+    }
+
+    /**
+     * 验证魔法链接并生成登录态
+     * <p>处理流程：
+     * 1. 校验Token非空
+     * 2. 从Redis获取绑定的邮箱地址
+     * 3. 删除Token（一次性使用）
+     * 4. 根据邮箱查询用户信息
+     * 5. 如果用户不存在，自动创建新用户
+     * 6. 校验用户状态
+     * 7. 生成登录Token
+     *
+     * @param token 魔法链接Token
+     * @return 登录结果，包含访问令牌和用户信息
+     * @throws AuthException Token无效、过期或账号被停用
+     */
+    @Override
+    public LoginResponse verifyMagicLink(String token) {
+        if (StringUtils.isEmpty(token)) {
+            throw new AuthException("链接无效");
+        }
+
+        String magicLinkKey = CacheConstants.CACHE_MAGIC_LINK + token;
+        String email = redisService.getCacheObject(magicLinkKey);
+
+        if (StringUtils.isEmpty(email)) {
+            throw new AuthException("链接已过期或无效");
+        }
+
+        redisService.deleteObject(magicLinkKey);
+
+        R<LoginUser> userResult = remoteUserService.getUserInfoByEmail(email, CommonConstants.REQUEST_SOURCE_INNER);
+        
+        LoginUser loginUser;
+        if (userResult == null || !userResult.isSuccess() || userResult.getData() == null) {
+            loginUser = createUserByEmail(email);
+        } else {
+            loginUser = userResult.getData();
+        }
+
+        if (loginUser == null || loginUser.getSysUser() == null) {
+            throw new AuthException("用户创建失败");
+        }
+
+        SysUserApi user = loginUser.getSysUser();
+        if ("1".equals(user.getStatus())) {
+            throw new AuthException("账号已被停用");
+        }
+
+        return generateToken(loginUser);
+    }
+
+    /**
+     * 根据邮箱自动创建用户
+     * <p>当魔法链接验证时用户不存在，则自动创建新用户
+     * 用户名默认为邮箱@前面的部分，其他字段使用默认值
+     *
+     * @param email 邮箱地址
+     * @return 创建成功的用户信息
+     */
+    private LoginUser createUserByEmail(String email) {
+        String username = email.substring(0, email.indexOf('@'));
+
+        SysUserApi sysUser = new SysUserApi();
+        sysUser.setUserName(username);
+        sysUser.setNickName(username);
+        sysUser.setEmail(email);
+        sysUser.setStatus("0");
+        sysUser.setUserType("1001");
+
+        R<Boolean> createResult = remoteUserService.createUser(sysUser);
+        if (createResult == null || !createResult.isSuccess()) {
+            log.error("自动创建用户失败: {}", email);
+            throw new AuthException("用户创建失败");
+        }
+
+        R<LoginUser> userResult = remoteUserService.getUserInfoByEmail(email, CommonConstants.REQUEST_SOURCE_INNER);
+        if (userResult == null || !userResult.isSuccess()) {
+            log.error("获取新创建用户信息失败: {}", email);
+            throw new AuthException("用户创建失败");
+        }
+
+        log.info("通过魔法链接自动创建用户: {}", email);
+        return userResult.getData();
+    }
 }

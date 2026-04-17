@@ -1,6 +1,7 @@
 package com.zsk.system.controller;
 
 import com.zsk.common.core.constant.CommonConstants;
+import com.zsk.common.core.context.SecurityContext;
 import com.zsk.common.core.domain.R;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.system.api.domain.SysUserApi;
@@ -277,5 +278,24 @@ public class SysUserController {
     @PutMapping("/{ids}/reset-password")
     public R<Void> batchResetPassword(@PathVariable List<Long> ids) {
         return userService.batchResetPassword(ids) ? R.ok() : R.fail();
+    }
+
+    /**
+     * 获取当前请求的用户信息（从本地线程中获取）
+     *
+     * @return 当前登录用户信息
+     */
+    @Operation(summary = "获取当前请求的用户信息")
+    @GetMapping("/current")
+    public R<LoginUser> getCurrentUser() {
+        LoginUser loginUser = new LoginUser();
+        SysUserApi sysUser = new SysUserApi();
+        sysUser.setId(SecurityContext.getUserId());
+        sysUser.setUserName(SecurityContext.getUserName());
+        sysUser.setNickName(SecurityContext.getNickName());
+        loginUser.setSysUser(sysUser);
+        loginUser.setRoles(SecurityContext.getRoles());
+        loginUser.setPermissions(SecurityContext.getPermissions());
+        return R.ok(loginUser);
     }
 }

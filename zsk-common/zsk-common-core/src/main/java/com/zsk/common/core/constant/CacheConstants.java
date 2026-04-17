@@ -158,6 +158,16 @@ public class CacheConstants {
     public static final String CACHE_PASSWORD_RESET = CACHE_PREFIX + "password:reset:";
 
     /**
+     * 魔法链接缓存键前缀
+     */
+    public static final String CACHE_MAGIC_LINK = CACHE_PREFIX + "magic:link:";
+
+    /**
+     * 魔法链接发送频率限制缓存键前缀
+     */
+    public static final String CACHE_MAGIC_LINK_RATE_LIMIT = CACHE_PREFIX + "magic:link:rate_limit:";
+
+    /**
      * 视频分类缓存键
      */
     public static final String CACHE_VIDEO_CATEGORY = CACHE_PREFIX + "video:category:list";

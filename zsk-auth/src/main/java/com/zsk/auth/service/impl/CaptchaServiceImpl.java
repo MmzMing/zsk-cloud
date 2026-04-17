@@ -3,6 +3,7 @@ package com.zsk.auth.service.impl;
 import cn.hutool.core.codec.Base64;
 import cn.hutool.core.img.ImgUtil;
 import cn.hutool.core.util.RandomUtil;
+import com.zsk.auth.config.TurnstileProperties;
 import com.zsk.auth.domain.CaptchaResponse;
 import com.zsk.auth.service.ICaptchaService;
 import com.zsk.common.core.constant.CacheConstants;
@@ -11,11 +12,16 @@ import com.zsk.common.core.utils.StringUtils;
 import com.zsk.common.redis.service.RedisService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.*;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
 import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -32,6 +38,8 @@ import java.util.concurrent.TimeUnit;
 public class CaptchaServiceImpl implements ICaptchaService {
 
     private final RedisService redisService;
+    private final TurnstileProperties turnstileProperties;
+    private final RestTemplate restTemplate = new RestTemplate();
 
     // 拼图缺口宽高
     private static final int CUT_WIDTH = 50;
@@ -216,5 +224,58 @@ public class CaptchaServiceImpl implements ICaptchaService {
         }
         // 验证通过后删除凭证（一次性使用）
         redisService.deleteObject(verifyKey);
+    }
+
+    /**
+     * 验证 Cloudflare Turnstile Token
+     * <p>调用 Cloudflare Turnstile 官方API验证前端传入的Token有效性
+     * 如果未配置 secretKey，则跳过验证（用于开发环境）
+     *
+     * @param token Turnstile验证Token
+     * @return 验证结果，true表示验证通过，false表示验证失败
+     */
+    @Override
+    public boolean verifyTurnstileToken(String token) {
+        if (StringUtils.isEmpty(token)) {
+            log.warn("Turnstile token 为空");
+            return false;
+        }
+
+        try {
+            String secretKey = turnstileProperties.getSecretKey();
+            String verifyUrl = turnstileProperties.getVerifyUrl();
+
+            if (StringUtils.isEmpty(secretKey)) {
+                log.warn("Turnstile secret key 未配置，跳过验证");
+                return true;
+            }
+
+            HttpHeaders headers = new HttpHeaders();
+            headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+            MultiValueMap<String, String> body = new LinkedMultiValueMap<>();
+            body.add("secret", secretKey);
+            body.add("response", token);
+
+            HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(body, headers);
+            ResponseEntity<Map> response = restTemplate.postForEntity(verifyUrl, request, Map.class);
+
+            if (response.getStatusCode().is2xxSuccessful()) {
+                Map<String, Object> result = response.getBody();
+                if (result != null && Boolean.TRUE.equals(result.get("success"))) {
+                    log.info("Turnstile 验证成功");
+                    return true;
+                } else {
+                    String errorCodes = String.valueOf(result != null ? result.get("error-codes") : "unknown");
+                    log.warn("Turnstile 验证失败: {}", errorCodes);
+                }
+            } else {
+                log.warn("Turnstile 验证请求失败，状态码: {}", response.getStatusCode());
+            }
+        } catch (Exception e) {
+            log.error("Turnstile 验证异常", e);
+        }
+
+        return false;
     }
 }

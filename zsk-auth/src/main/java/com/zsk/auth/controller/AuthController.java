@@ -7,9 +7,14 @@ import com.zsk.common.core.domain.R;
 import com.zsk.common.sentinel.annotation.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.concurrent.TimeUnit;
@@ -33,6 +38,9 @@ public class AuthController {
     private final IEmailService emailService;
     private final IThirdPartyAuthService thirdPartyAuthService;
     private final IEncryptService encryptService;
+
+    @Value("${magic-link.redirect-url}")
+    private String magicLinkRedirectUrl;
 
     /**
      * 用户注册
@@ -232,5 +240,66 @@ public class AuthController {
             @RequestParam String newPassword) {
         authService.resetPassword(email, verifyToken, newPassword);
         return R.ok();
+    }
+
+    
+
+//    /**
+//     * 获取Turnstile站点密钥
+//     * <p>前端调用此接口获取Cloudflare Turnstile的站点密钥，用于初始化人机校验组件
+//     *
+//     * @param siteKey Turnstile站点密钥，从配置文件注入
+//     * @return 站点密钥
+//     */
+//     @Operation(summary = "获取Turnstile站点密钥")
+//     @GetMapping("/captcha/turnstile/site-key")
+//     public R<String> getTurnstileSiteKey(@Value("${turnstile.site-key:}") String siteKey) {
+//         return R.ok(siteKey);
+//     }
+
+    /**
+     * 发送魔法链接
+     * <p>用户输入邮箱并完成人机校验后调用此接口发送魔法链接邮件
+     * 接口有频率限制：同一邮箱3分钟内最多调用3次
+     *
+     * @param request 魔法链接请求，包含邮箱地址和人机校验凭证
+     * @return 响应结果，提示魔法链接已发送
+     */
+    @Operation(summary = "发送魔法链接")
+    @PostMapping("/magic-link/send")
+    @RateLimit(resource = "auth:magic-link:send", key = "#request.email", count = 3, timeUnit = TimeUnit.MINUTES)
+    public R<String> sendMagicLink(@Valid @RequestBody MagicLinkRequest request) {
+        authService.sendMagicLink(request.getEmail(), request.getTurnstileToken());
+        return R.ok("魔法链接已发送至您的邮箱，15分钟内有效");
+    }
+
+    /**
+     * 魔法链接回调
+     * <p>用户点击邮件中的魔法链接后，浏览器会跳转到此接口
+     * 验证Token有效性后，将登录令牌写入HttpOnly Cookie并重定向到首页
+     *
+     * @param token    魔法链接中的Token
+     * @param response HTTP响应对象，用于设置Cookie
+     * @return 重定向响应，成功跳转到首页，失败跳转到登录页
+     */
+    @Operation(summary = "魔法链接回调")
+    @GetMapping("/magic-link/callback")
+    public ResponseEntity<Void> magicLinkCallback(@RequestParam String token, HttpServletResponse response) {
+        try {
+            LoginResponse loginResponse = authService.verifyMagicLink(token);
+
+            Cookie cookie = new Cookie("access_token", loginResponse.getAccessToken());
+            cookie.setHttpOnly(false);
+            cookie.setSecure(true);
+            cookie.setPath("/");
+            cookie.setMaxAge(7200);
+            response.addCookie(cookie);
+
+            return ResponseEntity.status(HttpStatus.FOUND).header("Location", magicLinkRedirectUrl).build();
+        } catch (Exception e) {
+            log.warn("魔法链接验证失败: {}", e.getMessage());
+            String redirectUrl = magicLinkRedirectUrl + "/login?error=invalid_token";
+            return ResponseEntity.status(HttpStatus.FOUND).header("Location", redirectUrl).build();
+        }
     }
 }

@@ -46,6 +46,7 @@ security:
       - /api/auth/captcha/check
       - /api/auth/public-key
       - /api/auth/email/code/**
+      - /api/auth/magic-link/**
       - /api/auth/third-party/**
       - /api/auth/test/hello
       - /api/system/user/info/*

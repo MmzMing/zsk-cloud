@@ -72,6 +72,18 @@ public class EmailServiceImpl implements IEmailService {
     private Long emailCodeExpire;
 
     /**
+     * 魔法链接主题
+     */
+    @Value("${email.magic-link.subject:登录链接}")
+    private String magicLinkSubject;
+
+    /**
+     * 魔法链接地址模板
+     */
+    @Value("${email.magic-link.url:http://localhost:8080/api/auth/magic-link/callback?token=}")
+    private String magicLinkUrl;
+
+    /**
      * 发送邮箱验证码
      *
      * @param email 目标邮箱地址
@@ -195,5 +207,95 @@ public class EmailServiceImpl implements IEmailService {
             </body>
             </html>
             """, code);
+    }
+
+    /**
+     * 发送魔法链接邮件
+     * <p>使用 Apache Commons Email 发送包含魔法登录链接的HTML邮件
+     * 邮件包含可点击的登录按钮和备用链接地址
+     *
+     * @param email 目标邮箱地址
+     * @param token 魔法链接Token，用于后续验证
+     * @throws AuthException 邮箱地址为空或发送失败时抛出
+     */
+    @Override
+    public void sendMagicLinkEmail(String email, String token) {
+        if (StringUtils.isEmpty(email)) {
+            throw new AuthException("邮箱地址不能为空");
+        }
+
+        String magicLink = magicLinkUrl + token;
+
+        try {
+            HtmlEmail htmlEmail = new HtmlEmail();
+            htmlEmail.setHostName(emailHost);
+            htmlEmail.setSmtpPort(emailPort);
+            htmlEmail.setSSLOnConnect(true);
+            htmlEmail.setAuthentication(emailUsername, emailPassword);
+            htmlEmail.setFrom(emailFrom);
+            htmlEmail.setSubject(magicLinkSubject);
+            htmlEmail.setCharset("UTF-8");
+            htmlEmail.setHtmlMsg(getMagicLinkTemplate(magicLink));
+            htmlEmail.addTo(email);
+            htmlEmail.send();
+
+            log.info("魔法链接发送成功: {}", email);
+        } catch (EmailException e) {
+            log.error("魔法链接发送失败: {}", email, e);
+            throw new AuthException("魔法链接发送失败");
+        }
+    }
+
+    /**
+     * 获取魔法链接邮件HTML模板
+     * <p>生成包含登录按钮和备用链接的精美HTML邮件内容
+     *
+     * @param magicLink 完整的魔法登录链接
+     * @return HTML格式的邮件内容
+     */
+    private String getMagicLinkTemplate(String magicLink) {
+        return String.format("""
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="UTF-8">
+                <title>登录链接</title>
+                <style>
+                    body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
+                    .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+                    .header { text-align: center; padding-bottom: 30px; border-bottom: 1px solid #eeeeee; margin-bottom: 30px; }
+                    .header h2 { color: #333333; margin: 0; font-size: 24px; font-weight: 500; }
+                    .content { text-align: center; color: #555555; }
+                    .message { font-size: 16px; line-height: 1.6; margin-bottom: 25px; }
+                    .btn-box { margin: 30px 0; }
+                    .btn { display: inline-block; padding: 12px 36px; background-color: #0056b3; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 500; }
+                    .btn:hover { background-color: #004085; }
+                    .link { color: #0056b3; word-break: break-all; font-size: 14px; }
+                    .footer { text-align: center; padding-top: 30px; border-top: 1px solid #eeeeee; color: #999999; font-size: 13px; margin-top: 30px; }
+                    .footer p { margin: 5px 0; }
+                </style>
+            </head>
+            <body>
+                <div class="container">
+                    <div class="header">
+                        <h2>安全登录</h2>
+                    </div>
+                    <div class="content">
+                        <p class="message">您好！您正在尝试登录 ZSK Cloud，点击下方按钮即可完成登录：</p>
+                        <div class="btn-box">
+                            <a href="%s" class="btn">立即登录</a>
+                        </div>
+                        <p class="message">如果按钮无法点击，请复制以下链接到浏览器地址栏：</p>
+                        <p class="link">%s</p>
+                        <p class="message">该链接15分钟内有效，为了您的账号安全，请勿泄露给他人。</p>
+                    </div>
+                    <div class="footer">
+                        <p>此邮件由系统自动发送，请勿回复。</p>
+                        <p>&copy; 2026 ZSK Cloud. All rights reserved.</p>
+                    </div>
+                </div>
+            </body>
+            </html>
+            """, magicLink, magicLink);
     }
 }
