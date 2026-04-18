@@ -3,6 +3,7 @@ package com.zsk.document.api.factory;
 import com.zsk.common.core.domain.R;
 import com.zsk.document.api.RemoteDocumentService;
 import com.zsk.document.api.domain.DocAnalysisMetricApi;
+import com.zsk.document.api.domain.DocFilesApi;
 import com.zsk.document.api.domain.DocStatisticsApi;
 import com.zsk.document.api.domain.DocTimeDistributionApi;
 import com.zsk.document.api.domain.DocTrafficItemApi;
@@ -11,7 +12,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -53,6 +56,31 @@ public class RemoteDocumentFallbackFactory implements FallbackFactory<RemoteDocu
             @Override
             public R<List<DocTimeDistributionApi>> getTimeDistribution(String date, String step, String source) {
                 return R.fail("获取时间分布数据失败:" + throwable.getMessage());
+            }
+
+            @Override
+            public R<DocFilesApi> upload(MultipartFile file, String source) {
+                return R.fail("上传文件失败:" + throwable.getMessage());
+            }
+
+            @Override
+            public R<String> initiateMultipartUpload(Object request, String source) {
+                return R.fail("初始化分片上传失败:" + throwable.getMessage());
+            }
+
+            @Override
+            public R<String> uploadPart(String uploadId, Integer partNumber, MultipartFile file, String source) throws IOException {
+                return R.fail("上传分片失败:" + throwable.getMessage());
+            }
+
+            @Override
+            public R<Void> completeMultipartUpload(Object request, String source) {
+                return R.fail("完成分片上传失败:" + throwable.getMessage());
+            }
+
+            @Override
+            public R<Boolean> remove(String ids, String source) {
+                return R.fail("删除文件失败:" + throwable.getMessage());
             }
         };
     }

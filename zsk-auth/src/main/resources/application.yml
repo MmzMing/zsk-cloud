@@ -20,10 +20,10 @@ spring:
       username: nacos
       password: 123456
       discovery:
-        namespace: 14d6a66b-76d7-49e0-a077-40f326377790
+        namespace: d4cbb030-726e-4d17-92d3-1042063c3bd7
         group: ${spring.profiles.active}
       config:
-        namespace: 14d6a66b-76d7-49e0-a077-40f326377790
+        namespace: d4cbb030-726e-4d17-92d3-1042063c3bd7
         file-extension: yml
         refresh-enabled: true
     sentinel:

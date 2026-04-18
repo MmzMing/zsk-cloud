@@ -3,16 +3,17 @@ package com.zsk.document.api;
 import com.zsk.common.core.constant.CommonConstants;
 import com.zsk.common.core.domain.R;
 import com.zsk.document.api.domain.DocAnalysisMetricApi;
+import com.zsk.document.api.domain.DocFilesApi;
 import com.zsk.document.api.domain.DocStatisticsApi;
 import com.zsk.document.api.domain.DocTimeDistributionApi;
 import com.zsk.document.api.domain.DocTrafficItemApi;
 import com.zsk.document.api.domain.DocTrendItemApi;
 import com.zsk.document.api.factory.RemoteDocumentFallbackFactory;
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestHeader;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
@@ -80,4 +81,61 @@ public interface RemoteDocumentService {
         @RequestParam(value = "date", required = false) String date,
         @RequestParam(value = "step", required = false) String step,
         @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
+
+    /**
+     * 上传文件
+     *
+     * @param file 文件
+     * @param source 请求来源
+     * @return 文件信息
+     */
+    @PostMapping("/document/files/upload")
+    R<DocFilesApi> upload(@RequestPart("file") MultipartFile file, @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
+
+    /**
+     * 初始化分片上传
+     *
+     * @param request 分片上传初始化请求
+     * @param source 请求来源
+     * @return 上传ID
+     */
+    @PostMapping("/document/files/multipart/init")
+    R<String> initiateMultipartUpload(@RequestBody Object request, @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
+
+    /**
+     * 上传分片
+     *
+     * @param uploadId 上传ID
+     * @param partNumber 分片编号
+     * @param file 文件
+     * @param source 请求来源
+     * @return 分片ETag
+     * @throws IOException 上传异常
+     */
+    @PostMapping("/document/files/multipart/upload")
+    R<String> uploadPart(
+        @RequestParam("uploadId") String uploadId,
+        @RequestParam("partNumber") Integer partNumber,
+        @RequestPart("file") MultipartFile file,
+        @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source) throws IOException;
+
+    /**
+     * 完成分片上传
+     *
+     * @param request 完成分片上传请求
+     * @param source 请求来源
+     * @return 响应结果
+     */
+    @PostMapping("/document/files/multipart/complete")
+    R<Void> completeMultipartUpload(@RequestBody Object request, @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
+
+    /**
+     * 删除文件
+     *
+     * @param ids 文件ID（支持逗号分隔的多个ID）
+     * @param source 请求来源
+     * @return 是否成功
+     */
+    @DeleteMapping("/document/files/{ids}")
+    R<Boolean> remove(@PathVariable String ids, @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
 }

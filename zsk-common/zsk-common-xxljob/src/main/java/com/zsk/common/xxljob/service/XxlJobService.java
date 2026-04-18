@@ -79,7 +79,7 @@ public class XxlJobService {
      */
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getExecutorList() {
-        String url = properties.getAdmin().getAddresses() + "/jobgroup/list";
+        String url = properties.getAdmin().getAddresses() + "/jobgroup/pageList";
         HttpHeaders headers = createHeaders();
         HttpEntity<Void> request = new HttpEntity<>(headers);
 
@@ -157,7 +157,7 @@ public class XxlJobService {
      */
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> getJobList(Integer executorId) {
-        String url = properties.getAdmin().getAddresses() + "/jobinfo/list?jobGroup=" + executorId;
+        String url = properties.getAdmin().getAddresses() + "/jobgroup/pageList?jobGroup=" + executorId;
         HttpHeaders headers = createHeaders();
         HttpEntity<Void> request = new HttpEntity<>(headers);
 
@@ -211,7 +211,7 @@ public class XxlJobService {
         params.add("executorHandler", jobInfo.getOrDefault("executorHandler", ""));
         params.add("executorParam", jobInfo.getOrDefault("executorParam", ""));
         params.add("executorRouteStrategy", jobInfo.getOrDefault("routeStrategy", "FIRST"));
-        params.add("executorBlockStrategy", jobInfo.getOrDefault("blockStrategy", "SERIALIZATION_EXECUTION"));
+        params.add("executorBlockStrategy", jobInfo.getOrDefault("blockStrategy", "SERIAL_EXECUTION"));
         params.add("misfireStrategy", "DO_NOTHING");
         params.add("executorTimeout", jobInfo.getOrDefault("timeout", "0"));
         params.add("executorFailRetryCount", jobInfo.getOrDefault("failRetryCount", "0"));
@@ -263,7 +263,7 @@ public class XxlJobService {
         params.add("executorHandler", jobInfo.getOrDefault("executorHandler", ""));
         params.add("executorParam", jobInfo.getOrDefault("executorParam", ""));
         params.add("executorRouteStrategy", jobInfo.getOrDefault("routeStrategy", "FIRST"));
-        params.add("executorBlockStrategy", jobInfo.getOrDefault("blockStrategy", "SERIALIZATION_EXECUTION"));
+        params.add("executorBlockStrategy", jobInfo.getOrDefault("blockStrategy", "SERIAL_EXECUTION"));
         params.add("misfireStrategy", "DO_NOTHING");
         params.add("executorTimeout", jobInfo.getOrDefault("timeout", "0"));
         params.add("executorFailRetryCount", jobInfo.getOrDefault("failRetryCount", "0"));

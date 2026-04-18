@@ -74,14 +74,14 @@ public @interface XxlJobAutoRegister {
      * 阻塞处理策略
      * <p>可选值：</p>
      * <ul>
-     *   <li>SERIALIZATION_EXECUTION - 单机串行</li>
+     *   <li>SERIAL_EXECUTION - 单机串行</li>
      *   <li>DISCARD_LATER - 丢弃后续调度</li>
      *   <li>COVER_EARLY - 覆盖之前调度</li>
      * </ul>
      *
      * @return 阻塞处理策略
      */
-    String blockStrategy() default "SERIALIZATION_EXECUTION";
+    String blockStrategy() default "SERIAL_EXECUTION";
 
     /**
      * 任务超时时间（秒）

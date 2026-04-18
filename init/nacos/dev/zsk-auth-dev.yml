@@ -42,4 +42,4 @@ turnstile:
 
 # 魔法链接配置
 magic-link:
-  redirect-url: ${MAGIC_LINK_REDIRECT_URL:http://localhost:5173/}
+  redirect-url: http://localhost:5173/

@@ -67,6 +67,24 @@ public class SysUser extends TenantEntity {
     private String avatar;
 
     /**
+     * 头像图片ID
+     */
+    @Schema(description = "头像图片ID")
+    private Long avatarId;
+
+    /**
+     * 年龄
+     */
+    @Schema(description = "年龄")
+    private Integer age;
+
+    /**
+     * 个人简介
+     */
+    @Schema(description = "个人简介")
+    private String bio;
+
+    /**
      * 密码
      */
     @Schema(description = "密码")

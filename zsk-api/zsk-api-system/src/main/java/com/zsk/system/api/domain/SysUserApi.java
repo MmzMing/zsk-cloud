@@ -4,6 +4,7 @@ import lombok.Data;
 
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 
 /**
  * 用户对象 sys_user
@@ -61,6 +62,21 @@ public class SysUserApi implements Serializable {
     private String avatar;
 
     /**
+     * 头像图片ID
+     */
+    private Long avatarId;
+
+    /**
+     * 年龄
+     */
+    private Integer age;
+
+    /**
+     * 个人简介
+     */
+    private String bio;
+
+    /**
      * 密码
      */
     private String password;
@@ -83,7 +99,7 @@ public class SysUserApi implements Serializable {
     /**
      * 最后登录时间
      */
-    private java.time.LocalDateTime loginDate;
+    private LocalDateTime loginDate;
 
     /**
      * 备注

@@ -1,9 +1,13 @@
 package com.zsk.system.controller;
 
+import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.StrUtil;
 import com.zsk.common.core.constant.CommonConstants;
 import com.zsk.common.core.context.SecurityContext;
 import com.zsk.common.core.domain.R;
 import com.zsk.common.datasource.domain.PageResult;
+import com.zsk.document.api.RemoteDocumentService;
+import com.zsk.document.api.domain.DocFilesApi;
 import com.zsk.system.api.domain.SysUserApi;
 import com.zsk.system.api.model.LoginUser;
 import com.zsk.system.domain.SysUser;
@@ -15,7 +19,9 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -24,8 +30,8 @@ import java.util.Set;
  * 用户管理 控制器
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Tag(name = "用户管理")
 @RestController
@@ -36,12 +42,34 @@ public class SysUserController {
     private final ISysUserService userService;
     private final ISysRoleService roleService;
     private final ISysMenuService menuService;
+    private final RemoteDocumentService remoteDocumentService;
+
+    /**
+     * 获取当前请求的用户信息（从本地线程中获取）
+     *
+     * @return 当前登录用户信息
+     */
+    @Operation(summary = "获取当前请求的用户信息")
+    @GetMapping("/current")
+    public R<LoginUser> getCurrentUser() {
+        LoginUser loginUser = new LoginUser();
+        SysUserApi sysUserApi = new SysUserApi();
+
+        SysUser sysUserDtl = userService.selectUserById(SecurityContext.getUserId());
+        BeanUtil.copyProperties(sysUserDtl, sysUserApi);
+
+        //组装
+        loginUser.setSysUser(sysUserApi);
+        loginUser.setRoles(SecurityContext.getRoles());
+        loginUser.setPermissions(SecurityContext.getPermissions());
+        return R.ok(loginUser);
+    }
 
     /**
      * 获取用户详细信息（通过用户名）
      *
      * @param username 用户名
-     * @param source 请求来源
+     * @param source   请求来源
      * @return 用户信息
      */
     @Operation(summary = "获取用户详细信息（通过用户名）")
@@ -62,7 +90,7 @@ public class SysUserController {
     /**
      * 获取用户详细信息（通过邮箱）
      *
-     * @param email 邮箱
+     * @param email  邮箱
      * @param source 请求来源
      * @return 用户信息
      */
@@ -84,9 +112,9 @@ public class SysUserController {
     /**
      * 获取用户详细信息（通过第三方ID）
      *
-     * @param loginType 登录类型
+     * @param loginType    登录类型
      * @param thirdPartyId 第三方ID
-     * @param source 请求来源
+     * @param source       请求来源
      * @return 用户信息
      */
     @Operation(summary = "获取用户详细信息（通过第三方ID）")
@@ -151,16 +179,16 @@ public class SysUserController {
     /**
      * 查询用户列表
      *
-     * @param user 查询条件
-     * @param pageNum 当前页码
+     * @param user     查询条件
+     * @param pageNum  当前页码
      * @param pageSize 每页大小
      * @return 分页结果
      */
     @Operation(summary = "查询用户列表")
     @GetMapping("/list")
-    public R<PageResult<SysUser>> list(SysUser user, 
-                                      @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum, 
-                                      @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
+    public R<PageResult<SysUser>> list(SysUser user,
+                                       @RequestParam(value = "pageNum", defaultValue = "1") Integer pageNum,
+                                       @RequestParam(value = "pageSize", defaultValue = "10") Integer pageSize) {
         return R.ok(userService.selectUserPage(user, pageNum, pageSize));
     }
 
@@ -203,7 +231,7 @@ public class SysUserController {
     /**
      * 切换用户状态
      *
-     * @param id 用户ID
+     * @param id   用户ID
      * @param body 请求体（包含status字段）
      * @return 是否成功
      */
@@ -221,7 +249,7 @@ public class SysUserController {
      * 内部接口：更新用户信息（供其他服务调用）
      *
      * @param userApi 用户API对象
-     * @param source 请求来源
+     * @param source  请求来源
      * @return 是否成功
      */
     @Operation(summary = "内部接口：更新用户信息")
@@ -281,21 +309,77 @@ public class SysUserController {
     }
 
     /**
-     * 获取当前请求的用户信息（从本地线程中获取）
+     * 更新用户信息（支持头像文件上传）
      *
-     * @return 当前登录用户信息
+     * <p>业务逻辑：
+     * <ul>
+     *   <li>文件校验：文件大小不超过2MB，仅支持图片类型</li>
+     *   <li>空文件处理：前端不传文件或传空文件时不调用文件服务</li>
+     *   <li>旧头像清理：新头像与原头像不一致时，删除旧头像文件并将avatarId置空</li>
+     * </ul>
+     *
+     * @param user 用户信息，必须包含用户ID
+     * @param file 头像文件（可选），支持 jpg、png、gif 等图片格式，大小不超过2MB
+     * @return 更新结果，成功返回 R.ok()，失败返回 R.fail() 并携带错误信息
      */
-    @Operation(summary = "获取当前请求的用户信息")
-    @GetMapping("/current")
-    public R<LoginUser> getCurrentUser() {
-        LoginUser loginUser = new LoginUser();
-        SysUserApi sysUser = new SysUserApi();
-        sysUser.setId(SecurityContext.getUserId());
-        sysUser.setUserName(SecurityContext.getUserName());
-        sysUser.setNickName(SecurityContext.getNickName());
-        loginUser.setSysUser(sysUser);
-        loginUser.setRoles(SecurityContext.getRoles());
-        loginUser.setPermissions(SecurityContext.getPermissions());
-        return R.ok(loginUser);
+    @Operation(summary = "更新用户信息（支持头像文件上传）")
+    @PostMapping("/update/infoFile")
+    public R<Void> updateSystemUserInfo(@RequestPart("user") SysUser user,
+                                        @RequestPart(value = "file", required = false) MultipartFile file) {
+        // 参数校验：用户ID不能为空
+        Long userId = user.getId();
+        if (userId == null) {
+            return R.fail("用户ID不能为空");
+        }
+
+        // 查询现有用户信息
+        SysUser existingUser = userService.selectUserById(userId);
+        if (existingUser == null) {
+            return R.fail("用户不存在");
+        }
+
+        // 保存原始头像信息，用于后续对比
+        String originalAvatar = existingUser.getAvatar();
+        Long originalAvatarId = existingUser.getAvatarId();
+
+        // 判断是否上传了新文件
+        if (file != null && !file.isEmpty()) {
+            // 文件大小校验：不超过2MB
+            long maxSize = 2 * 1024 * 1024;
+            if (file.getSize() > maxSize) {
+                return R.fail("文件大小不能超过2MB");
+            }
+
+            // 文件类型校验：仅支持图片
+            String contentType = file.getContentType();
+            if (contentType == null || !contentType.startsWith("image/")) {
+                return R.fail("仅支持图片文件");
+            }
+
+            // 调用文件服务上传头像
+            R<DocFilesApi> uploadResult = remoteDocumentService.upload(file, CommonConstants.REQUEST_SOURCE_INNER);
+            if (!uploadResult.isSuccess()) {
+                return R.fail("头像上传失败: " + uploadResult.getMsg());
+            }
+
+            // 更新用户头像信息
+            DocFilesApi docFilesApi = uploadResult.getData();
+            user.setAvatar(docFilesApi.getUrl());
+            user.setAvatarId(Long.parseLong(docFilesApi.getFileId()));
+
+            // 新头像与原头像不一致时，删除旧头像文件
+            if (StrUtil.isNotEmpty(originalAvatar) && !originalAvatar.equals(docFilesApi.getUrl()) && originalAvatarId != null) {
+                remoteDocumentService.remove(String.valueOf(originalAvatarId), CommonConstants.REQUEST_SOURCE_INNER);
+                existingUser.setAvatarId(null);
+            }
+        } else if (StrUtil.isNotEmpty(user.getAvatar()) && !user.getAvatar().equals(originalAvatar) && originalAvatarId != null) {
+            // 未上传文件但通过参数传入了新头像URL，且与原头像不一致时，删除旧头像文件
+            remoteDocumentService.remove(String.valueOf(originalAvatarId), CommonConstants.REQUEST_SOURCE_INNER);
+            existingUser.setAvatarId(null);
+        }
+
+        // 更新用户信息到数据库
+        return userService.updateUser(user) ? R.ok() : R.fail();
     }
+
 }

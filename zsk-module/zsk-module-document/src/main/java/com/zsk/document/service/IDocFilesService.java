@@ -57,4 +57,12 @@ public interface IDocFilesService extends IService<DocFiles> {
      * @param request 请求参数
      */
     void completeMultipartUpload(MultipartCompleteRequest request);
+
+    /**
+     * 批量删除文件（同时删除OSS文件和数据库记录）
+     *
+     * @param ids 文件ID列表
+     * @return 删除结果
+     */
+    boolean removeFiles(java.util.List<String> ids);
 }

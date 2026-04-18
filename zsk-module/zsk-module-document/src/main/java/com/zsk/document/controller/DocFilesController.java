@@ -54,15 +54,12 @@ public class DocFilesController {
     }
 
     /**
-     * 删除文件
+     * 删除文件（同时删除OSS文件和数据库记录）
      */
     @Operation(summary = "删除文件")
     @DeleteMapping("/{ids}")
     public R<Boolean> remove(@PathVariable String ids) {
-        // 这里的ids可能是逗号分隔的ID
-        // 实际逻辑应该还包括删除OSS上的文件，这里暂只删除数据库记录
-        // 建议完善Service层的remove逻辑
-        return R.ok(docFilesService.removeByIds(java.util.Arrays.asList(ids.split(","))));
+        return R.ok(docFilesService.removeFiles(java.util.Arrays.asList(ids.split(","))));
     }
 
     /**

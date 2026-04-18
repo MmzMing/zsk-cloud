@@ -1,6 +1,5 @@
 package com.zsk.auth.controller;
 
-import com.alibaba.csp.sentinel.annotation.SentinelResource;
 import com.zsk.auth.domain.*;
 import com.zsk.auth.service.*;
 import com.zsk.common.core.domain.R;
@@ -138,7 +137,7 @@ public class AuthController {
      */
     @Operation(summary = "发送邮箱验证码")
     @PostMapping("/email/code")
-    @RateLimit(resource = "auth:email:code",key = "#email", count = 5, timeUnit = TimeUnit.MINUTES)
+    @RateLimit(resource = "auth:email:code", key = "#email", count = 5, timeUnit = TimeUnit.MINUTES)
     public R<Void> sendEmailCode(@RequestParam String email, @RequestParam String captchaVerification) {
         // 验证滑块验证码凭证
         captchaService.verifyCaptchaToken(captchaVerification);
@@ -242,7 +241,6 @@ public class AuthController {
         return R.ok();
     }
 
-    
 
 //    /**
 //     * 获取Turnstile站点密钥

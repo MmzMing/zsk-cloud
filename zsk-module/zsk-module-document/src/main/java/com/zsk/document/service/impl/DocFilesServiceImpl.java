@@ -16,11 +16,14 @@ import com.zsk.document.mapper.DocFilesMapper;
 import com.zsk.document.service.IDocFilesService;
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.InputStream;
 import java.time.LocalDateTime;
+import java.util.List;
 
 /**
  * 文件Service业务层处理
@@ -31,6 +34,7 @@ import java.time.LocalDateTime;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> implements IDocFilesService {
 
     private final OssTemplate ossTemplate;
@@ -225,5 +229,54 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
         }
         // 默认处理
         return "default";
+    }
+
+    /**
+     * 批量删除文件（同时删除OSS文件和数据库记录）
+     * 
+     * 处理流程：
+     * 1. 参数校验：检查ID列表是否为空
+     * 2. 查询文件记录：根据ID列表查询数据库中的文件记录
+     * 3. 删除OSS文件：遍历文件记录，调用OSS模板删除存储桶中的文件
+     * 4. 删除数据库记录：最后删除数据库中的文件记录
+     * 
+     * 注意事项：
+     * - OSS文件删除失败时仅记录警告日志，不影响数据库删除（保证数据一致性优先）
+     * - 支持单个或多个文件ID批量删除
+     * 
+     * @param ids 文件ID列表（数据库主键ID）
+     * @return 删除结果：成功返回true，失败返回false
+     */
+    @Override
+    public boolean removeFiles(List<String> ids) {
+        // 参数校验：ID列表为空直接返回成功
+        if (CollectionUtils.isEmpty(ids)) {
+            return true;
+        }
+
+        // 根据ID列表查询文件记录
+        List<DocFiles> fileList = listByIds(ids);
+        if (CollectionUtils.isEmpty(fileList)) {
+            return true;
+        }
+
+        // 遍历文件记录，逐个删除OSS文件
+        for (DocFiles docFile : fileList) {
+            try {
+                // 获取存储桶名称（优先使用记录中的bucket，否则使用默认bucket）
+                String bucket = StringUtils.isNotEmpty(docFile.getBucket()) ? docFile.getBucket() : getBucketName();
+                String filePath = docFile.getFilePath();
+                // 只有当文件路径不为空时才执行OSS删除
+                if (StringUtils.isNotEmpty(filePath)) {
+                    ossTemplate.removeObject(bucket, filePath);
+                }
+            } catch (Exception e) {
+                // OSS删除失败不影响数据库删除，仅记录警告日志
+                log.warn("删除OSS文件失败: bucket={}, path={}, error={}", docFile.getBucket(), docFile.getFilePath(), e.getMessage());
+            }
+        }
+
+        // 删除数据库记录
+        return removeByIds(ids);
     }
 }
