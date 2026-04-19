@@ -32,8 +32,19 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
 
+    /**
+     * Redis服务
+     */
     private final RedisService redisService;
+
+    /**
+     * Redis模板
+     */
     private final RedisTemplate<String, Object> redisTemplate;
+
+    /**
+     * 用户交互Mapper
+     */
     private final DocUserInteractionMapper docUserInteractionMapper;
 
     /**
@@ -51,33 +62,39 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
      */
     @Override
     public boolean follow(Integer type, Long targetId, Long userId) {
+        // 验证参数
         CacheDocFollowTypeEnum followType = CacheDocFollowTypeEnum.getByCode(type);
         if (followType == null || targetId == null || userId == null) {
             return false;
         }
 
+        // 检查是否关注自己
         if (targetId.equals(userId)) {
             log.warn("用户不能关注自己: userId={}", userId);
             return false;
         }
 
+        // 构建Redis键
         String lockKey = buildLockKey(userId, targetId);
         String userKey = buildUserKey(userId);
         String countKey = buildCountKey(targetId, followType);
         String hashField = targetId + ":" + type;
 
+        // 检查分布式锁
         Boolean locked = redisService.getCacheObject(lockKey);
         if (Boolean.TRUE.equals(locked)) {
             log.debug("用户 {} 对目标 {} 操作频繁，请稍后再试", userId, targetId);
             return false;
         }
 
+        // 检查是否已关注
         Object existingType = redisTemplate.opsForHash().get(userKey, hashField);
         if (existingType != null) {
             log.debug("用户 {} 已关注目标 {}", userId, targetId);
             return false;
         }
 
+        // 执行关注操作
         redisService.setCacheObject(lockKey, true, LOCK_EXPIRE_SECONDS, TimeUnit.SECONDS);
         redisTemplate.opsForHash().put(userKey, hashField, type.toString());
         redisTemplate.opsForValue().increment(countKey, 1);
@@ -96,28 +113,33 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
      */
     @Override
     public boolean unfollow(Integer type, Long targetId, Long userId) {
+        // 验证参数
         CacheDocFollowTypeEnum followType = CacheDocFollowTypeEnum.getByCode(type);
         if (followType == null || targetId == null || userId == null) {
             return false;
         }
 
+        // 构建Redis键
         String lockKey = buildLockKey(userId, targetId);
         String userKey = buildUserKey(userId);
         String countKey = buildCountKey(targetId, followType);
         String hashField = targetId + ":" + type;
 
+        // 检查分布式锁
         Boolean locked = redisService.getCacheObject(lockKey);
         if (Boolean.TRUE.equals(locked)) {
             log.debug("用户 {} 对目标 {} 操作频繁，请稍后再试", userId, targetId);
             return false;
         }
 
+        // 检查是否已关注
         Object existingType = redisTemplate.opsForHash().get(userKey, hashField);
         if (existingType == null) {
             log.debug("用户 {} 未关注目标 {}", userId, targetId);
             return false;
         }
 
+        // 执行取消关注操作
         redisService.setCacheObject(lockKey, true, LOCK_EXPIRE_SECONDS, TimeUnit.SECONDS);
         redisTemplate.opsForHash().delete(userKey, hashField);
         redisTemplate.opsForValue().decrement(countKey, 1);
@@ -135,17 +157,22 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
      */
     @Override
     public Long getFollowCount(Integer type, Long targetId) {
+        // 验证参数
         CacheDocFollowTypeEnum followType = CacheDocFollowTypeEnum.getByCode(type);
         if (followType == null || targetId == null) {
             return 0L;
         }
 
+        // 构建Redis键
         String countKey = buildCountKey(targetId, followType);
+        
+        // 从Redis获取关注数量
         Object count = redisTemplate.opsForValue().get(countKey);
         if (count != null) {
             return Long.parseLong(count.toString());
         }
 
+        // 从数据库获取关注数量并缓存
         Long dbCount = docUserInteractionMapper.countByTarget(
             DocUserInteractionContext.TARGET_TYPE_USER, targetId, DocUserInteractionContext.INTERACTION_TYPE_FOLLOW);
         if (dbCount != null && dbCount > 0) {
@@ -164,18 +191,23 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
      */
     @Override
     public boolean hasFollowed(Integer type, Long targetId, Long userId) {
+        // 验证参数
         CacheDocFollowTypeEnum followType = CacheDocFollowTypeEnum.getByCode(type);
         if (followType == null || targetId == null || userId == null) {
             return false;
         }
 
+        // 构建Redis键
         String userKey = buildUserKey(userId);
         String hashField = targetId + ":" + type;
+        
+        // 从Redis获取关注状态
         Object existingType = redisTemplate.opsForHash().get(userKey, hashField);
         if (existingType != null) {
             return true;
         }
 
+        // 从数据库获取关注状态
         DocUserInteraction interaction = docUserInteractionMapper.selectByUserAndTarget(
             userId, DocUserInteractionContext.TARGET_TYPE_USER, targetId, DocUserInteractionContext.INTERACTION_TYPE_FOLLOW);
         return interaction != null && interaction.getStatus() == 1;
@@ -191,11 +223,14 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
     @Override
     public Map<Long, Long> getFollowCountBatch(Integer type, Iterable<Long> targetIds) {
         Map<Long, Long> result = new HashMap<>();
+        
+        // 验证参数
         CacheDocFollowTypeEnum followType = CacheDocFollowTypeEnum.getByCode(type);
         if (followType == null || targetIds == null) {
             return result;
         }
 
+        // 批量获取每个目标的关注数量
         for (Long targetId : targetIds) {
             result.put(targetId, getFollowCount(type, targetId));
         }
@@ -210,6 +245,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
         log.info("开始同步关注数据到数据库...");
         int syncCount = 0;
 
+        // 匹配所有用户关注键
         String pattern = CacheConstants.CACHE_FOLLOW_USER + "*";
         Collection<String> keys = redisService.keys(pattern);
 
@@ -218,15 +254,20 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
             return;
         }
 
+        // 遍历所有用户关注键
         for (String userKey : keys) {
+            // 跳过锁键
             if (userKey.contains("lock:")) {
                 continue;
             }
+            
+            // 提取用户ID
             Long userId = extractUserIdFromKey(userKey);
             if (userId == null) {
                 continue;
             }
 
+            // 获取用户的所有关注记录
             Map<Object, Object> followMap = redisTemplate.opsForHash().entries(userKey);
             for (Map.Entry<Object, Object> entry : followMap.entrySet()) {
                 String field = entry.getKey().toString();
@@ -236,12 +277,14 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
                     Integer type = Integer.parseInt(parts[1]);
                     CacheDocFollowTypeEnum followType = CacheDocFollowTypeEnum.getByCode(type);
                     if (followType != null) {
+                        // 保存交互记录到数据库
                         saveInteractionToDb(userId, DocUserInteractionContext.TARGET_TYPE_USER, targetId,
                             DocUserInteractionContext.INTERACTION_TYPE_FOLLOW);
                         syncCount++;
                     }
                 }
             }
+            // 删除已同步的Redis键
             redisService.deleteObject(userKey);
         }
 
@@ -307,11 +350,14 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
      * @param interactionType 交互类型
      */
     private void saveInteractionToDb(Long userId, Integer targetType, Long targetId, Integer interactionType) {
+        // 检查是否已存在交互记录
         DocUserInteraction existing = docUserInteractionMapper.selectByUserAndTarget(userId, targetType, targetId, interactionType);
         if (existing != null) {
+            // 更新状态为已关注
             existing.setStatus(1);
             docUserInteractionMapper.updateById(existing);
         } else {
+            // 创建新的交互记录
             DocUserInteraction interaction = new DocUserInteraction();
             interaction.setUserId(userId);
             interaction.setTargetType(targetType);

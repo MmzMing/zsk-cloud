@@ -2,8 +2,11 @@ package com.zsk.document.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zsk.common.core.domain.R;
+import com.zsk.common.datasource.domain.PageQuery;
+import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.document.domain.DocNote;
 import com.zsk.document.domain.DocVideoDetail;
+import com.zsk.document.domain.dto.SearchRequestDto;
 import com.zsk.document.domain.vo.SearchResultVo;
 import com.zsk.document.service.IDocNoteService;
 import com.zsk.document.service.IDocVideoDetailService;
@@ -13,14 +16,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * 搜索 控制器
@@ -29,7 +29,7 @@ import java.util.Map;
  * @date 2026-02-15
  * @version 1.0
  */
-@Tag(name = "搜索")
+@Tag(name = "全局搜索")
 @RestController
 @RequestMapping("/content/search")
 @RequiredArgsConstructor
@@ -41,29 +41,21 @@ public class SearchController {
     /**
      * 全站搜索
      *
-     * @param keyword 关键字
-     * @param type 类型（all/video/document/tool/user）
-     * @param sort 排序（hot/latest/like/usage/relevance/fans/active）
-     * @param duration 时长筛选
-     * @param timeRange 时间范围
-     * @param category 分类筛选
-     * @param page 页码
-     * @param pageSize 每页数量
+     * @param searchRequest 搜索请求参数
+     * @param pageQuery 分页查询参数
      * @return 搜索结果
      */
     @Operation(summary = "全站搜索")
     @GetMapping("/all")
-    public R<Map<String, Object>> searchAll(
-        @RequestParam(value = "keyword", required = false) String keyword,
-        @RequestParam(value = "type", required = false, defaultValue = "all") String type,
-        @RequestParam(value = "sort", required = false) String sort,
-        @RequestParam(value = "duration", required = false) String duration,
-        @RequestParam(value = "timeRange", required = false) String timeRange,
-        @RequestParam(value = "category", required = false) String category,
-        @RequestParam(value = "page", defaultValue = "1") Integer page,
-        @RequestParam(value = "pageSize", defaultValue = "20") Integer pageSize) {
+    public R<PageResult<SearchResultVo>> searchAll(
+        SearchRequestDto searchRequest,
+        PageQuery pageQuery) {
 
         List<SearchResultVo> allResults = new ArrayList<>();
+        String keyword = searchRequest.getKeyword();
+        String type = searchRequest.getType();
+        String sort = searchRequest.getSort();
+        String category = searchRequest.getCategory();
 
         /** 搜索视频 */
         if ("all".equals(type) || "video".equals(type)) {
@@ -81,21 +73,31 @@ public class SearchController {
         sortResults(allResults, sort);
 
         /** 分页 */
-        int total = allResults.size();
-        int fromIndex = (page - 1) * pageSize;
-        int toIndex = Math.min(fromIndex + pageSize, total);
+        long total = allResults.size();
+        int fromIndex = (int) ((pageQuery.getPageNum() - 1) * pageQuery.getPageSize());
+        int toIndex = (int) Math.min(fromIndex + pageQuery.getPageSize(), total);
         List<SearchResultVo> pageResults = fromIndex < total 
             ? allResults.subList(fromIndex, toIndex) 
             : new ArrayList<>();
 
-        Map<String, Object> result = new HashMap<>();
-        result.put("list", pageResults);
-        result.put("total", total);
-        return R.ok(result);
+        /** 构建分页结果 */
+        PageResult<SearchResultVo> pageResult = PageResult.of(
+            pageResults, 
+            total, 
+            pageQuery.getPageNum(), 
+            pageQuery.getPageSize()
+        );
+        
+        return R.ok(pageResult);
     }
 
     /**
      * 搜索视频
+     *
+     * @param keyword 搜索关键字
+     * @param category 分类筛选
+     * @param sort 排序方式
+     * @return 视频搜索结果列表
      */
     private List<SearchResultVo> searchVideos(String keyword, String category, String sort) {
         LambdaQueryWrapper<DocVideoDetail> wrapper = new LambdaQueryWrapper<DocVideoDetail>()
@@ -143,6 +145,11 @@ public class SearchController {
 
     /**
      * 搜索文档
+     *
+     * @param keyword 搜索关键字
+     * @param category 分类筛选
+     * @param sort 排序方式
+     * @return 文档搜索结果列表
      */
     private List<SearchResultVo> searchDocuments(String keyword, String category, String sort) {
         LambdaQueryWrapper<DocNote> wrapper = new LambdaQueryWrapper<DocNote>()
@@ -186,6 +193,9 @@ public class SearchController {
 
     /**
      * 排序结果
+     *
+     * @param results 搜索结果列表
+     * @param sort 排序方式
      */
     private void sortResults(List<SearchResultVo> results, String sort) {
         if (sort == null || sort.isEmpty()) {

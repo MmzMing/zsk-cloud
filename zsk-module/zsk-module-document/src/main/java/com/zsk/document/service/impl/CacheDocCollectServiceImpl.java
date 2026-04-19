@@ -36,10 +36,29 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
 
+    /**
+     * Redis服务
+     */
     private final RedisService redisService;
+
+    /**
+     * Redis模板
+     */
     private final RedisTemplate<String, Object> redisTemplate;
+
+    /**
+     * 文档笔记服务
+     */
     private final IDocNoteService docNoteService;
+
+    /**
+     * 视频详情服务
+     */
     private final IDocVideoDetailService docVideoDetailService;
+
+    /**
+     * 用户交互Mapper
+     */
     private final DocUserInteractionMapper docUserInteractionMapper;
 
     /**
@@ -57,28 +76,33 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
      */
     @Override
     public boolean collect(Integer type, Long targetId, Long userId) {
+        // 验证参数
         CacheDocCollectTypeEnum collectType = CacheDocCollectTypeEnum.getByCode(type);
         if (collectType == null || targetId == null || userId == null) {
             return false;
         }
 
+        // 构建Redis键
         String lockKey = buildLockKey(userId, targetId);
         String userKey = buildUserKey(userId);
         String countKey = buildCountKey(targetId, collectType);
         String hashField = targetId + ":" + type;
 
+        // 检查分布式锁
         Boolean locked = redisService.getCacheObject(lockKey);
         if (Boolean.TRUE.equals(locked)) {
             log.debug("用户 {} 对目标 {} 操作频繁，请稍后再试", userId, targetId);
             return false;
         }
 
+        // 检查是否已收藏
         Object existingType = redisTemplate.opsForHash().get(userKey, hashField);
         if (existingType != null) {
             log.debug("用户 {} 已收藏目标 {}", userId, targetId);
             return false;
         }
 
+        // 执行收藏操作
         redisService.setCacheObject(lockKey, true, LOCK_EXPIRE_SECONDS, TimeUnit.SECONDS);
         redisTemplate.opsForHash().put(userKey, hashField, type.toString());
         redisTemplate.opsForValue().increment(countKey, 1);
@@ -97,28 +121,33 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
      */
     @Override
     public boolean uncollect(Integer type, Long targetId, Long userId) {
+        // 验证参数
         CacheDocCollectTypeEnum collectType = CacheDocCollectTypeEnum.getByCode(type);
         if (collectType == null || targetId == null || userId == null) {
             return false;
         }
 
+        // 构建Redis键
         String lockKey = buildLockKey(userId, targetId);
         String userKey = buildUserKey(userId);
         String countKey = buildCountKey(targetId, collectType);
         String hashField = targetId + ":" + type;
 
+        // 检查分布式锁
         Boolean locked = redisService.getCacheObject(lockKey);
         if (Boolean.TRUE.equals(locked)) {
             log.debug("用户 {} 对目标 {} 操作频繁，请稍后再试", userId, targetId);
             return false;
         }
 
+        // 检查是否已收藏
         Object existingType = redisTemplate.opsForHash().get(userKey, hashField);
         if (existingType == null) {
             log.debug("用户 {} 未收藏目标 {}", userId, targetId);
             return false;
         }
 
+        // 执行取消收藏操作
         redisService.setCacheObject(lockKey, true, LOCK_EXPIRE_SECONDS, TimeUnit.SECONDS);
         redisTemplate.opsForHash().delete(userKey, hashField);
         redisTemplate.opsForValue().decrement(countKey, 1);
@@ -136,17 +165,22 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
      */
     @Override
     public Long getCollectCount(Integer type, Long targetId) {
+        // 验证参数
         CacheDocCollectTypeEnum collectType = CacheDocCollectTypeEnum.getByCode(type);
         if (collectType == null || targetId == null) {
             return 0L;
         }
 
+        // 构建Redis键
         String countKey = buildCountKey(targetId, collectType);
+        
+        // 从Redis获取收藏数量
         Object count = redisTemplate.opsForValue().get(countKey);
         if (count != null) {
             return Long.parseLong(count.toString());
         }
 
+        // 从数据库获取收藏数量并缓存
         Long dbCount = getCollectCountFromDb(collectType, targetId);
         if (dbCount != null && dbCount > 0) {
             redisService.setCacheObject(countKey, dbCount);
@@ -164,18 +198,23 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
      */
     @Override
     public boolean hasCollected(Integer type, Long targetId, Long userId) {
+        // 验证参数
         CacheDocCollectTypeEnum collectType = CacheDocCollectTypeEnum.getByCode(type);
         if (collectType == null || targetId == null || userId == null) {
             return false;
         }
 
+        // 构建Redis键
         String userKey = buildUserKey(userId);
         String hashField = targetId + ":" + type;
+        
+        // 从Redis获取收藏状态
         Object existingType = redisTemplate.opsForHash().get(userKey, hashField);
         if (existingType != null) {
             return true;
         }
 
+        // 从数据库获取收藏状态
         DocUserInteraction interaction = docUserInteractionMapper.selectByUserAndTarget(
             userId, getTargetType(collectType), targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
         return interaction != null && interaction.getStatus() == 1;
@@ -191,11 +230,14 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
     @Override
     public Map<Long, Long> getCollectCountBatch(Integer type, Iterable<Long> targetIds) {
         Map<Long, Long> result = new HashMap<>();
+        
+        // 验证参数
         CacheDocCollectTypeEnum collectType = CacheDocCollectTypeEnum.getByCode(type);
         if (collectType == null || targetIds == null) {
             return result;
         }
 
+        // 批量获取每个目标的收藏数量
         for (Long targetId : targetIds) {
             result.put(targetId, getCollectCount(type, targetId));
         }
@@ -210,6 +252,7 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
         log.info("开始同步收藏数据到数据库...");
         int syncCount = 0;
 
+        // 匹配所有用户收藏键
         String pattern = CacheConstants.CACHE_COLLECT_USER + "*";
         Collection<String> keys = redisService.keys(pattern);
 
@@ -218,15 +261,20 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
             return;
         }
 
+        // 遍历所有用户收藏键
         for (String userKey : keys) {
+            // 跳过锁键
             if (userKey.contains("lock:")) {
                 continue;
             }
+            
+            // 提取用户ID
             Long userId = extractUserIdFromKey(userKey);
             if (userId == null) {
                 continue;
             }
 
+            // 获取用户的所有收藏记录
             Map<Object, Object> collectMap = redisTemplate.opsForHash().entries(userKey);
             for (Map.Entry<Object, Object> entry : collectMap.entrySet()) {
                 String field = entry.getKey().toString();
@@ -236,13 +284,16 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
                     Integer type = Integer.parseInt(parts[1]);
                     CacheDocCollectTypeEnum collectType = CacheDocCollectTypeEnum.getByCode(type);
                     if (collectType != null) {
+                        // 保存交互记录到数据库
                         saveInteractionToDb(userId, getTargetType(collectType), targetId,
                             DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
+                        // 更新收藏数量到数据库
                         updateCollectCountToDb(collectType, targetId, 1L);
                         syncCount++;
                     }
                 }
             }
+            // 删除已同步的Redis键
             redisService.deleteObject(userKey);
         }
 
@@ -345,11 +396,14 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
      * @param interactionType 交互类型
      */
     private void saveInteractionToDb(Long userId, Integer targetType, Long targetId, Integer interactionType) {
+        // 检查是否已存在交互记录
         DocUserInteraction existing = docUserInteractionMapper.selectByUserAndTarget(userId, targetType, targetId, interactionType);
         if (existing != null) {
+            // 更新状态为已收藏
             existing.setStatus(1);
             docUserInteractionMapper.updateById(existing);
         } else {
+            // 创建新的交互记录
             DocUserInteraction interaction = new DocUserInteraction();
             interaction.setUserId(userId);
             interaction.setTargetType(targetType);

@@ -36,12 +36,39 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
 
+    /**
+     * Redis服务
+     */
     private final RedisService redisService;
+
+    /**
+     * Redis模板
+     */
     private final RedisTemplate<String, Object> redisTemplate;
+
+    /**
+     * 文档笔记服务
+     */
     private final IDocNoteService docNoteService;
+
+    /**
+     * 文档笔记评论服务
+     */
     private final IDocNoteCommentService docNoteCommentService;
+
+    /**
+     * 视频详情服务
+     */
     private final IDocVideoDetailService docVideoDetailService;
+
+    /**
+     * 视频评论服务
+     */
     private final IDocVideoCommentService docVideoCommentService;
+
+    /**
+     * 用户交互Mapper
+     */
     private final DocUserInteractionMapper docUserInteractionMapper;
 
     /**
@@ -64,32 +91,38 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
      */
     @Override
     public boolean like(Integer type, Long targetId, Long userId) {
+        // 验证参数
         CacheDocLikeTypeEnum likeType = CacheDocLikeTypeEnum.getByCode(type);
         if (likeType == null || targetId == null || userId == null) {
             return false;
         }
 
+        // 构建Redis键
         String lockKey = buildLockKey(userId, targetId);
         String userKey = buildUserKey(userId);
         String countKey = buildCountKey(targetId, likeType);
         String hashField = targetId + ":" + type;
 
+        // 检查分布式锁
         Boolean locked = redisService.getCacheObject(lockKey);
         if (Boolean.TRUE.equals(locked)) {
             log.debug("用户 {} 对目标 {} 操作频繁，请稍后再试", userId, targetId);
             return false;
         }
 
+        // 检查是否已点赞
         Object existingType = redisTemplate.opsForHash().get(userKey, hashField);
         if (existingType != null) {
             log.debug("用户 {} 已点赞目标 {}", userId, targetId);
             return false;
         }
 
+        // 执行点赞操作
         redisService.setCacheObject(lockKey, true, LOCK_EXPIRE_SECONDS, TimeUnit.SECONDS);
         redisTemplate.opsForHash().put(userKey, hashField, type.toString());
         redisTemplate.opsForValue().increment(countKey, 1);
 
+        // 检查点赞次数限制
         Long likeCount = getLikeCountFromLock(userId, targetId);
         if (likeCount >= LIKE_LIMIT) {
             redisService.setCacheObject(lockKey, true, LOCK_EXPIRE_SECONDS, TimeUnit.SECONDS);
@@ -109,28 +142,33 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
      */
     @Override
     public boolean unlike(Integer type, Long targetId, Long userId) {
+        // 验证参数
         CacheDocLikeTypeEnum likeType = CacheDocLikeTypeEnum.getByCode(type);
         if (likeType == null || targetId == null || userId == null) {
             return false;
         }
 
+        // 构建Redis键
         String lockKey = buildLockKey(userId, targetId);
         String userKey = buildUserKey(userId);
         String countKey = buildCountKey(targetId, likeType);
         String hashField = targetId + ":" + type;
 
+        // 检查分布式锁
         Boolean locked = redisService.getCacheObject(lockKey);
         if (Boolean.TRUE.equals(locked)) {
             log.debug("用户 {} 对目标 {} 操作频繁，请稍后再试", userId, targetId);
             return false;
         }
 
+        // 检查是否已点赞
         Object existingType = redisTemplate.opsForHash().get(userKey, hashField);
         if (existingType == null) {
             log.debug("用户 {} 未点赞目标 {}", userId, targetId);
             return false;
         }
 
+        // 执行取消点赞操作
         redisService.setCacheObject(lockKey, true, LOCK_EXPIRE_SECONDS, TimeUnit.SECONDS);
         redisTemplate.opsForHash().delete(userKey, hashField);
         redisTemplate.opsForValue().decrement(countKey, 1);
@@ -148,17 +186,22 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
      */
     @Override
     public Long getLikeCount(Integer type, Long targetId) {
+        // 验证参数
         CacheDocLikeTypeEnum likeType = CacheDocLikeTypeEnum.getByCode(type);
         if (likeType == null || targetId == null) {
             return 0L;
         }
 
+        // 构建Redis键
         String countKey = buildCountKey(targetId, likeType);
+        
+        // 从Redis获取点赞数量
         Object count = redisTemplate.opsForValue().get(countKey);
         if (count != null) {
             return Long.parseLong(count.toString());
         }
 
+        // 从数据库获取点赞数量并缓存
         Long dbCount = getLikeCountFromDb(likeType, targetId);
         if (dbCount != null && dbCount > 0) {
             redisService.setCacheObject(countKey, dbCount);
@@ -176,18 +219,23 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
      */
     @Override
     public boolean hasLiked(Integer type, Long targetId, Long userId) {
+        // 验证参数
         CacheDocLikeTypeEnum likeType = CacheDocLikeTypeEnum.getByCode(type);
         if (likeType == null || targetId == null || userId == null) {
             return false;
         }
 
+        // 构建Redis键
         String userKey = buildUserKey(userId);
         String hashField = targetId + ":" + type;
+        
+        // 从Redis获取点赞状态
         Object existingType = redisTemplate.opsForHash().get(userKey, hashField);
         if (existingType != null) {
             return true;
         }
 
+        // 从数据库获取点赞状态
         DocUserInteraction interaction = docUserInteractionMapper.selectByUserAndTarget(
             userId, getTargetType(likeType), targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
         return interaction != null && interaction.getStatus() == 1;
@@ -203,11 +251,14 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
     @Override
     public Map<Long, Long> getLikeCountBatch(Integer type, Iterable<Long> targetIds) {
         Map<Long, Long> result = new HashMap<>();
+        
+        // 验证参数
         CacheDocLikeTypeEnum likeType = CacheDocLikeTypeEnum.getByCode(type);
         if (likeType == null || targetIds == null) {
             return result;
         }
 
+        // 批量获取每个目标的点赞数量
         for (Long targetId : targetIds) {
             result.put(targetId, getLikeCount(type, targetId));
         }
@@ -222,6 +273,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
         log.info("开始同步点赞数据到数据库...");
         int syncCount = 0;
 
+        // 匹配所有用户点赞键
         String pattern = CacheConstants.CACHE_LIKE_USER + "*";
         Collection<String> keys = redisService.keys(pattern);
 
@@ -230,12 +282,15 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
             return;
         }
 
+        // 遍历所有用户点赞键
         for (String userKey : keys) {
+            // 提取用户ID
             Long userId = extractUserIdFromKey(userKey);
             if (userId == null) {
                 continue;
             }
 
+            // 获取用户的所有点赞记录
             Map<Object, Object> likeMap = redisTemplate.opsForHash().entries(userKey);
             for (Map.Entry<Object, Object> entry : likeMap.entrySet()) {
                 String field = entry.getKey().toString();
@@ -245,13 +300,16 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
                     Integer type = Integer.parseInt(parts[1]);
                     CacheDocLikeTypeEnum likeType = CacheDocLikeTypeEnum.getByCode(type);
                     if (likeType != null) {
+                        // 保存交互记录到数据库
                         saveInteractionToDb(userId, getTargetType(likeType), targetId,
                             DocUserInteractionContext.INTERACTION_TYPE_LIKE);
+                        // 更新点赞数量到数据库
                         updateLikeCountToDb(likeType, targetId, 1L);
                         syncCount++;
                     }
                 }
             }
+            // 删除已同步的Redis键
             redisService.deleteObject(userKey);
         }
 
@@ -374,11 +432,14 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
      * @param interactionType 交互类型
      */
     private void saveInteractionToDb(Long userId, Integer targetType, Long targetId, Integer interactionType) {
+        // 检查是否已存在交互记录
         DocUserInteraction existing = docUserInteractionMapper.selectByUserAndTarget(userId, targetType, targetId, interactionType);
         if (existing != null) {
+            // 更新状态为已点赞
             existing.setStatus(1);
             docUserInteractionMapper.updateById(existing);
         } else {
+            // 创建新的交互记录
             DocUserInteraction interaction = new DocUserInteraction();
             interaction.setUserId(userId);
             interaction.setTargetType(targetType);
