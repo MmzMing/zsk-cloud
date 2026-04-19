@@ -238,3 +238,26 @@ CREATE TABLE `document_video_comment`  (
   INDEX `idx_vc_status`(`status` ASC) USING BTREE COMMENT '评论状态索引',
   INDEX `idx_vc_create_time`(`create_time` ASC) USING BTREE COMMENT '评论时间索引'
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_视频详情评论表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- 10. 用户交互关系表
+-- ----------------------------
+DROP TABLE IF EXISTS `doc_user_interaction`;
+CREATE TABLE `doc_user_interaction`  (
+  `id` bigint(20) NOT NULL COMMENT '主键',
+  `user_id` bigint(20) NOT NULL COMMENT '用户ID',
+  `target_type` int(4) NOT NULL COMMENT '目标类型（1-文档 2-视频 3-用户 4-评论）',
+  `target_id` bigint(20) NOT NULL COMMENT '目标ID',
+  `interaction_type` int(4) NOT NULL COMMENT '交互类型（1-点赞 2-收藏 3-关注）',
+  `status` int(4) NOT NULL DEFAULT 1 COMMENT '状态（0-取消 1-有效）',
+  `tenant_id` bigint(20) DEFAULT 0 COMMENT '租户ID',
+  `create_name` varchar(100) DEFAULT NULL COMMENT '创建者姓名',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_name` varchar(100) DEFAULT NULL COMMENT '更新者姓名',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否已删除(0否1是)',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_ui_user_id`(`user_id` ASC) USING BTREE COMMENT '用户ID索引',
+  INDEX `idx_ui_target`(`target_type` ASC, `target_id` ASC) USING BTREE COMMENT '目标索引',
+  INDEX `idx_ui_interaction`(`interaction_type` ASC, `status` ASC) USING BTREE COMMENT '交互类型索引'
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文档管理服务_用户交互关系表' ROW_FORMAT = DYNAMIC;
