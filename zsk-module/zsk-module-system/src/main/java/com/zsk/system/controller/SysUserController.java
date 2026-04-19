@@ -332,6 +332,12 @@ public class SysUserController {
             return R.fail("用户ID不能为空");
         }
 
+        // 权限校验：只能修改自己的个人信息
+        Long currentUserId = SecurityContext.getUserId();
+        if (!userId.equals(currentUserId)) {
+            return R.fail("无权修改他人用户信息");
+        }
+
         // 查询现有用户信息
         SysUser existingUser = userService.selectUserById(userId);
         if (existingUser == null) {

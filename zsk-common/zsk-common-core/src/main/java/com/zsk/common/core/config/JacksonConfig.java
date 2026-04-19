@@ -3,6 +3,7 @@ package com.zsk.common.core.config;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.ser.std.ToStringSerializer;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateDeserializer;
 import com.fasterxml.jackson.datatype.jsr310.deser.LocalDateTimeDeserializer;
@@ -75,6 +76,10 @@ public class JacksonConfig {
             // 为LocalTime类型添加自定义的序列化器和反序列化器
             javaTimeModule.addSerializer(LocalTime.class, new LocalTimeSerializer(DateTimeFormatter.ofPattern(TIME_FORMAT)));
             javaTimeModule.addDeserializer(LocalTime.class, new LocalTimeDeserializer(DateTimeFormatter.ofPattern(TIME_FORMAT)));
+
+            // 为Long类型添加序列化器，将Long转换为字符串
+            javaTimeModule.addSerializer(Long.class, ToStringSerializer.instance);
+            javaTimeModule.addSerializer(long.class, ToStringSerializer.instance);
 
             // 将JavaTimeModule应用到builder中
             builder.modules(javaTimeModule);
