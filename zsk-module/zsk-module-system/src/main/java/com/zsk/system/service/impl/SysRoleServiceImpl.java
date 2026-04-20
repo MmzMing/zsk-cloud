@@ -4,8 +4,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zsk.system.domain.SysRole;
 import com.zsk.system.domain.SysRoleMenu;
+import com.zsk.system.domain.SysUserRole;
 import com.zsk.system.mapper.SysRoleMapper;
 import com.zsk.system.mapper.SysRoleMenuMapper;
+import com.zsk.system.mapper.SysUserRoleMapper;
 import com.zsk.system.service.ISysRoleService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -14,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 角色管理 服务层实现
@@ -27,6 +30,7 @@ import java.util.Set;
 public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> implements ISysRoleService {
 
     private final SysRoleMenuMapper roleMenuMapper;
+    private final SysUserRoleMapper userRoleMapper;
 
     /**
      * 根据用户ID查询角色权限
@@ -140,5 +144,149 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
                 roleMenuMapper.insert(rm);
             }
         }
+    }
+
+    /**
+     * 查询角色关联的菜单ID列表
+     *
+     * @param roleId 角色ID
+     * @return 菜单ID列表
+     */
+    @Override
+    public List<Long> selectMenuIdsByRoleId(Long roleId) {
+        List<SysRoleMenu> list = roleMenuMapper.selectList(
+                new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, roleId));
+        return list.stream().map(SysRoleMenu::getMenuId).collect(Collectors.toList());
+    }
+
+    /**
+     * 绑定角色权限（追加菜单，已存在的不会重复绑定）
+     *
+     * @param roleId  角色ID
+     * @param menuIds 菜单ID列表
+     * @return 结果
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean bindRoleMenus(Long roleId, List<Long> menuIds) {
+        List<Long> existMenuIds = selectMenuIdsByRoleId(roleId);
+        Set<Long> existSet = new HashSet<>(existMenuIds);
+        for (Long menuId : menuIds) {
+            if (!existSet.contains(menuId)) {
+                SysRoleMenu rm = new SysRoleMenu();
+                rm.setRoleId(roleId);
+                rm.setMenuId(menuId);
+                roleMenuMapper.insert(rm);
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 解绑角色权限（移除指定菜单）
+     *
+     * @param roleId  角色ID
+     * @param menuIds 菜单ID列表
+     * @return 结果
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean unbindRoleMenus(Long roleId, List<Long> menuIds) {
+        roleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>()
+                .eq(SysRoleMenu::getRoleId, roleId)
+                .in(SysRoleMenu::getMenuId, menuIds));
+        return true;
+    }
+
+    /**
+     * 更新角色权限（全量替换菜单，先删除原有权限再绑定新权限）
+     *
+     * @param roleId  角色ID
+     * @param menuIds 菜单ID列表
+     * @return 结果
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean updateRoleMenus(Long roleId, List<Long> menuIds) {
+        roleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, roleId));
+        for (Long menuId : menuIds) {
+            SysRoleMenu rm = new SysRoleMenu();
+            rm.setRoleId(roleId);
+            rm.setMenuId(menuId);
+            roleMenuMapper.insert(rm);
+        }
+        return true;
+    }
+
+    /**
+     * 查询角色关联的用户ID列表
+     *
+     * @param roleId 角色ID
+     * @return 用户ID列表
+     */
+    @Override
+    public List<Long> selectUserIdsByRoleId(Long roleId) {
+        List<SysUserRole> list = userRoleMapper.selectList(
+                new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getRoleId, roleId));
+        return list.stream().map(SysUserRole::getUserId).collect(Collectors.toList());
+    }
+
+    /**
+     * 绑定角色用户（追加用户，已存在的不会重复绑定）
+     *
+     * @param roleId  角色ID
+     * @param userIds 用户ID列表
+     * @return 结果
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean bindRoleUsers(Long roleId, List<Long> userIds) {
+        List<Long> existUserIds = selectUserIdsByRoleId(roleId);
+        Set<Long> existSet = new HashSet<>(existUserIds);
+        for (Long userId : userIds) {
+            if (!existSet.contains(userId)) {
+                SysUserRole ur = new SysUserRole();
+                ur.setRoleId(roleId);
+                ur.setUserId(userId);
+                userRoleMapper.insert(ur);
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 解绑角色用户（移除指定用户）
+     *
+     * @param roleId  角色ID
+     * @param userIds 用户ID列表
+     * @return 结果
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean unbindRoleUsers(Long roleId, List<Long> userIds) {
+        userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>()
+                .eq(SysUserRole::getRoleId, roleId)
+                .in(SysUserRole::getUserId, userIds));
+        return true;
+    }
+
+    /**
+     * 更新角色用户（全量替换用户，先删除原有用户再绑定新用户）
+     *
+     * @param roleId  角色ID
+     * @param userIds 用户ID列表
+     * @return 结果
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean updateRoleUsers(Long roleId, List<Long> userIds) {
+        userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getRoleId, roleId));
+        for (Long userId : userIds) {
+            SysUserRole ur = new SysUserRole();
+            ur.setRoleId(roleId);
+            ur.setUserId(userId);
+            userRoleMapper.insert(ur);
+        }
+        return true;
     }
 }

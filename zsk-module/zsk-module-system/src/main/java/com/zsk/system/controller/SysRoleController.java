@@ -98,4 +98,112 @@ public class SysRoleController {
         List<Long> ids = body.get("ids");
         return roleService.copyRoles(ids) ? R.ok() : R.fail();
     }
+
+    /**
+     * 查看角色权限
+     *
+     * @param roleId 角色ID
+     * @return 菜单ID列表
+     */
+    @Operation(summary = "查看角色权限")
+    @GetMapping("/{roleId}/menus")
+    public R<List<Long>> listRoleMenus(@PathVariable Long roleId) {
+        return R.ok(roleService.selectMenuIdsByRoleId(roleId));
+    }
+
+    /**
+     * 绑定角色权限（追加菜单，已存在的不会重复绑定）
+     *
+     * @param roleId 角色ID
+     * @param body   请求体（包含menuIds字段）
+     * @return 是否成功
+     */
+    @Operation(summary = "绑定角色权限")
+    @PostMapping("/{roleId}/menus")
+    public R<Void> bindRoleMenus(@PathVariable Long roleId, @RequestBody Map<String, List<Long>> body) {
+        List<Long> menuIds = body.get("menuIds");
+        return roleService.bindRoleMenus(roleId, menuIds) ? R.ok() : R.fail();
+    }
+
+    /**
+     * 解绑角色权限（移除指定菜单）
+     *
+     * @param roleId 角色ID
+     * @param body   请求体（包含menuIds字段）
+     * @return 是否成功
+     */
+    @Operation(summary = "解绑角色权限")
+    @DeleteMapping("/{roleId}/menus")
+    public R<Void> unbindRoleMenus(@PathVariable Long roleId, @RequestBody Map<String, List<Long>> body) {
+        List<Long> menuIds = body.get("menuIds");
+        return roleService.unbindRoleMenus(roleId, menuIds) ? R.ok() : R.fail();
+    }
+
+    /**
+     * 更新角色权限（全量替换菜单）
+     *
+     * @param roleId 角色ID
+     * @param body   请求体（包含menuIds字段）
+     * @return 是否成功
+     */
+    @Operation(summary = "更新角色权限")
+    @PutMapping("/{roleId}/menus")
+    public R<Void> updateRoleMenus(@PathVariable Long roleId, @RequestBody Map<String, List<Long>> body) {
+        List<Long> menuIds = body.get("menuIds");
+        return roleService.updateRoleMenus(roleId, menuIds) ? R.ok() : R.fail();
+    }
+
+    /**
+     * 查看角色用户
+     *
+     * @param roleId 角色ID
+     * @return 用户ID列表
+     */
+    @Operation(summary = "查看角色用户")
+    @GetMapping("/{roleId}/users")
+    public R<List<Long>> listRoleUsers(@PathVariable Long roleId) {
+        return R.ok(roleService.selectUserIdsByRoleId(roleId));
+    }
+
+    /**
+     * 绑定角色用户（追加用户，已存在的不会重复绑定）
+     *
+     * @param roleId 角色ID
+     * @param body   请求体（包含userIds字段）
+     * @return 是否成功
+     */
+    @Operation(summary = "绑定角色用户")
+    @PostMapping("/{roleId}/users")
+    public R<Void> bindRoleUsers(@PathVariable Long roleId, @RequestBody Map<String, List<Long>> body) {
+        List<Long> userIds = body.get("userIds");
+        return roleService.bindRoleUsers(roleId, userIds) ? R.ok() : R.fail();
+    }
+
+    /**
+     * 解绑角色用户（移除指定用户）
+     *
+     * @param roleId 角色ID
+     * @param body   请求体（包含userIds字段）
+     * @return 是否成功
+     */
+    @Operation(summary = "解绑角色用户")
+    @DeleteMapping("/{roleId}/users")
+    public R<Void> unbindRoleUsers(@PathVariable Long roleId, @RequestBody Map<String, List<Long>> body) {
+        List<Long> userIds = body.get("userIds");
+        return roleService.unbindRoleUsers(roleId, userIds) ? R.ok() : R.fail();
+    }
+
+    /**
+     * 更新角色用户（全量替换用户）
+     *
+     * @param roleId 角色ID
+     * @param body   请求体（包含userIds字段）
+     * @return 是否成功
+     */
+    @Operation(summary = "更新角色用户")
+    @PutMapping("/{roleId}/users")
+    public R<Void> updateRoleUsers(@PathVariable Long roleId, @RequestBody Map<String, List<Long>> body) {
+        List<Long> userIds = body.get("userIds");
+        return roleService.updateRoleUsers(roleId, userIds) ? R.ok() : R.fail();
+    }
 }
