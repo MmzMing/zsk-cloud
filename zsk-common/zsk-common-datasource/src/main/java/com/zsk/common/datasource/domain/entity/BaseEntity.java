@@ -54,8 +54,8 @@ public class BaseEntity implements Serializable {
     /**
      * 删除标志（0-正常，2-删除）
      */
-    @TableLogic
-    @TableField(fill = FieldFill.INSERT)
+    // @TableLogic //MyBatis-Plus 软删除注解 ，标记此字段为逻辑删除字段
+    @TableField(fill = FieldFill.INSERT)//MyBatis-Plus 软删除注解 ，标记此字段为逻辑删除字段
     @JsonIgnore
     private Integer deleted;
 

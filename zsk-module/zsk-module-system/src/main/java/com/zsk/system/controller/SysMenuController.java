@@ -99,13 +99,18 @@ public class SysMenuController {
 
     /**
      * 删除菜单（支持批量删除）
+     * <p>
+     * 删除逻辑：
+     * 1. 递归查找所有子菜单一并删除
+     * 2. 自动解除与角色的关联关系（sys_role_menu）
+     * 3. 物理删除菜单记录
      *
      * @param ids 菜单ID列表（多个ID用逗号分隔）
      * @return 是否成功
      */
-    @Operation(summary = "删除菜单")
+    @Operation(summary = "删除菜单", description = "删除菜单及其子菜单，并自动解除角色关联")
     @DeleteMapping("/{ids}")
     public R<Void> remove(@PathVariable List<Long> ids) {
-        return menuService.removeByIds(ids) ? R.ok() : R.fail();
+        return menuService.deleteMenuByIds(ids) ? R.ok() : R.fail();
     }
 }

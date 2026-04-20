@@ -81,6 +81,11 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
     /**
      * 批量删除角色信息
+     * <p>
+     * 执行流程：
+     * 1. 删除角色与菜单的关联关系（sys_role_menu）
+     * 2. 删除角色与用户的关联关系（sys_user_role）
+     * 3. 物理删除角色记录
      *
      * @param roleIds 需要删除的角色ID
      * @return 结果
@@ -88,9 +93,19 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteRoleByIds(List<Long> roleIds) {
-        for (Long roleId : roleIds) {
-            roleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, roleId));
-        }
+        /**
+         * 1. 删除角色与菜单的关联关系
+         */
+        roleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().in(SysRoleMenu::getRoleId, roleIds));
+
+        /**
+         * 2. 删除角色与用户的关联关系
+         */
+        userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().in(SysUserRole::getRoleId, roleIds));
+
+        /**
+         * 3. 物理删除角色记录
+         */
         return removeBatchByIds(roleIds);
     }
 

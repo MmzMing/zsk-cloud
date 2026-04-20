@@ -27,4 +27,17 @@ public interface ISysMenuService extends IService<SysMenu> {
      * @return 菜单列表
      */
     List<SysMenu> selectMenuTreeByUserId(Long userId);
+
+    /**
+     * 批量删除菜单
+     * <p>
+     * 删除逻辑：
+     * 1. 递归收集所有待删除菜单ID（包含子菜单）
+     * 2. 删除角色与菜单的关联关系（sys_role_menu）
+     * 3. 物理删除菜单记录
+     *
+     * @param menuIds 菜单ID列表
+     * @return 是否成功
+     */
+    boolean deleteMenuByIds(List<Long> menuIds);
 }
