@@ -221,4 +221,85 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
             }
         }
     }
+
+    /**
+     * 查询用户关联的角色ID列表
+     *
+     * @param userId 用户ID
+     * @return 角色ID列表
+     */
+    @Override
+    public List<Long> selectRoleIdsByUserId(Long userId) {
+        List<SysUserRole> list = userRoleMapper.selectList(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, userId));
+        if (list != null && !list.isEmpty()) {
+            return list.stream().map(SysUserRole::getRoleId).toList();
+        }
+        return List.of();
+    }
+
+    /**
+     * 绑定用户角色（追加角色）
+     *
+     * @param userId  用户ID
+     * @param roleIds 角色ID列表
+     * @return 结果
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean bindUserRoles(Long userId, List<Long> roleIds) {
+        if (roleIds == null || roleIds.isEmpty()) {
+            return true;
+        }
+        List<Long> existingRoleIds = selectRoleIdsByUserId(userId);
+        for (Long roleId : roleIds) {
+            if (!existingRoleIds.contains(roleId)) {
+                SysUserRole ur = new SysUserRole();
+                ur.setUserId(userId);
+                ur.setRoleId(roleId);
+                userRoleMapper.insert(ur);
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 解绑用户角色（移除角色）
+     *
+     * @param userId  用户ID
+     * @param roleIds 角色ID列表
+     * @return 结果
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean unbindUserRoles(Long userId, List<Long> roleIds) {
+        if (roleIds == null || roleIds.isEmpty()) {
+            return true;
+        }
+        userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>()
+                .eq(SysUserRole::getUserId, userId)
+                .in(SysUserRole::getRoleId, roleIds));
+        return true;
+    }
+
+    /**
+     * 更新用户角色（全量替换角色）
+     *
+     * @param userId  用户ID
+     * @param roleIds 角色ID列表
+     * @return 结果
+     */
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public boolean updateUserRoles(Long userId, List<Long> roleIds) {
+        userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, userId));
+        if (roleIds != null && !roleIds.isEmpty()) {
+            for (Long roleId : roleIds) {
+                SysUserRole ur = new SysUserRole();
+                ur.setUserId(userId);
+                ur.setRoleId(roleId);
+                userRoleMapper.insert(ur);
+            }
+        }
+        return true;
+    }
 }

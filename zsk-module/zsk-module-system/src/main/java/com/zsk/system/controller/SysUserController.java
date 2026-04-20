@@ -388,4 +388,55 @@ public class SysUserController {
         return userService.updateUser(user) ? R.ok() : R.fail();
     }
 
+    /**
+     * 查询用户关联的角色列表
+     *
+     * @param userId 用户ID
+     * @return 角色ID列表
+     */
+    @Operation(summary = "查询用户关联的角色列表")
+    @GetMapping("/{userId}/roles")
+    public R<List<Long>> getUserRoles(@PathVariable Long userId) {
+        return R.ok(userService.selectRoleIdsByUserId(userId));
+    }
+
+    /**
+     * 绑定用户角色（追加角色）
+     *
+     * @param userId  用户ID
+     * @param roleIds 角色ID列表
+     * @return 是否成功
+     */
+    @Operation(summary = "绑定用户角色（追加角色）")
+    @PostMapping("/{userId}/roles")
+    public R<Void> bindUserRoles(@PathVariable Long userId, @RequestBody List<Long> roleIds) {
+        return userService.bindUserRoles(userId, roleIds) ? R.ok() : R.fail();
+    }
+
+    /**
+     * 解绑用户角色（移除角色）
+     *
+     * @param userId  用户ID
+     * @param roleIds 角色ID列表
+     * @return 是否成功
+     */
+    @Operation(summary = "解绑用户角色（移除角色）")
+    @DeleteMapping("/{userId}/roles")
+    public R<Void> unbindUserRoles(@PathVariable Long userId, @RequestBody List<Long> roleIds) {
+        return userService.unbindUserRoles(userId, roleIds) ? R.ok() : R.fail();
+    }
+
+    /**
+     * 更新用户角色（全量替换角色）
+     *
+     * @param userId  用户ID
+     * @param roleIds 角色ID列表
+     * @return 是否成功
+     */
+    @Operation(summary = "更新用户角色（全量替换角色）")
+    @PutMapping("/{userId}/roles")
+    public R<Void> updateUserRoles(@PathVariable Long userId, @RequestBody List<Long> roleIds) {
+        return userService.updateUserRoles(userId, roleIds) ? R.ok() : R.fail();
+    }
+
 }

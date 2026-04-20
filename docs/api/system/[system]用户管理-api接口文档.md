@@ -18,6 +18,10 @@
 | /api/system/user/{id}/reset-password | PUT | SysUserController.java | 重置密码 |
 | /api/system/user/{ids}/reset-password | PUT | SysUserController.java | 批量重置密码 |
 | /api/system/user/update/infoFile | POST | SysUserController.java | 更新用户信息（支持头像上传） |
+| /api/system/user/{userId}/roles | GET | SysUserController.java | 查询用户关联的角色列表 |
+| /api/system/user/{userId}/roles | POST | SysUserController.java | 绑定用户角色（追加角色） |
+| /api/system/user/{userId}/roles | DELETE | SysUserController.java | 解绑用户角色（移除角色） |
+| /api/system/user/{userId}/roles | PUT | SysUserController.java | 更新用户角色（全量替换角色） |
 
 ## 2. 接口详情
 
@@ -44,16 +48,49 @@
       "id": "1",
       "userName": "admin",
       "nickName": "管理员",
+      "userType": "00",
       "email": "admin@example.com",
       "phonenumber": "13800138000",
-      "sex": "男",
-      "avatar": "https://example.com/avatar.jpg"
+      "sex": "0",
+      "avatar": "https://example.com/avatar.jpg",
+      "avatarId": "100",
+      "age": 25,
+      "bio": "系统管理员",
+      "status": "0",
+      "loginIp": "192.168.1.1",
+      "loginDate": "2026-04-20 10:30:00",
+      "createdAt": "2026-02-15 10:00:00",
+      "updatedAt": "2026-04-20 10:30:00",
+      "deleted": 0,
+      "tenantId": "1"
     },
     "roles": ["admin", "user"],
     "permissions": ["user:list", "user:add"]
   }
 }
 ```
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| sysUser | object | 用户基本信息 |
+| sysUser.id | string | 用户ID |
+| sysUser.userName | string | 用户账号 |
+| sysUser.nickName | string | 用户昵称 |
+| sysUser.userType | string | 用户类型（00系统用户） |
+| sysUser.email | string | 用户邮箱 |
+| sysUser.phonenumber | string | 手机号码 |
+| sysUser.sex | string | 用户性别（0男 1女 2未知） |
+| sysUser.avatar | string | 头像地址 |
+| sysUser.avatarId | string | 头像图片ID |
+| sysUser.age | int | 年龄 |
+| sysUser.bio | string | 个人简介 |
+| sysUser.status | string | 帐号状态（0正常 1停用） |
+| sysUser.loginIp | string | 最后登录IP |
+| sysUser.loginDate | string | 最后登录时间 |
+| sysUser.createdAt | string | 创建时间 |
+| sysUser.updatedAt | string | 更新时间 |
+| roles | array | 用户角色标识列表 |
+| permissions | array | 用户权限标识列表 |
 
 ---
 
@@ -85,13 +122,45 @@
     "id": "1",
     "userName": "admin",
     "nickName": "管理员",
+    "userType": "00",
     "email": "admin@example.com",
     "phonenumber": "13800138000",
+    "sex": "0",
+    "avatar": "https://example.com/avatar.jpg",
+    "avatarId": "100",
+    "age": 25,
+    "bio": "系统管理员",
     "status": "0",
-    "createTime": "2026-02-15 10:00:00"
+    "loginIp": "192.168.1.1",
+    "loginDate": "2026-04-20 10:30:00",
+    "createdAt": "2026-02-15 10:00:00",
+    "updatedAt": "2026-04-20 10:30:00",
+    "deleted": 0,
+    "tenantId": "1"
   }
 }
 ```
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| id | string | 用户ID |
+| userName | string | 用户账号 |
+| nickName | string | 用户昵称 |
+| userType | string | 用户类型（00系统用户） |
+| email | string | 用户邮箱 |
+| phonenumber | string | 手机号码 |
+| sex | string | 用户性别（0男 1女 2未知） |
+| avatar | string | 头像地址 |
+| avatarId | string | 头像图片ID |
+| age | int | 年龄 |
+| bio | string | 个人简介 |
+| status | string | 帐号状态（0正常 1停用） |
+| loginIp | string | 最后登录IP |
+| loginDate | string | 最后登录时间 |
+| createdAt | string | 创建时间 |
+| updatedAt | string | 更新时间 |
+| deleted | int | 删除标识（0未删除 1已删除） |
+| tenantId | string | 租户ID |
 
 **失败响应** (400):
 
@@ -135,15 +204,60 @@
         "id": "1",
         "userName": "admin",
         "nickName": "管理员",
-        "email": "admin@example.com"
+        "userType": "00",
+        "email": "admin@example.com",
+        "phonenumber": "13800138000",
+        "sex": "0",
+        "avatar": "https://example.com/avatar.jpg",
+        "avatarId": "100",
+        "age": 25,
+        "bio": "系统管理员",
+        "status": "0",
+        "loginIp": "192.168.1.1",
+        "loginDate": "2026-04-20 10:30:00",
+        "createdAt": "2026-02-15 10:00:00",
+        "updatedAt": "2026-04-20 10:30:00",
+        "deleted": 0,
+        "tenantId": "1",
+        "roleIds": ["1", "2"]
       }
     ],
     "totalElements": 100,
     "totalPages": 10,
-    "size": 10
+    "size": 10,
+    "number": 0,
+    "first": true,
+    "last": false
   }
 }
 ```
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| content | array | 用户列表 |
+| content[].id | string | 用户ID |
+| content[].userName | string | 用户账号 |
+| content[].nickName | string | 用户昵称 |
+| content[].userType | string | 用户类型 |
+| content[].email | string | 用户邮箱 |
+| content[].phonenumber | string | 手机号码 |
+| content[].sex | string | 用户性别 |
+| content[].avatar | string | 头像地址 |
+| content[].avatarId | string | 头像图片ID |
+| content[].age | int | 年龄 |
+| content[].bio | string | 个人简介 |
+| content[].status | string | 帐号状态 |
+| content[].loginIp | string | 最后登录IP |
+| content[].loginDate | string | 最后登录时间 |
+| content[].createdAt | string | 创建时间 |
+| content[].updatedAt | string | 更新时间 |
+| content[].roleIds | array | 角色ID列表 |
+| totalElements | int | 总记录数 |
+| totalPages | int | 总页数 |
+| size | int | 每页大小 |
+| number | int | 当前页码（从0开始） |
+| first | boolean | 是否第一页 |
+| last | boolean | 是否最后一页 |
 
 ---
 
@@ -169,16 +283,47 @@
     "id": "1",
     "userName": "admin",
     "nickName": "管理员",
+    "userType": "00",
     "email": "admin@example.com",
     "phonenumber": "13800138000",
-    "sex": "男",
+    "sex": "0",
     "avatar": "https://example.com/avatar.jpg",
+    "avatarId": "100",
+    "age": 25,
+    "bio": "系统管理员",
     "status": "0",
-    "createTime": "2026-02-15 10:00:00",
-    "updateTime": "2026-02-15 10:00:00"
+    "loginIp": "192.168.1.1",
+    "loginDate": "2026-04-20 10:30:00",
+    "createdAt": "2026-02-15 10:00:00",
+    "updatedAt": "2026-04-20 10:30:00",
+    "deleted": 0,
+    "tenantId": "1",
+    "roleIds": ["1", "2"]
   }
 }
 ```
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| id | string | 用户ID |
+| userName | string | 用户账号 |
+| nickName | string | 用户昵称 |
+| userType | string | 用户类型（00系统用户） |
+| email | string | 用户邮箱 |
+| phonenumber | string | 手机号码 |
+| sex | string | 用户性别（0男 1女 2未知） |
+| avatar | string | 头像地址 |
+| avatarId | string | 头像图片ID |
+| age | int | 年龄 |
+| bio | string | 个人简介 |
+| status | string | 帐号状态（0正常 1停用） |
+| loginIp | string | 最后登录IP |
+| loginDate | string | 最后登录时间 |
+| createdAt | string | 创建时间 |
+| updatedAt | string | 更新时间 |
+| deleted | int | 删除标识（0未删除 1已删除） |
+| tenantId | string | 租户ID |
+| roleIds | array | 角色ID列表 |
 
 ---
 
@@ -192,13 +337,17 @@
 
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
-| userName | string | 是 | 用户名 |
-| nickName | string | 是 | 昵称 |
-| email | string | 否 | 邮箱 |
-| phonenumber | string | 否 | 手机号 |
-| sex | string | 否 | 性别（男/女/未知） |
-| avatar | string | 否 | 头像URL |
-| status | string | 否 | 状态，默认0（正常） |
+| userName | string | 是 | 用户账号 |
+| nickName | string | 是 | 用户昵称 |
+| userType | string | 否 | 用户类型（00系统用户） |
+| email | string | 否 | 用户邮箱 |
+| phonenumber | string | 否 | 手机号码 |
+| sex | string | 否 | 用户性别（0男 1女 2未知） |
+| avatar | string | 否 | 头像地址 |
+| age | int | 否 | 年龄 |
+| bio | string | 否 | 个人简介 |
+| status | string | 否 | 帐号状态（0正常 1停用），默认0 |
+| roleIds | array | 否 | 角色ID列表 |
 
 **请求示例**:
 
@@ -206,10 +355,14 @@
 {
   "userName": "newuser",
   "nickName": "新用户",
+  "userType": "00",
   "email": "newuser@example.com",
   "phonenumber": "13900139000",
-  "sex": "男",
-  "status": "0"
+  "sex": "0",
+  "age": 25,
+  "bio": "新用户简介",
+  "status": "0",
+  "roleIds": ["1", "2"]
 }
 ```
 
@@ -236,12 +389,29 @@
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | id | string | 是 | 用户ID |
-| nickName | string | 否 | 昵称 |
-| email | string | 否 | 邮箱 |
-| phonenumber | string | 否 | 手机号 |
-| sex | string | 否 | 性别 |
-| avatar | string | 否 | 头像URL |
-| status | string | 否 | 状态 |
+| nickName | string | 否 | 用户昵称 |
+| userType | string | 否 | 用户类型 |
+| email | string | 否 | 用户邮箱 |
+| phonenumber | string | 否 | 手机号码 |
+| sex | string | 否 | 用户性别（0男 1女 2未知） |
+| avatar | string | 否 | 头像地址 |
+| avatarId | string | 否 | 头像图片ID |
+| age | int | 否 | 年龄 |
+| bio | string | 否 | 个人简介 |
+| status | string | 否 | 帐号状态（0正常 1停用） |
+| roleIds | array | 否 | 角色ID列表 |
+
+**请求示例**:
+
+```json
+{
+  "id": "1",
+  "nickName": "管理员",
+  "email": "admin@example.com",
+  "status": "0",
+  "roleIds": ["1", "3"]
+}
+```
 
 **成功响应** (200):
 
@@ -362,6 +532,136 @@
 {
   "code": 400,
   "msg": "文件大小不能超过2MB",
+  "data": null
+}
+```
+
+---
+
+### 2.11 查询用户关联的角色列表
+
+**路径**: `GET /api/system/user/{userId}/roles`
+
+**功能描述**: 查询指定用户关联的角色ID列表
+
+**路径参数**:
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| userId | string | 是 | 用户ID |
+
+**成功响应** (200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": ["1", "2", "3"]
+}
+```
+
+| 参数名 | 类型 | 说明 |
+|--------|------|------|
+| data | array | 角色ID列表（字符串数组） |
+
+---
+
+### 2.12 绑定用户角色（追加角色）
+
+**路径**: `POST /api/system/user/{userId}/roles`
+
+**功能描述**: 为用户追加绑定角色（不会移除已有角色）
+
+**路径参数**:
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| userId | string | 是 | 用户ID |
+
+**请求体**:
+
+```json
+["1", "2", "3"]
+```
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| roleIds | array | 是 | 角色ID列表（字符串数组） |
+
+**成功响应** (200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": null
+}
+```
+
+---
+
+### 2.13 解绑用户角色（移除角色）
+
+**路径**: `DELETE /api/system/user/{userId}/roles`
+
+**功能描述**: 移除用户已绑定的角色
+
+**路径参数**:
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| userId | string | 是 | 用户ID |
+
+**请求体**:
+
+```json
+["1", "2"]
+```
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| roleIds | array | 是 | 要移除的角色ID列表（字符串数组） |
+
+**成功响应** (200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": null
+}
+```
+
+---
+
+### 2.14 更新用户角色（全量替换角色）
+
+**路径**: `PUT /api/system/user/{userId}/roles`
+
+**功能描述**: 全量替换用户的角色（先清除所有现有角色，再绑定新角色）
+
+**路径参数**:
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| userId | string | 是 | 用户ID |
+
+**请求体**:
+
+```json
+["2", "3"]
+```
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| roleIds | array | 是 | 新的角色ID列表（字符串数组） |
+
+**成功响应** (200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
   "data": null
 }
 ```

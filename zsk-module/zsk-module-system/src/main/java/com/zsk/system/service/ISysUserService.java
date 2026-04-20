@@ -104,4 +104,39 @@ public interface ISysUserService extends IService<SysUser> {
      * @return 分页结果
      */
     PageResult<SysUser> selectUserPage(SysUser user, Integer pageNum, Integer pageSize);
+
+    /**
+     * 查询用户关联的角色ID列表
+     *
+     * @param userId 用户ID
+     * @return 角色ID列表
+     */
+    List<Long> selectRoleIdsByUserId(Long userId);
+
+    /**
+     * 绑定用户角色（追加角色）
+     *
+     * @param userId  用户ID
+     * @param roleIds 角色ID列表
+     * @return 结果
+     */
+    boolean bindUserRoles(Long userId, List<Long> roleIds);
+
+    /**
+     * 解绑用户角色（移除角色）
+     *
+     * @param userId  用户ID
+     * @param roleIds 角色ID列表
+     * @return 结果
+     */
+    boolean unbindUserRoles(Long userId, List<Long> roleIds);
+
+    /**
+     * 更新用户角色（全量替换角色）
+     *
+     * @param userId  用户ID
+     * @param roleIds 角色ID列表
+     * @return 结果
+     */
+    boolean updateUserRoles(Long userId, List<Long> roleIds);
 }
