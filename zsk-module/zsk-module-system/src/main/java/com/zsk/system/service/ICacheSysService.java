@@ -1,14 +1,23 @@
 package com.zsk.system.service;
 
+import com.zsk.common.datasource.domain.PageQuery;
+import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.system.domain.CacheSysInfo;
 import com.zsk.system.domain.SysCacheLog;
+import com.zsk.system.domain.dto.CacheKeyQueryDTO;
+import com.zsk.system.domain.dto.CacheKeyRefreshDTO;
+import com.zsk.system.domain.dto.CacheTtlRefreshDTO;
+import com.zsk.system.domain.dto.CacheWarmupDTO;
+import com.zsk.system.domain.vo.*;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
 /**
- * 缓存管理 服务层
+ * 缓存管理 服务层接口
+ * <p>
+ * 提供缓存实例管理、缓存键操作、缓存统计等功能
  *
  * @author wuhuaming
  * @version 1.0
@@ -25,12 +34,13 @@ public interface ICacheSysService {
     Collection<String> getCacheKeys(String cacheName);
 
     /**
-     * 获取缓存信息列表
+     * 获取缓存信息列表（分页）
      *
-     * @param cacheName 缓存名称（可选，用于过滤）
+     * @param pageQuery 分页参数
+     * @param queryDTO  查询条件
      * @return 缓存信息列表
      */
-    List<CacheSysInfo> getCacheInfoList(String cacheName);
+    PageResult<CacheSysInfo> getCacheInfoList(PageQuery pageQuery, CacheKeyQueryDTO queryDTO);
 
     /**
      * 获取缓存详细信息
@@ -74,11 +84,10 @@ public interface ICacheSysService {
     /**
      * 刷新缓存过期时间
      *
-     * @param cacheKey 缓存键名
-     * @param ttl      过期时间（秒）
+     * @param ttlDTO 缓存键名和过期时间
      * @return 是否成功
      */
-    boolean refreshTtl(String cacheKey, long ttl);
+    boolean refreshTtl(CacheTtlRefreshDTO ttlDTO);
 
     /**
      * 批量刷新缓存过期时间
@@ -91,17 +100,17 @@ public interface ICacheSysService {
     /**
      * 缓存预热
      *
-     * @param cacheNames 需要预热的缓存名称列表
-     * @return 预热结果
+     * @param warmupDTO 需要预热的缓存名称列表
+     * @return 预热结果列表
      */
-    Map<String, Object> warmupCache(List<String> cacheNames);
+    List<CacheWarmupResultVO> warmupCache(CacheWarmupDTO warmupDTO);
 
     /**
      * 获取缓存统计信息
      *
      * @return 缓存统计信息
      */
-    Map<String, Object> getCacheStatistics();
+    CacheStatisticsVO getCacheStatistics();
 
     /**
      * 判断缓存是否存在
@@ -116,7 +125,7 @@ public interface ICacheSysService {
      *
      * @return 实例信息列表
      */
-    List<Map<String, Object>> getInstances();
+    List<CacheInstanceVO> getInstances();
 
     /**
      * 获取缓存日志列表
@@ -127,38 +136,35 @@ public interface ICacheSysService {
     List<SysCacheLog> getLogs(String instanceId);
 
     /**
-     * 获取缓存命中率趋势
+     * 获取缓存分布饼图数据
      *
-     * @param instanceId 实例ID
-     * @return 趋势数据
+     * @return 缓存名称汇总数据（{name: 'login', value: 100}）
      */
-    List<Map<String, Object>> getHitRateTrend(String instanceId);
+    List<CachePieVO> getCacheDistribution();
 
     /**
-     * 获取缓存QPS趋势
+     * 获取内存使用仪表盘数据
      *
-     * @param instanceId 实例ID
-     * @return 趋势数据
+     * @return 内存使用仪表盘数据（当前值、最大值等）
      */
-    List<Map<String, Object>> getQpsTrend(String instanceId);
+    GaugeDataPoint getMemoryUsage();
 
     /**
      * 获取缓存键列表（分页）
      *
-     * @param keyword 关键字
-     * @param pageNum 页码
-     * @param pageSize 每页大小
+     * @param pageQuery 分页参数
+     * @param queryDTO  查询条件
      * @return 键列表及总数
      */
-    Map<String, Object> getKeys(String keyword, Integer pageNum, Integer pageSize);
+    PageResult<String> getKeys(PageQuery pageQuery, CacheKeyQueryDTO queryDTO);
 
     /**
      * 刷新缓存键
      *
-     * @param key 键名
+     * @param refreshDTO 缓存键名
      * @return 是否成功
      */
-    boolean refreshKey(String key);
+    boolean refreshKey(CacheKeyRefreshDTO refreshDTO);
 
     /**
      * 删除缓存键
@@ -196,5 +202,5 @@ public interface ICacheSysService {
      *
      * @return Redis信息
      */
-    Map<String, Object> getRedisInfo();
+    CacheRedisInfoVO getRedisInfo();
 }

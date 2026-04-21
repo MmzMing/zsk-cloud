@@ -41,8 +41,8 @@
 |--------|------|------|------|
 | cacheName | string | 否 | 缓存名称 |
 | keyword | string | 否 | 关键字搜索 |
-| page | int | 否 | 页码，默认1 |
-| pageSize | int | 否 | 每页大小，默认10 |
+| pageNum | long | 否 | 页码，默认1 |
+| pageSize | long | 否 | 每页大小，默认10 |
 
 **成功响应** (200):
 
@@ -51,15 +51,65 @@
   "code": 0,
   "msg": "success",
   "data": {
-    "keys": ["user:1", "user:2", "config:site"],
-    "total": 3
+    "list": ["user:1", "user:2", "config:site"],
+    "total": 3,
+    "pageNum": 1,
+    "pageSize": 10,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrevious": false
   }
 }
 ```
 
 ---
 
-### 2.2 获取缓存值
+### 2.2 获取缓存信息列表
+
+**路径**: `GET /api/system/cache/list`
+
+**功能描述**: 获取缓存详细信息列表，支持按缓存名称筛选和分页
+
+**请求参数**:
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| cacheName | string | 否 | 缓存名称 |
+| pageNum | long | 否 | 页码，默认1 |
+| pageSize | long | 否 | 每页大小，默认10 |
+
+**成功响应** (200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": {
+    "list": [
+      {
+        "cacheKey": "user:1",
+        "cacheName": "user",
+        "cacheValue": "{\"id\":1,\"name\":\"admin\"}",
+        "ttl": 3600,
+        "ttlDesc": "1小时",
+        "dataSize": 100,
+        "dataType": "String",
+        "createTime": 1708502400000
+      }
+    ],
+    "total": 1,
+    "pageNum": 1,
+    "pageSize": 10,
+    "totalPages": 1,
+    "hasNext": false,
+    "hasPrevious": false
+  }
+}
+```
+
+---
+
+### 2.3 获取缓存值
 
 **路径**: `GET /api/system/cache/value/{cacheKey}`
 
@@ -87,7 +137,7 @@
 
 ---
 
-### 2.3 删除缓存键
+### 2.4 删除缓存键
 
 **路径**: `DELETE /api/system/cache/keys/{key}`
 
@@ -111,7 +161,7 @@
 
 ---
 
-### 2.4 清空所有缓存
+### 2.5 清空所有缓存
 
 **路径**: `DELETE /api/system/cache/clearAll`
 
@@ -129,7 +179,7 @@
 
 ---
 
-### 2.5 缓存预热
+### 2.6 缓存预热
 
 **路径**: `POST /api/system/cache/warmup`
 
@@ -144,7 +194,9 @@
 **请求示例**:
 
 ```json
-["userCache", "configCache"]
+{
+  "cacheNames": ["userCache", "configCache"]
+}
 ```
 
 **成功响应** (200):
@@ -153,10 +205,184 @@
 {
   "code": 0,
   "msg": "success",
-  "data": {
-    "successCount": 2,
-    "failCount": 0,
-    "message": "缓存预热完成"
+  "data": [
+    {
+      "cacheName": "userCache",
+      "success": true,
+      "count": 1,
+      "duration": 100
+    },
+    {
+      "cacheName": "configCache",
+      "success": true,
+      "count": 1,
+      "duration": 50
+    }
+  ]
+}
+```
+
+---
+
+### 2.7 刷新缓存键
+
+**路径**: `POST /api/system/cache/keys/refresh`
+
+**功能描述**: 刷新指定缓存键，重新加载数据
+
+**请求体**:
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| key | string | 是 | 缓存键名 |
+
+**请求示例**:
+
+```json
+{
+  "key": "user:1"
+}
+```
+
+**成功响应** (200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": null
+}
+```
+
+---
+
+### 2.8 刷新缓存过期时间
+
+**路径**: `PUT /api/system/cache/refreshTtl`
+
+**功能描述**: 更新指定缓存键的过期时间
+
+**请求体**:
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| cacheKey | string | 是 | 缓存键名 |
+| ttl | long | 是 | 过期时间（秒） |
+
+**请求示例**:
+
+```json
+{
+  "cacheKey": "user:1",
+  "ttl": 3600
+}
+```
+
+**成功响应** (200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": true
+}
+```
+
+---
+
+### 2.9 批量刷新缓存键
+
+**路径**: `POST /api/system/cache/keys/batchRefresh`
+
+**功能描述**: 批量刷新多个缓存键
+
+**请求体**:
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| keys | List<string> | 是 | 缓存键名列表 |
+
+**请求示例**:
+
+```json
+{
+  "keys": ["user:1", "user:2", "config:site"]
+}
+```
+
+**成功响应** (200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": null
+}
+```
+
+---
+
+### 2.10 批量删除缓存键
+
+**路径**: `POST /api/system/cache/keys/batchDelete`
+
+**功能描述**: 批量删除多个缓存键
+
+**请求体**:
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| keys | List<string> | 是 | 缓存键名列表 |
+
+**请求示例**:
+
+```json
+{
+  "keys": ["user:1", "user:2"]
+}
+```
+
+**成功响应** (200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": null
+}
+```
+
+---
+
+### 2.11 批量刷新缓存过期时间
+
+**路径**: `PUT /api/system/cache/refreshTtlBatch`
+
+**功能描述**: 批量更新多个缓存键的过期时间
+
+**请求体**:
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| cacheKeyTtlMap | Map<string, long> | 是 | 缓存键名与过期时间的映射 |
+
+**请求示例**:
+
+```json
+{
+  "cacheKeyTtlMap": {
+    "user:1": 3600,
+    "user:2": 7200
   }
+}
+```
+
+**成功响应** (200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": 2
 }
 ```
