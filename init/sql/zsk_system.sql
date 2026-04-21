@@ -89,6 +89,7 @@ CREATE TABLE `sys_menu` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='菜单权限表';
 
+-
 -- ----------------------------
 -- 5. 角色和菜单关联表
 -- ----------------------------
@@ -233,3 +234,54 @@ INSERT INTO `sys_dict_data` (`id`, `dict_sort`, `dict_label`, `dict_value`, `dic
 (10206, 6, '低俗内容', '6', 'video_violation_reason', NULL, 'warning', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
 (10207, 7, '广告推广', '7', 'video_violation_reason', NULL, 'info', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
 (10208, 8, '其他违规', '8', 'video_violation_reason', NULL, 'info', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL);
+- ----------------------------
+-- 4.1 菜单数据
+-- ----------------------------
+INSERT INTO `sys_menu` (`id`, `menu_name`, `parent_id`, `order_num`, `path`, `component`, `query`, `is_frame`, `is_cache`, `menu_type`, `visible`, `status`, `perms`, `icon`, `deleted`, `create_name`, `create_time`, `update_name`, `update_time`, `remark`) VALUES
+-- 一级菜单：仪表盘（C菜单，无子菜单）
+(2001, '仪表盘', 0, 1, '/admin/dashboard', 'dashboard/index', '', 1, 0, 'C', 0, 0, 'dashboard:view', 'home', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+
+-- 一级菜单：机器人平台（M目录）
+(2002, '机器人平台', 0, 2, '/admin/robot', '', '', 1, 0, 'M', 0, 0, 'robot:view', 'bot', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+-- 二级菜单：机器人平台子菜单
+(2101, '钉钉机器人', 2002, 1, '/admin/robot/dingding', 'robot/dingding', '', 1, 0, 'C', 0, 0, 'robot:dingding:view', 'bot', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2102, '微信机器人', 2002, 2, '/admin/robot/wechat', 'robot/wechat', '', 1, 0, 'C', 0, 0, 'robot:wechat:view', 'message-square', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2103, 'NapCat机器人', 2002, 3, '/admin/robot/napcat', 'robot/napcat', '', 1, 0, 'C', 0, 0, 'robot:napcat:view', 'bot', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2104, 'QQ机器人', 2002, 4, '/admin/robot/qq', 'robot/qq', '', 1, 0, 'C', 0, 0, 'robot:qq:view', 'message-circle', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+
+-- 一级菜单：人员管理（M目录）
+(2003, '人员管理', 0, 3, '/admin/personnel', '', '', 1, 0, 'M', 0, 0, 'personnel:view', 'users', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+-- 二级菜单：人员管理子菜单
+(2201, '菜单管理', 2003, 1, '/admin/personnel/menu', 'personnel/menu', '', 1, 0, 'C', 0, 0, 'personnel:menu:view', 'list', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2202, '角色管理', 2003, 2, '/admin/personnel/role', 'personnel/role', '', 1, 0, 'C', 0, 0, 'personnel:role:view', 'shield-check', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2203, '用户管理', 2003, 3, '/admin/personnel/user', 'personnel/user', '', 1, 0, 'C', 0, 0, 'personnel:user:view', 'users', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+
+-- 一级菜单：视频管理（M目录）
+(2004, '视频管理', 0, 4, '/admin/video', '', '', 1, 0, 'M', 0, 0, 'video:view', 'video', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+-- 二级菜单：视频管理子菜单
+(2301, '视频列表', 2004, 1, '/admin/video/list', 'video/list', '', 1, 0, 'C', 0, 0, 'video:list:view', 'folder-open', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2302, '视频上传', 2004, 2, '/admin/video/upload', 'video/upload', '', 1, 0, 'C', 0, 0, 'video:upload:view', 'upload', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2303, '视频审核', 2004, 3, '/admin/video/audit', 'video/audit', '', 1, 0, 'C', 0, 0, 'video:audit:view', 'check-circle', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+
+-- 一级菜单：文档管理（M目录）
+(2005, '文档管理', 0, 5, '/admin/document', '', '', 1, 0, 'M', 0, 0, 'document:view', 'file-text', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+-- 二级菜单：文档管理子菜单
+(2401, '文档编辑', 2005, 1, '/admin/document/edit', 'document/edit', '', 1, 0, 'C', 0, 0, 'document:edit:view', 'edit', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2402, '文档列表', 2005, 2, '/admin/document/list', 'document/list', '', 1, 0, 'C', 0, 0, 'document:list:view', 'file-text', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2403, '文档上传', 2005, 3, '/admin/document/upload', 'document/upload', '', 1, 0, 'C', 0, 0, 'document:upload:view', 'upload', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2404, '文档审核', 2005, 4, '/admin/document/audit', 'document/audit', '', 1, 0, 'C', 0, 0, 'document:audit:view', 'check-circle', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+
+-- 一级菜单：系统管理（M目录）
+(2006, '系统管理', 0, 6, '/admin/system', '', '', 1, 0, 'M', 0, 0, 'system:view', 'settings', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+-- 二级菜单：系统管理子菜单
+(2501, '参数配置', 2006, 1, '/admin/system/config', 'system/config', '', 1, 0, 'C', 0, 0, 'system:config:view', 'cog', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2502, '字典管理', 2006, 2, '/admin/system/dictionary', 'system/dictionary', '', 1, 0, 'C', 0, 0, 'system:dictionary:view', 'tag', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+
+-- 一级菜单：系统运维（M目录）
+(2007, '系统运维', 0, 7, '/admin/ops', '', '', 1, 0, 'M', 0, 0, 'ops:view', 'monitor', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+-- 二级菜单：系统运维子菜单
+(2601, '服务监控', 2007, 1, '/admin/ops/monitor', 'ops/monitor', '', 1, 0, 'C', 0, 0, 'ops:monitor:view', 'activity', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2602, '缓存列表', 2007, 2, '/admin/ops/cache', 'ops/cache', '', 1, 0, 'C', 0, 0, 'ops:cache:view', 'database', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2603, '任务日志', 2007, 3, '/admin/ops/log', 'ops/log', '', 1, 0, 'C', 0, 0, 'ops:log:view', 'list-checks', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2604, '系统监控', 2007, 4, '/admin/ops/system', 'ops/system', '', 1, 0, 'C', 0, 0, 'ops:system:view', 'monitor', 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(2605, '用户行为', 2007, 5, '/admin/ops/behavior', 'ops/behavior', '', 1, 0, 'C', 0, 0, 'ops:behavior:view', 'refresh-cw', 0, 'admin', NOW(), 'admin', NOW(), NULL);
