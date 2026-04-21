@@ -108,6 +108,16 @@ public class CacheConstants {
     public static final String CACHE_LOGIN_TOKEN = CACHE_PREFIX + "login:token:";
 
     /**
+     * 登录用户角色缓存键前缀（key: uuid）
+     */
+    public static final String CACHE_LOGIN_ROLES = CACHE_PREFIX + "login:roles:";
+
+    /**
+     * 登录用户权限缓存键前缀（key: uuid）
+     */
+    public static final String CACHE_LOGIN_PERMISSIONS = CACHE_PREFIX + "login:permissions:";
+
+    /**
      * 第三方登录状态缓存键前缀
      */
     public static final String CACHE_THIRD_PARTY_STATE = CACHE_PREFIX + "auth:third:state:";

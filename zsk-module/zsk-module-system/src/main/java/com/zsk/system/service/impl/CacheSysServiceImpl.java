@@ -314,7 +314,7 @@ public class CacheSysServiceImpl implements ICacheSysService {
             query.addCriteria(Criteria.where("instanceId").is(instanceId));
         }
         query.with(Sort.by(Sort.Direction.DESC, "operTime"));
-        query.limit(100);
+        query.limit(10);
         return mongoTemplate.find(query, SysCacheLog.class);
     }
 

@@ -25,8 +25,8 @@ import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
-import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -95,17 +95,20 @@ public class AuthFilter implements GlobalFilter, Ordered {
             // 刷新 Token 在 Redis 中的过期时间 (滑动过期)
             redisService.expire(tokenKey, SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
 
-            // 从 JWT Claims 中直接提取用户信息，无需查 Redis
             String userId = claims.get(SecurityConstants.USER_ID).toString();
             String username = claims.get(SecurityConstants.USER_NAME).toString();
             String nickname = claims.get(SecurityConstants.NICK_NAME) != null ? claims.get(SecurityConstants.NICK_NAME).toString() : "";
 
-            // 处理集合类型的 Claims (roles, permissions)
-            Object rolesObj = claims.get(SecurityConstants.ROLES);
-            Object permsObj = claims.get(SecurityConstants.PERMISSIONS);
+            String rolesKey = CacheConstants.CACHE_LOGIN_ROLES + uuid;
+            String permsKey = CacheConstants.CACHE_LOGIN_PERMISSIONS + uuid;
+            Set<String> rolesSet = redisService.getCacheObject(rolesKey);
+            Set<String> permsSet = redisService.getCacheObject(permsKey);
 
-            String roles = rolesObj != null ? StringUtils.join((Collection<?>) rolesObj, ",") : "";
-            String permissions = permsObj != null ? StringUtils.join((Collection<?>) permsObj, ",") : "";
+            String roles = StringUtils.isNotEmpty(rolesSet) ? StringUtils.join(rolesSet, ",") : "";
+            String permissions = StringUtils.isNotEmpty(permsSet) ? StringUtils.join(permsSet, ",") : "";
+
+            redisService.expire(rolesKey, SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
+            redisService.expire(permsKey, SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
 
             // 将用户信息注入请求头
             ServerHttpRequest mutableReq = request.mutate()
