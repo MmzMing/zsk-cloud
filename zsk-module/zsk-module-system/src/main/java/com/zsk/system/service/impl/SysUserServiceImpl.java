@@ -109,8 +109,10 @@ public class SysUserServiceImpl extends ServiceImpl<SysUserMapper, SysUser> impl
     @Transactional(rollbackFor = Exception.class)
     public boolean updateUser(SysUser user) {
         Long userId = user.getId();
-        userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, userId));
-        insertUserRole(user);
+        if (user.getRoleIds() != null && user.getRoleIds().length > 0) {
+            userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getUserId, userId));
+            insertUserRole(user);
+        }
         return updateById(user);
     }
 

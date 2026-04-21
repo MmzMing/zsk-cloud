@@ -1,7 +1,10 @@
 package com.zsk.system.service.impl;
 
+import cn.hutool.core.util.StrUtil;
+import com.zsk.common.datasource.domain.PageQuery;
+import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.common.log.domain.OperLog;
-import com.zsk.system.domain.vo.SysRecentLogResponseVo;
+import com.zsk.system.domain.dto.SysLogQueryDTO;
 import com.zsk.system.domain.vo.SysRecentLogVo;
 import com.zsk.system.service.ISysLogService;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +16,7 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,26 +37,22 @@ public class SysLogServiceImpl implements ISysLogService {
 
     private static final DateTimeFormatter FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
+    /**
+     * 分页查询管理日志
+     *
+     * @param pageQuery 分页参数
+     * @param queryDTO 查询条件
+     * @return 分页日志结果
+     */
     @Override
-    public SysRecentLogResponseVo getRecentLogs(String category, Integer page, Integer pageSize) {
-        SysRecentLogResponseVo response = new SysRecentLogResponseVo();
-
-        /** 构建查询条件 */
-        Query query = new Query();
-
-        /** 根据分类过滤 */
-        if (category != null && !category.isEmpty()) {
-            Criteria criteria = buildCategoryCriteria(category);
-            if (criteria != null) {
-                query.addCriteria(criteria);
-            }
-        }
+    public PageResult<SysRecentLogVo> pageLogs(PageQuery pageQuery, SysLogQueryDTO queryDTO) {
+        Query query = buildQuery(queryDTO);
 
         /** 统计总数 */
         long total = mongoTemplate.count(query, OperLog.class);
 
         /** 分页查询 */
-        query.with(PageRequest.of(page - 1, pageSize));
+        query.with(PageRequest.of(pageQuery.getPageNum().intValue() - 1, pageQuery.getPageSize().intValue()));
         query.with(Sort.by(Sort.Direction.DESC, "operTime"));
 
         List<OperLog> operLogs = mongoTemplate.find(query, OperLog.class);
@@ -60,14 +60,92 @@ public class SysLogServiceImpl implements ISysLogService {
         /** 转换结果 */
         List<SysRecentLogVo> list = new ArrayList<>();
         for (OperLog operLog : operLogs) {
-            SysRecentLogVo vo = convertToVo(operLog);
-            list.add(vo);
+            list.add(convertToVo(operLog));
         }
 
-        response.setList(list);
-        response.setTotal(total);
+        return PageResult.of(list, total, pageQuery.getPageNum(), pageQuery.getPageSize());
+    }
 
-        return response;
+    /**
+     * 批量删除管理日志
+     *
+     * @param ids 日志ID列表
+     * @return 是否成功
+     */
+    @Override
+    public boolean deleteLogByIds(List<String> ids) {
+        try {
+            /** 根据ID列表批量删除 */
+            Query query = new Query(Criteria.where("id").in(ids));
+            mongoTemplate.remove(query, OperLog.class);
+            return true;
+        } catch (Exception e) {
+            log.error("批量删除管理日志失败: {}", e.getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * 构建查询条件
+     *
+     * @param queryDTO 查询条件
+     * @return 查询对象
+     */
+    private Query buildQuery(SysLogQueryDTO queryDTO) {
+        Query query = new Query();
+
+        /** 根据分类过滤 */
+        if (StrUtil.isNotBlank(queryDTO.getCategory())) {
+            Criteria criteria = buildCategoryCriteria(queryDTO.getCategory());
+            if (criteria != null) {
+                query.addCriteria(criteria);
+            }
+        }
+
+        /** 根据操作人过滤 */
+        if (StrUtil.isNotBlank(queryDTO.getOperator())) {
+            query.addCriteria(Criteria.where("operName").regex(queryDTO.getOperator()));
+        }
+
+        /** 根据请求URL过滤 */
+        if (StrUtil.isNotBlank(queryDTO.getRequestUrl())) {
+            query.addCriteria(Criteria.where("operUrl").regex(queryDTO.getRequestUrl()));
+        }
+
+        /** 根据请求方式过滤 */
+        if (StrUtil.isNotBlank(queryDTO.getRequestMethod())) {
+            query.addCriteria(Criteria.where("requestMethod").is(queryDTO.getRequestMethod()));
+        }
+
+        /** 根据操作状态过滤 */
+        if (queryDTO.getStatus() != null) {
+            query.addCriteria(Criteria.where("status").is(queryDTO.getStatus()));
+        }
+
+        /** 根据模块标题过滤 */
+        if (StrUtil.isNotBlank(queryDTO.getTitle())) {
+            query.addCriteria(Criteria.where("title").regex(queryDTO.getTitle()));
+        }
+
+        /** 根据业务类型过滤 */
+        if (queryDTO.getBusinessType() != null) {
+            query.addCriteria(Criteria.where("businessType").is(queryDTO.getBusinessType()));
+        }
+
+        /** 根据操作时间范围过滤 */
+        if (StrUtil.isNotBlank(queryDTO.getBeginTime()) && StrUtil.isNotBlank(queryDTO.getEndTime())) {
+            LocalDateTime beginTime = LocalDateTime.parse(queryDTO.getBeginTime(), FORMATTER);
+            LocalDateTime endTime = LocalDateTime.parse(queryDTO.getEndTime(), FORMATTER);
+            query.addCriteria(Criteria.where("operTime").gte(beginTime).lte(endTime));
+        } else if (StrUtil.isNotBlank(queryDTO.getBeginTime())) {
+            LocalDateTime beginTime = LocalDateTime.parse(queryDTO.getBeginTime(), FORMATTER);
+            query.addCriteria(Criteria.where("operTime").gte(beginTime));
+        } else if (StrUtil.isNotBlank(queryDTO.getEndTime())) {
+            LocalDateTime endTime = LocalDateTime.parse(queryDTO.getEndTime(), FORMATTER);
+            query.addCriteria(Criteria.where("operTime").lte(endTime));
+        }
+
+        return query;
     }
 
     /**
@@ -99,6 +177,13 @@ public class SysLogServiceImpl implements ISysLogService {
         vo.setAction(determineAction(operLog.getBusinessType(), operLog.getTitle()));
         vo.setDetail(buildDetail(operLog));
         vo.setCreatedAt(operLog.getOperTime() != null ? operLog.getOperTime().format(FORMATTER) : "");
+        vo.setRequestMethod(operLog.getRequestMethod());
+        vo.setRequestUrl(operLog.getOperUrl());
+        vo.setRequestParam(operLog.getOperParam());
+        vo.setResponseResult(operLog.getJsonResult());
+        vo.setStatus(operLog.getStatus());
+        vo.setCostTime(operLog.getCostTime());
+        vo.setOperIp(operLog.getOperIp());
         return vo;
     }
 
@@ -129,7 +214,7 @@ public class SysLogServiceImpl implements ISysLogService {
      * @return 动作名称
      */
     private String determineAction(Integer businessType, String title) {
-        if (title != null && !title.isEmpty()) {
+        if (StrUtil.isNotBlank(title)) {
             return title;
         }
         if (businessType == null) {

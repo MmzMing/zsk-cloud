@@ -48,7 +48,7 @@ public class RemoteUserFallbackFactory implements FallbackFactory<RemoteUserServ
             }
 
             @Override
-            public R<Boolean> updateUser(SysUserApi user) {
+            public R<Boolean> updateUser(SysUserApi user, String source) {
                 return R.fail("更新用户失败:" + throwable.getMessage());
             }
         };

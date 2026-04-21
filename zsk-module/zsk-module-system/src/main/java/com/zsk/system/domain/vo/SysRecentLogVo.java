@@ -43,4 +43,32 @@ public class SysRecentLogVo implements Serializable {
     /** 创建时间 */
     @Schema(description = "创建时间")
     private String createdAt;
+
+    /** 请求方式 */
+    @Schema(description = "请求方式")
+    private String requestMethod;
+
+    /** 请求URL */
+    @Schema(description = "请求URL")
+    private String requestUrl;
+
+    /** 请求参数 */
+    @Schema(description = "请求参数")
+    private String requestParam;
+
+    /** 响应结果 */
+    @Schema(description = "响应结果")
+    private String responseResult;
+
+    /** 操作状态（0正常 1异常） */
+    @Schema(description = "操作状态（0正常 1异常）")
+    private Integer status;
+
+    /** 消耗时间(ms) */
+    @Schema(description = "消耗时间(ms)")
+    private Long costTime;
+
+    /** 操作IP */
+    @Schema(description = "操作IP")
+    private String operIp;
 }

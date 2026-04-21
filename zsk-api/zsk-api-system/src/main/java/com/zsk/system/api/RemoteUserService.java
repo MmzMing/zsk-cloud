@@ -68,9 +68,10 @@ public interface RemoteUserService {
     /**
      * 更新用户信息
      *
-     * @param user 用户信息
+     * @param user   用户信息
+     * @param source 请求来源
      * @return 结果
      */
     @PutMapping("/system/user/inner")
-    public R<Boolean> updateUser(@RequestBody SysUserApi user);
+    public R<Boolean> updateUser(@RequestBody SysUserApi user, @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
 }

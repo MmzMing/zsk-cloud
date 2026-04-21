@@ -14,6 +14,7 @@ import com.zsk.common.core.constant.SecurityConstants;
 import com.zsk.common.core.domain.R;
 import com.zsk.common.core.exception.AuthException;
 import com.zsk.common.core.exception.BusinessException;
+import com.zsk.common.core.utils.IpUtils;
 import com.zsk.common.core.utils.JwtUtils;
 import com.zsk.common.core.utils.StringUtils;
 import com.zsk.common.redis.service.RedisService;
@@ -24,7 +25,11 @@ import com.zsk.system.api.model.LoginUser;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
+import jakarta.servlet.http.HttpServletRequest;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -112,6 +117,8 @@ public class AuthServiceImpl implements IAuthService {
         sysUser.setPassword(SecurityUtils.encryptPassword(password));
         sysUser.setStatus("0"); // 正常状态
         sysUser.setUserType(StringUtils.defaultIfBlank(registerBody.getUserType(), "1001")); // 默认注册用户类型为1001
+        sysUser.setLoginIp(getClientIp());
+        sysUser.setLoginDate(LocalDateTime.now());
 
         R<Boolean> registerResult = remoteUserService.createUser(sysUser);
 
@@ -248,6 +255,9 @@ public class AuthServiceImpl implements IAuthService {
     private LoginResponse generateToken(LoginUser loginUser) {
         SysUserApi user = loginUser.getSysUser();
         String accessToken = generateAccessToken(loginUser);
+
+        /** 更新最后登录IP和登录时间 */
+        updateLoginIp(user.getId());
 
         return LoginResponse.builder()
                 .accessToken(accessToken)
@@ -476,7 +486,7 @@ public class AuthServiceImpl implements IAuthService {
         updateUser.setId(user.getId());
         updateUser.setPassword(SecurityUtils.encryptPassword(decryptedPassword));
 
-        R<Boolean> updateResult = remoteUserService.updateUser(updateUser);
+        R<Boolean> updateResult = remoteUserService.updateUser(updateUser, CommonConstants.REQUEST_SOURCE_INNER);
         if (updateResult == null || !updateResult.isSuccess()) {
             String msg = updateResult != null ? updateResult.getMsg() : "密码重置失败";
             throw new AuthException(msg);
@@ -608,6 +618,8 @@ public class AuthServiceImpl implements IAuthService {
         sysUser.setEmail(email);
         sysUser.setStatus("0");
         sysUser.setUserType("1001");
+        sysUser.setLoginIp(getClientIp());
+        sysUser.setLoginDate(LocalDateTime.now());
 
         R<Boolean> createResult = remoteUserService.createUser(sysUser);
         if (createResult == null || !createResult.isSuccess()) {
@@ -623,5 +635,36 @@ public class AuthServiceImpl implements IAuthService {
 
         log.info("通过魔法链接自动创建用户: {}", email);
         return userResult.getData();
+    }
+
+    /**
+     * 获取客户端IP地址
+     *
+     * @return IP地址
+     */
+    private String getClientIp() {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        if (attributes != null) {
+            HttpServletRequest request = attributes.getRequest();
+            return IpUtils.getIpAddr(request);
+        }
+        return "unknown";
+    }
+
+    /**
+     * 更新用户最后登录IP和登录时间
+     *
+     * @param userId 用户ID
+     */
+    private void updateLoginIp(Long userId) {
+        try {
+            SysUserApi updateUser = new SysUserApi();
+            updateUser.setId(userId);
+            updateUser.setLoginIp(getClientIp());
+            updateUser.setLoginDate(LocalDateTime.now());
+            remoteUserService.updateUser(updateUser, CommonConstants.REQUEST_SOURCE_INNER);
+        } catch (Exception e) {
+            log.error("更新用户登录IP失败: {}", e.getMessage());
+        }
     }
 }

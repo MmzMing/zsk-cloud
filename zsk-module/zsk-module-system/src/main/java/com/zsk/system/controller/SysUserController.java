@@ -17,11 +17,9 @@ import com.zsk.system.service.ISysUserService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
-import org.checkerframework.checker.nullness.qual.NonNull;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -161,7 +159,7 @@ public class SysUserController {
      * @param sysUser 系统用户
      * @return API用户
      */
-    private static @NonNull SysUserApi getSysUserApi(SysUser sysUser) {
+    private static SysUserApi getSysUserApi(SysUser sysUser) {
         SysUserApi apiUser = new SysUserApi();
         apiUser.setId(sysUser.getId());
         apiUser.setUserName(sysUser.getUserName());
@@ -268,6 +266,8 @@ public class SysUserController {
         user.setSex(userApi.getSex());
         user.setAvatar(userApi.getAvatar());
         user.setStatus(userApi.getStatus());
+        user.setLoginIp(userApi.getLoginIp());
+        user.setLoginDate(userApi.getLoginDate());
 
         return R.ok(userService.updateUser(user));
     }
