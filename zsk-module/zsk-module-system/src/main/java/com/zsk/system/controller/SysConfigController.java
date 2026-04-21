@@ -1,11 +1,17 @@
 package com.zsk.system.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zsk.common.core.domain.R;
+import com.zsk.common.datasource.domain.PageQuery;
+import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.system.domain.SysConfig;
 import com.zsk.system.service.ISysConfigService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -30,6 +36,25 @@ public class SysConfigController {
     @GetMapping("/list")
     public R<List<SysConfig>> list(SysConfig config) {
         return R.ok(configService.list());
+    }
+
+    /**
+     * 分页查询参数列表
+     *
+     * @param pageQuery 分页参数
+     * @param config    查询条件
+     * @return 分页结果
+     */
+    @Operation(summary = "分页查询参数列表")
+    @GetMapping("/page")
+    public R<PageResult<SysConfig>> page(PageQuery pageQuery, SysConfig config) {
+        LambdaQueryWrapper<SysConfig> lqw = Wrappers.lambdaQuery();
+        lqw.like(StringUtils.hasText(config.getConfigName()), SysConfig::getConfigName, config.getConfigName());
+        lqw.eq(StringUtils.hasText(config.getConfigKey()), SysConfig::getConfigKey, config.getConfigKey());
+        lqw.eq(config.getConfigType() != null, SysConfig::getConfigType, config.getConfigType());
+
+        Page<SysConfig> page = configService.page(pageQuery.build(), lqw);
+        return R.ok(PageResult.build(page));
     }
 
     /**

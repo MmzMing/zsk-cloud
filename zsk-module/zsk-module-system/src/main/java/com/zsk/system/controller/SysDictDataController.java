@@ -2,7 +2,10 @@ package com.zsk.system.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.Wrappers;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zsk.common.core.domain.R;
+import com.zsk.common.datasource.domain.PageQuery;
+import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.system.domain.SysDictData;
 import com.zsk.system.service.ISysDictDataService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -43,6 +46,26 @@ public class SysDictDataController {
         lqw.eq(StringUtils.hasText(dictData.getStatus()), SysDictData::getStatus, dictData.getStatus());
         lqw.orderByAsc(SysDictData::getDictSort);
         return R.ok(dictDataService.list(lqw));
+    }
+
+    /**
+     * 分页查询字典数据列表
+     *
+     * @param pageQuery 分页参数
+     * @param dictData  查询条件
+     * @return 分页结果
+     */
+    @Operation(summary = "分页查询字典数据列表")
+    @GetMapping("/page")
+    public R<PageResult<SysDictData>> page(PageQuery pageQuery, SysDictData dictData) {
+        LambdaQueryWrapper<SysDictData> lqw = Wrappers.lambdaQuery();
+        lqw.eq(StringUtils.hasText(dictData.getDictType()), SysDictData::getDictType, dictData.getDictType());
+        lqw.like(StringUtils.hasText(dictData.getDictLabel()), SysDictData::getDictLabel, dictData.getDictLabel());
+        lqw.eq(StringUtils.hasText(dictData.getStatus()), SysDictData::getStatus, dictData.getStatus());
+        lqw.orderByAsc(SysDictData::getDictSort);
+
+        Page<SysDictData> page = dictDataService.page(pageQuery.build(), lqw);
+        return R.ok(PageResult.build(page));
     }
 
     /**
@@ -108,7 +131,7 @@ public class SysDictDataController {
     /**
      * 切换字典状态
      *
-     * @param id 字典ID
+     * @param id     字典ID
      * @param status 状态（0正常 1停用）
      * @return 是否成功
      */
@@ -121,7 +144,7 @@ public class SysDictDataController {
     /**
      * 批量切换字典状态
      *
-     * @param ids 字典ID列表
+     * @param ids    字典ID列表
      * @param status 状态（0正常 1停用）
      * @return 是否成功
      */

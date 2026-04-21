@@ -134,8 +134,8 @@ public class SysRoleController {
      */
     @Operation(summary = "解绑角色权限")
     @DeleteMapping("/{roleId}/menus")
-    public R<Void> unbindRoleMenus(@PathVariable Long roleId, @RequestBody Map<String, List<Long>> body) {
-        List<Long> menuIds = body.get("menuIds");
+    public R<Void> unbindRoleMenus(@PathVariable Long roleId, @RequestBody(required = false) Map<String, List<Long>> body) {
+        List<Long> menuIds = body != null ? body.get("menuIds") : null;
         return roleService.unbindRoleMenus(roleId, menuIds) ? R.ok() : R.fail();
     }
 
@@ -188,8 +188,8 @@ public class SysRoleController {
      */
     @Operation(summary = "解绑角色用户")
     @DeleteMapping("/{roleId}/users")
-    public R<Void> unbindRoleUsers(@PathVariable Long roleId, @RequestBody Map<String, List<Long>> body) {
-        List<Long> userIds = body.get("userIds");
+    public R<Void> unbindRoleUsers(@PathVariable Long roleId, @RequestBody(required = false) Map<String, List<Long>> body) {
+        List<Long> userIds = body != null ? body.get("userIds") : null;
         return roleService.unbindRoleUsers(roleId, userIds) ? R.ok() : R.fail();
     }
 

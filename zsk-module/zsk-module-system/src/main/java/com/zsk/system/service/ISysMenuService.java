@@ -2,6 +2,7 @@ package com.zsk.system.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zsk.system.domain.SysMenu;
+import com.zsk.system.domain.vo.MenuTreeVo;
 
 import java.util.List;
 import java.util.Set;
@@ -40,4 +41,13 @@ public interface ISysMenuService extends IService<SysMenu> {
      * @return 是否成功
      */
     boolean deleteMenuByIds(List<Long> menuIds);
+
+    /**
+     * 获取当前用户的菜单树（含排序）
+     * <p>
+     * 根据当前登录用户ID查询其有权限访问的菜单，并构建树形结构
+     *
+     * @return 菜单树列表
+     */
+    List<MenuTreeVo> getUserMenuTree();
 }

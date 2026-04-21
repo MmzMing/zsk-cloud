@@ -5,6 +5,7 @@
 | API路径 | HTTP方法 | 所属文件 | 功能描述 |
 |---------|----------|----------|----------|
 | /api/system/menu/list | GET | SysMenuController.java | 查询菜单列表 |
+| /api/system/menu/tree | GET | SysMenuController.java | 获取当前用户菜单树（含排序） |
 | /api/system/menu/user/{userId} | GET | SysMenuController.java | 根据用户ID查询菜单树列表 |
 | /api/system/menu/{id} | GET | SysMenuController.java | 获取菜单详细信息 |
 | /api/system/menu | POST | SysMenuController.java | 新增菜单 |
@@ -52,7 +53,105 @@
 
 ---
 
-### 2.2 根据用户ID查询菜单树列表
+### 2.2 获取当前用户菜单树
+
+**路径**: `GET /api/system/menu/tree`
+
+**功能描述**: 根据当前登录用户ID查询其有权限访问的菜单，并构建树形结构，包含完整的菜单信息和排序。支持自动处理同一层级菜单排序号重复问题。
+
+**请求参数**: 无（自动从SecurityContext获取当前用户）
+
+**成功响应** (200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": [
+    {
+      "id": "2001",
+      "parentId": "0",
+      "menuName": "仪表盘",
+      "path": "/admin/dashboard",
+      "component": "dashboard/index",
+      "query": "",
+      "isFrame": 1,
+      "isCache": 0,
+      "menuType": "C",
+      "visible": "0",
+      "status": "0",
+      "perms": "dashboard:view",
+      "icon": "home",
+      "orderNum": 1,
+      "children": []
+    },
+    {
+      "id": "2002",
+      "parentId": "0",
+      "menuName": "机器人平台",
+      "path": "/admin/robot",
+      "component": "",
+      "query": "",
+      "isFrame": 1,
+      "isCache": 0,
+      "menuType": "M",
+      "visible": "0",
+      "status": "0",
+      "perms": "robot:view",
+      "icon": "bot",
+      "orderNum": 2,
+      "children": [
+        {
+          "id": "2101",
+          "parentId": "2002",
+          "menuName": "钉钉机器人",
+          "path": "/admin/robot/dingding",
+          "component": "robot/dingding",
+          "query": "",
+          "isFrame": 1,
+          "isCache": 0,
+          "menuType": "C",
+          "visible": "0",
+          "status": "0",
+          "perms": "robot:dingding:view",
+          "icon": "bot",
+          "orderNum": 1,
+          "children": []
+        }
+      ]
+    }
+  ]
+}
+```
+
+**响应字段说明**:
+
+| 字段名 | 类型 | 说明 |
+|--------|------|------|
+| id | String | 菜单ID（雪花ID） |
+| parentId | String | 父菜单ID（顶级菜单为0） |
+| menuName | String | 菜单名称 |
+| path | String | 路由地址 |
+| component | String | 组件路径 |
+| query | String | 路由参数 |
+| isFrame | Integer | 是否为外链（0是 1否） |
+| isCache | Integer | 是否缓存（0缓存 1不缓存） |
+| menuType | String | 菜单类型（M目录 C菜单 F按钮） |
+| visible | String | 菜单显示状态（0显示 1隐藏） |
+| status | String | 菜单状态（0正常 1停用） |
+| perms | String | 权限标识 |
+| icon | String | 菜单图标 |
+| orderNum | Integer | 显示顺序 |
+| children | Array | 子菜单列表 |
+
+**备注**:
+- 接口自动从SecurityContext获取当前登录用户ID
+- 如果用户未登录，返回空列表
+- 自动处理同一层级菜单排序号重复问题，重复时重新分配为1,2,3...连续序号
+
+---
+
+### 2.3 根据用户ID查询菜单树列表
 
 **路径**: `GET /api/system/menu/user/{userId}`
 
@@ -90,7 +189,7 @@
 
 ---
 
-### 2.3 获取菜单详细信息
+### 2.4 获取菜单详细信息
 
 **路径**: `GET /api/system/menu/{id}`
 
@@ -128,7 +227,7 @@
 
 ---
 
-### 2.4 新增菜单
+### 2.5 新增菜单
 
 **路径**: `POST /api/system/menu`
 
@@ -183,7 +282,7 @@
 
 ---
 
-### 2.5 修改菜单
+### 2.6 修改菜单
 
 **路径**: `PUT /api/system/menu`
 
@@ -220,7 +319,7 @@
 
 ---
 
-### 2.6 批量更新菜单
+### 2.7 批量更新菜单
 
 **路径**: `PUT /api/system/menu/batch`
 
@@ -255,7 +354,7 @@
 
 ---
 
-### 2.7 删除菜单
+### 2.8 删除菜单
 
 **路径**: `DELETE /api/system/menu/{ids}`
 

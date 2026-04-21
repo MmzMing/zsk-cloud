@@ -105,10 +105,12 @@ CREATE TABLE `sys_role_menu` (
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_dict_type`;
 CREATE TABLE `sys_dict_type` (
-  `id` bigint(20) NOT NULL  COMMENT '字典主键',
+  `id` bigint(20) NOT NULL COMMENT '字典主键',
+  `tenant_id` bigint(20) DEFAULT 0 COMMENT '租户ID',
   `dict_name` varchar(100) DEFAULT '' COMMENT '字典名称',
   `dict_type` varchar(100) DEFAULT '' COMMENT '字典类型',
   `status` int(4) DEFAULT 0 COMMENT '状态（0正常 1停用）',
+  `deleted` tinyint(1) DEFAULT 0 COMMENT '是否已删除(0否 1是)',
   `create_name` varchar(100) DEFAULT NULL COMMENT '创建者姓名',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
   `update_name` varchar(100) DEFAULT NULL COMMENT '更新者姓名',
@@ -120,7 +122,8 @@ CREATE TABLE `sys_dict_type` (
 
 DROP TABLE IF EXISTS `sys_dict_data`;
 CREATE TABLE `sys_dict_data` (
-  `id` bigint(20) NOT NULL  COMMENT '字典编码',
+  `id` bigint(20) NOT NULL COMMENT '字典编码',
+  `tenant_id` bigint(20) DEFAULT 0 COMMENT '租户ID',
   `dict_sort` int(4) DEFAULT 0 COMMENT '字典排序',
   `dict_label` varchar(100) DEFAULT '' COMMENT '字典标签',
   `dict_value` varchar(100) DEFAULT '' COMMENT '字典键值',
@@ -129,6 +132,7 @@ CREATE TABLE `sys_dict_data` (
   `list_class` varchar(100) DEFAULT NULL COMMENT '表格回显样式',
   `is_default` tinyint(1) DEFAULT 0 COMMENT '是否默认（0否 1是）',
   `status` int(4) DEFAULT 0 COMMENT '状态（0正常 1停用）',
+  `deleted` tinyint(1) DEFAULT 0 COMMENT '是否已删除(0否 1是)',
   `create_name` varchar(100) DEFAULT NULL COMMENT '创建者姓名',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
   `update_name` varchar(100) DEFAULT NULL COMMENT '更新者姓名',
@@ -142,11 +146,13 @@ CREATE TABLE `sys_dict_data` (
 -- ----------------------------
 DROP TABLE IF EXISTS `sys_config`;
 CREATE TABLE `sys_config` (
-  `id` bigint(20) NOT NULL  COMMENT '参数主键',
+  `id` bigint(20) NOT NULL COMMENT '参数主键',
+  `tenant_id` bigint(20) DEFAULT 0 COMMENT '租户ID',
   `config_name` varchar(100) DEFAULT '' COMMENT '参数名称',
   `config_key` varchar(100) DEFAULT '' COMMENT '参数键名',
   `config_value` varchar(500) DEFAULT '' COMMENT '参数键值',
   `config_type` int(4) DEFAULT 0 COMMENT '系统内置（0否 1是）',
+  `deleted` tinyint(1) DEFAULT 0 COMMENT '是否已删除(0否 1是)',
   `create_name` varchar(100) DEFAULT NULL COMMENT '创建者姓名',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',
   `update_name` varchar(100) DEFAULT NULL COMMENT '更新者姓名',

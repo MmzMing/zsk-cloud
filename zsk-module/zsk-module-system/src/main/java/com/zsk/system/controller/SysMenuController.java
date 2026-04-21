@@ -2,6 +2,7 @@ package com.zsk.system.controller;
 
 import com.zsk.common.core.domain.R;
 import com.zsk.system.domain.SysMenu;
+import com.zsk.system.domain.vo.MenuTreeVo;
 import com.zsk.system.service.ISysMenuService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -47,6 +48,19 @@ public class SysMenuController {
     @GetMapping("/user/{userId}")
     public R<List<SysMenu>> userMenu(@PathVariable Long userId) {
         return R.ok(menuService.selectMenuTreeByUserId(userId));
+    }
+
+    /**
+     * 获取当前用户的菜单树（含排序）
+     * <p>
+     * 根据当前登录用户ID查询其有权限访问的菜单，并构建树形结构
+     *
+     * @return 菜单树列表
+     */
+    @Operation(summary = "获取当前用户菜单树", description = "根据当前登录用户ID查询其有权限访问的菜单，并构建树形结构，包含完整的菜单信息和排序")
+    @GetMapping("/tree")
+    public R<List<MenuTreeVo>> getUserMenuTree() {
+        return R.ok(menuService.getUserMenuTree());
     }
 
     /**
