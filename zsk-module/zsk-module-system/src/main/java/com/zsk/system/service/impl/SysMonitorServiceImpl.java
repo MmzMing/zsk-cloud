@@ -1,10 +1,15 @@
 package com.zsk.system.service.impl;
 
-import cn.hutool.core.net.NetUtil;
 import com.zsk.system.domain.SysMonitorData;
 import com.zsk.system.service.ISysMonitorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Sort;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
 import oshi.SystemInfo;
 import oshi.hardware.CentralProcessor;
 import oshi.hardware.GlobalMemory;
@@ -12,13 +17,6 @@ import oshi.hardware.HardwareAbstractionLayer;
 import oshi.software.os.FileSystem;
 import oshi.software.os.OSFileStore;
 import oshi.software.os.OperatingSystem;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.query.Criteria;
-import org.springframework.data.mongodb.core.query.Query;
-import org.springframework.scheduling.annotation.Scheduled;
-import org.springframework.stereotype.Service;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
@@ -27,15 +25,14 @@ import java.lang.management.ThreadMXBean;
 import java.net.InetAddress;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
  * 系统监控 服务层实现
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Slf4j
 @Service
@@ -44,10 +41,14 @@ public class SysMonitorServiceImpl implements ISysMonitorService {
 
     private final MongoTemplate mongoTemplate;
 
-    /** 系统信息实例 */
+    /**
+     * 系统信息实例
+     */
     private final SystemInfo systemInfo = new SystemInfo();
 
-    /** 上一次CPU时间戳 */
+    /**
+     * 上一次CPU时间戳
+     */
     private long[] prevTicks;
 
     /**
@@ -76,7 +77,7 @@ public class SysMonitorServiceImpl implements ISysMonitorService {
      * 获取监控趋势数据
      *
      * @param metric 指标类型
-     * @param range 时间范围
+     * @param range  时间范围
      * @return 趋势数据列表
      */
     @Override
