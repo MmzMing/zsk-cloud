@@ -211,10 +211,9 @@ public class SysMonitorServiceImpl implements ISysMonitorService {
      */
     private LocalDateTime calculateStartTime(String range) {
         return switch (range) {
-            case "1h" -> LocalDateTime.now().minus(1, ChronoUnit.HOURS);
-            case "24h" -> LocalDateTime.now().minus(24, ChronoUnit.HOURS);
-            case "7d" -> LocalDateTime.now().minus(7, ChronoUnit.DAYS);
-            default -> LocalDateTime.now().minus(1, ChronoUnit.HOURS);
+            case "24h" -> LocalDateTime.now().minusHours(24);
+            case "7d" -> LocalDateTime.now().minusDays(7);
+            default -> LocalDateTime.now().minusHours(1);
         };
     }
 }

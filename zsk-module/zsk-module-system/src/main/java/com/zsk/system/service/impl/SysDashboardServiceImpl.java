@@ -4,25 +4,17 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zsk.common.core.constant.CommonConstants;
 import com.zsk.common.core.domain.R;
 import com.zsk.document.api.RemoteDocumentService;
-import com.zsk.document.api.domain.DocAnalysisMetricApi;
 import com.zsk.document.api.domain.DocStatisticsApi;
-import com.zsk.document.api.domain.DocTimeDistributionApi;
-import com.zsk.document.api.domain.DocTrafficItemApi;
-import com.zsk.document.api.domain.DocTrendItemApi;
 import com.zsk.system.domain.SysUser;
-import com.zsk.system.domain.vo.SysAnalysisMetricVo;
 import com.zsk.system.domain.vo.SysDashboardOverviewVo;
-import com.zsk.system.domain.vo.SysDashboardTrafficVo;
-import com.zsk.system.domain.vo.SysDashboardTrendVo;
-import com.zsk.system.domain.vo.SysTimeDistributionVo;
 import com.zsk.system.mapper.SysUserMapper;
 import com.zsk.system.service.ISysDashboardService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
 /**
@@ -40,6 +32,11 @@ public class SysDashboardServiceImpl implements ISysDashboardService {
     private final SysUserMapper userMapper;
     private final RemoteDocumentService remoteDocumentService;
 
+    /**
+     * 获取仪表盘概览数据
+     *
+     * @return 概览数据列表，包含用户总数、文档总数、视频总数和总访问量
+     */
     @Override
     public List<SysDashboardOverviewVo> getOverview() {
         List<SysDashboardOverviewVo> list = new ArrayList<>();
@@ -49,7 +46,16 @@ public class SysDashboardServiceImpl implements ISysDashboardService {
             new LambdaQueryWrapper<SysUser>()
                 .eq(SysUser::getDeleted, 0)
         );
-        list.add(createItem("users", "用户总数", String.valueOf(userCount), "", "系统注册用户数量"));
+
+        /** 最近一周新增用户数 */
+        LocalDateTime lastWeekStart = LocalDateTime.now().minusWeeks(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
+        Long lastWeekUserCount = userMapper.selectCount(
+            new LambdaQueryWrapper<SysUser>()
+                .eq(SysUser::getDeleted, 0)
+                .ge(SysUser::getCreateTime, lastWeekStart)
+        );
+        String userDelta = calculateDelta(userCount, lastWeekUserCount);
+        list.add(createItem("users", "用户总数", String.valueOf(userCount), userDelta, "系统注册用户数量"));
 
         /** 远程调用获取文档统计数据 */
         DocStatisticsApi docStats = getDocStatistics();
@@ -66,91 +72,19 @@ public class SysDashboardServiceImpl implements ISysDashboardService {
         String videoDelta = calculateDelta(videoCount, lastWeekVideoCount);
         list.add(createItem("videos", "视频总数", String.valueOf(videoCount), videoDelta, "已发布视频数量"));
 
-        /** 总访问量 */
-        Long noteViewCount = docStats != null ? docStats.getNoteViewCount() : 0L;
-        Long videoViewCount = docStats != null ? docStats.getVideoViewCount() : 0L;
-        Long totalViewCount = noteViewCount + videoViewCount;
-        list.add(createItem("views", "总访问量", String.valueOf(totalViewCount), "", "文档和视频总浏览量"));
+        /** 评论数 */
+        Long commentCount = docStats != null ? docStats.getCommentCount() : 0L;
+        Long lastWeekCommentCount = docStats != null ? docStats.getLastWeekCommentCount() : 0L;
+        String commentDelta = calculateDelta(commentCount, lastWeekCommentCount);
+        list.add(createItem("comments", "评论数", String.valueOf(commentCount), commentDelta, "文档和视频评论总数"));
 
         return list;
-    }
-
-    @Override
-    public List<SysDashboardTrafficVo> getTraffic(String range) {
-        try {
-            R<List<DocTrafficItemApi>> result = remoteDocumentService.getTrafficStatistics(range, CommonConstants.INNER);
-            if (result != null && result.isSuccess() && result.getData() != null) {
-                List<SysDashboardTrafficVo> list = new ArrayList<>();
-                for (DocTrafficItemApi item : result.getData()) {
-                    list.add(new SysDashboardTrafficVo(item.getType(), item.getDate(), item.getValue()));
-                }
-                return list;
-            }
-            log.warn("获取流量统计数据失败: {}", result != null ? result.getMsg() : "返回结果为空");
-        } catch (Exception e) {
-            log.error("调用文档服务获取流量统计数据异常", e);
-        }
-        return Collections.emptyList();
-    }
-
-    @Override
-    public List<SysDashboardTrendVo> getTrend(String range) {
-        try {
-            R<List<DocTrendItemApi>> result = remoteDocumentService.getTrendStatistics(range, CommonConstants.INNER);
-            if (result != null && result.isSuccess() && result.getData() != null) {
-                List<SysDashboardTrendVo> list = new ArrayList<>();
-                for (DocTrendItemApi item : result.getData()) {
-                    list.add(new SysDashboardTrendVo(item.getDate(), item.getValue()));
-                }
-                return list;
-            }
-            log.warn("获取趋势数据失败: {}", result != null ? result.getMsg() : "返回结果为空");
-        } catch (Exception e) {
-            log.error("调用文档服务获取趋势数据异常", e);
-        }
-        return Collections.emptyList();
-    }
-
-    @Override
-    public List<SysAnalysisMetricVo> getAnalysisMetrics() {
-        try {
-            R<List<DocAnalysisMetricApi>> result = remoteDocumentService.getAnalysisMetrics(CommonConstants.INNER);
-            if (result != null && result.isSuccess() && result.getData() != null) {
-                List<SysAnalysisMetricVo> list = new ArrayList<>();
-                for (DocAnalysisMetricApi item : result.getData()) {
-                    list.add(new SysAnalysisMetricVo(item.getKey(), item.getLabel(), item.getValue(), item.getDelta(), item.getDescription(), item.getTone()));
-                }
-                return list;
-            }
-            log.warn("获取分析指标数据失败: {}", result != null ? result.getMsg() : "返回结果为空");
-        } catch (Exception e) {
-            log.error("调用文档服务获取分析指标数据异常", e);
-        }
-        return Collections.emptyList();
-    }
-
-    @Override
-    public List<SysTimeDistributionVo> getTimeDistribution(String date, String step) {
-        try {
-            R<List<DocTimeDistributionApi>> result = remoteDocumentService.getTimeDistribution(date, step, CommonConstants.INNER);
-            if (result != null && result.isSuccess() && result.getData() != null) {
-                List<SysTimeDistributionVo> list = new ArrayList<>();
-                for (DocTimeDistributionApi item : result.getData()) {
-                    list.add(new SysTimeDistributionVo(item.getType(), item.getTime(), item.getValue()));
-                }
-                return list;
-            }
-            log.warn("获取时间分布数据失败: {}", result != null ? result.getMsg() : "返回结果为空");
-        } catch (Exception e) {
-            log.error("调用文档服务获取时间分布数据异常", e);
-        }
-        return Collections.emptyList();
     }
 
     /**
      * 远程调用获取文档统计数据
      *
-     * @return 文档统计数据
+     * @return 文档统计数据，包含文档数、视频数等信息；若调用失败则返回 null
      */
     private DocStatisticsApi getDocStatistics() {
         try {
@@ -170,7 +104,7 @@ public class SysDashboardServiceImpl implements ISysDashboardService {
      *
      * @param current 当前值
      * @param lastWeek 上周新增值
-     * @return 变化率字符串（如：+12.5%）
+     * @return 变化率字符串（如：+12.5%）；若上周新增值为 0 则返回空字符串；若当前值为 0 则返回 "-100%"
      */
     private String calculateDelta(Long current, Long lastWeek) {
         if (lastWeek == null || lastWeek == 0) {
@@ -179,12 +113,10 @@ public class SysDashboardServiceImpl implements ISysDashboardService {
         if (current == null || current == 0) {
             return "-100%";
         }
-        /** 计算上周之前的数量 */
         Long previousTotal = current - lastWeek;
         if (previousTotal <= 0) {
             return "+" + lastWeek;
         }
-        /** 计算增长率 */
         double rate = (double) lastWeek / previousTotal * 100;
         return String.format("+%.1f%%", rate);
     }
@@ -197,7 +129,7 @@ public class SysDashboardServiceImpl implements ISysDashboardService {
      * @param value 当前数值
      * @param delta 变化量
      * @param description 描述说明
-     * @return 概览数据项
+     * @return 概览数据项实例
      */
     private SysDashboardOverviewVo createItem(String key, String label, String value, String delta, String description) {
         SysDashboardOverviewVo item = new SysDashboardOverviewVo();

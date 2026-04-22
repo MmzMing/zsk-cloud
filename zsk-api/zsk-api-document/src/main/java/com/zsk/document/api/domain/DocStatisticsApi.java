@@ -41,4 +41,10 @@ public class DocStatisticsApi implements Serializable {
 
     /** 上周视频总浏览量 */
     private Long lastWeekVideoViewCount;
+
+    /** 评论总数 */
+    private Long commentCount;
+
+    /** 上周评论总数 */
+    private Long lastWeekCommentCount;
 }

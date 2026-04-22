@@ -2,13 +2,17 @@ package com.zsk.document.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zsk.document.domain.DocNote;
+import com.zsk.document.domain.DocNoteComment;
+import com.zsk.document.domain.DocVideoComment;
 import com.zsk.document.domain.DocVideoDetail;
 import com.zsk.document.domain.vo.DocAnalysisMetricVo;
 import com.zsk.document.domain.vo.DocStatisticsVo;
 import com.zsk.document.domain.vo.DocTimeDistributionVo;
 import com.zsk.document.domain.vo.DocTrafficItemVo;
 import com.zsk.document.domain.vo.DocTrendItemVo;
+import com.zsk.document.mapper.DocNoteCommentMapper;
 import com.zsk.document.mapper.DocNoteMapper;
+import com.zsk.document.mapper.DocVideoCommentMapper;
 import com.zsk.document.mapper.DocVideoDetailMapper;
 import com.zsk.document.service.IDocStatisticsService;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +41,8 @@ public class DocStatisticsServiceImpl implements IDocStatisticsService {
 
     private final DocNoteMapper noteMapper;
     private final DocVideoDetailMapper videoDetailMapper;
+    private final DocNoteCommentMapper noteCommentMapper;
+    private final DocVideoCommentMapper videoCommentMapper;
 
     private static final String TYPE_NOTE = "文档";
     private static final String TYPE_VIDEO = "视频";
@@ -90,6 +96,32 @@ public class DocStatisticsServiceImpl implements IDocStatisticsService {
         /** 上周浏览量暂不统计（需要额外记录历史数据） */
         vo.setLastWeekNoteViewCount(0L);
         vo.setLastWeekVideoViewCount(0L);
+
+        /** 评论总数（文档评论 + 视频评论） */
+        Long noteCommentCount = noteCommentMapper.selectCount(
+            new LambdaQueryWrapper<DocNoteComment>()
+                .eq(DocNoteComment::getDeleted, 0)
+        );
+        Long videoCommentCount = videoCommentMapper.selectCount(
+            new LambdaQueryWrapper<DocVideoComment>()
+                .eq(DocVideoComment::getDeleted, 0)
+        );
+        vo.setCommentCount((noteCommentCount != null ? noteCommentCount : 0L)
+            + (videoCommentCount != null ? videoCommentCount : 0L));
+
+        /** 上周评论总数 */
+        Long lastWeekNoteCommentCount = noteCommentMapper.selectCount(
+            new LambdaQueryWrapper<DocNoteComment>()
+                .eq(DocNoteComment::getDeleted, 0)
+                .between(DocNoteComment::getCreateTime, lastWeekStart, lastWeekEnd)
+        );
+        Long lastWeekVideoCommentCount = videoCommentMapper.selectCount(
+            new LambdaQueryWrapper<DocVideoComment>()
+                .eq(DocVideoComment::getDeleted, 0)
+                .between(DocVideoComment::getCreateTime, lastWeekStart, lastWeekEnd)
+        );
+        vo.setLastWeekCommentCount((lastWeekNoteCommentCount != null ? lastWeekNoteCommentCount : 0L)
+            + (lastWeekVideoCommentCount != null ? lastWeekVideoCommentCount : 0L));
 
         return vo;
     }
