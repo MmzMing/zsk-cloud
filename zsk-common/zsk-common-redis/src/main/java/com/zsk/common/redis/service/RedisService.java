@@ -255,4 +255,47 @@ public class RedisService {
     public Long increment(String key, long delta) {
         return redisTemplate.opsForValue().increment(key, delta);
     }
+
+    /**
+     * 向Set集合中添加元素
+     *
+     * @param key   缓存键值
+     * @param value 要添加的值
+     * @return 添加成功的数量
+     */
+    public <T> Long setSetCacheObject(final String key, final T value) {
+        return redisTemplate.opsForSet().add(key, value);
+    }
+
+    /**
+     * 获取Set集合的大小
+     *
+     * @param key 缓存键值
+     * @return Set集合的大小
+     */
+    public Long getSetSize(final String key) {
+        return redisTemplate.opsForSet().size(key);
+    }
+
+    /**
+     * 从Set集合中移除元素
+     *
+     * @param key   缓存键值
+     * @param value 要移除的值
+     * @return 移除成功的数量
+     */
+    public <T> Long removeSetCacheObject(final String key, final T value) {
+        return redisTemplate.opsForSet().remove(key, value);
+    }
+
+    /**
+     * 判断Set集合中是否存在某个元素
+     *
+     * @param key   缓存键值
+     * @param value 要判断的值
+     * @return true=存在 false=不存在
+     */
+    public <T> Boolean isMemberOfSet(final String key, final T value) {
+        return redisTemplate.opsForSet().isMember(key, value);
+    }
 }

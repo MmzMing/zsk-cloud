@@ -19,6 +19,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.redis.connection.DataType;
 import org.springframework.data.redis.connection.RedisServerCommands;
 import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -26,7 +27,6 @@ import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.TimeUnit;
 
@@ -65,16 +65,35 @@ public class CacheSysServiceImpl implements ICacheSysService {
     /**
      * 获取缓存信息列表（分页）
      *
-     * @param pageQuery 分页参数
-     * @param queryDTO  查询条件（包含缓存名称）
-     * @return 分页后的缓存信息列表
+     * <p>功能说明：
+     * <ul>
+     *   <li>根据缓存名称过滤缓存键列表</li>
+     *   <li>遍历所有匹配的键，构建缓存详细信息</li>
+     *   <li>按缓存键名排序，确保分页结果的稳定性</li>
+     *   <li>执行分页计算，返回指定页码的数据</li>
+     * </ul>
+     *
+     * <p>修复说明：
+     * <ul>
+     *   <li>添加按 cacheKey 排序逻辑，解决分页顺序不一致问题</li>
+     *   <li>Redis KEYS 命令返回的集合是无序的，每次迭代顺序可能不同</li>
+     *   <li>排序后保证每次查询结果顺序一致，分页跳转时不会出现数据重复或遗漏</li>
+     * </ul>
+     *
+     * @param pageQuery 分页参数，包含页码(pageNum)和每页大小(pageSize)
+     * @param queryDTO  查询条件，包含缓存名称用于过滤
+     * @return 分页后的缓存信息列表，包含数据列表、总数、页码、每页大小
      */
     @Override
     public PageResult<CacheSysInfo> getCacheInfoList(PageQuery pageQuery, CacheKeyQueryDTO queryDTO) {
+        // 1. 获取查询条件中的缓存名称（可为空，为空时查询所有缓存）
         String cacheName = queryDTO != null ? queryDTO.getCacheName() : null;
+
+        // 2. 根据缓存名称获取匹配的缓存键集合（Redis KEYS 命令返回无序集合）
         Collection<String> keys = getCacheKeys(cacheName);
+
+        // 3. 遍历所有键，构建缓存详细信息列表
         List<CacheSysInfo> allCacheInfoList = new ArrayList<>();
-        
         for (String key : keys) {
             try {
                 CacheSysInfo cacheInfo = buildCacheInfo(key);
@@ -82,17 +101,25 @@ public class CacheSysServiceImpl implements ICacheSysService {
                     allCacheInfoList.add(cacheInfo);
                 }
             } catch (Exception e) {
+                // 单个键处理失败不影响其他键，记录警告日志继续处理
                 log.warn("获取缓存信息失败: {}", key, e);
             }
         }
 
+        // 4. 【关键修复】按缓存键名排序，确保分页结果的稳定性
+        // Redis KEYS 返回的集合是无序的，必须排序后再分页，否则分页结果不可预测
+        allCacheInfoList.sort(Comparator.comparing(CacheSysInfo::getCacheKey));
+
+        // 5. 计算分页参数
         Long pageNum = pageQuery.getPageNum();
         Long pageSize = pageQuery.getPageSize();
         long total = allCacheInfoList.size();
 
+        // 6. 计算分页起止索引，处理边界情况（避免越界）
         int start = (pageNum.intValue() - 1) * pageSize.intValue();
         int end = Math.min(start + pageSize.intValue(), allCacheInfoList.size());
 
+        // 7. 截取分页数据并返回
         List<CacheSysInfo> pageList = allCacheInfoList.subList(start, end);
         return PageResult.of(pageList, total, pageNum, pageSize);
     }
@@ -353,26 +380,26 @@ public class CacheSysServiceImpl implements ICacheSysService {
     @Override
     public GaugeDataPoint getMemoryUsage() {
         CacheRedisInfoVO info = getRedisInfo();
-        
+
         GaugeDataPoint gauge = new GaugeDataPoint();
         gauge.setName("内存使用率");
         gauge.setMin(0D);
-        
+
         Long usedMemory = info.getUsedMemory();
         Long maxMemory = info.getMaxMemory();
-        
+
         if (usedMemory != null) {
             gauge.setValue(usedMemory.doubleValue());
         } else {
             gauge.setValue(0D);
         }
-        
+
         if (maxMemory != null && maxMemory > 0) {
             gauge.setMax(maxMemory.doubleValue());
         } else {
             gauge.setMax((double) (1024L * 1024L * 1024L * 2L));
         }
-        
+
         return gauge;
     }
 
@@ -559,29 +586,75 @@ public class CacheSysServiceImpl implements ICacheSysService {
     /**
      * 构建缓存详细信息
      *
+     * <p>功能说明：
+     * <ul>
+     *   <li>校验缓存键是否存在</li>
+     *   <li>提取缓存键名、分类名称、过期时间等基本信息</li>
+     *   <li>获取缓存值并计算数据大小</li>
+     *   <li>处理非字符串类型的缓存键，避免 WRONGTYPE 错误</li>
+     * </ul>
+     *
+     * <p>修复说明：
+     * <ul>
+     *   <li>添加 Redis 类型检查，解决 WRONGTYPE 错误</li>
+     *   <li>Redis 支持多种数据类型（String/Hash/List/Set/ZSet）</li>
+     *   <li>只有 String 类型才能使用 GET 命令获取值</li>
+     *   <li>非 String 类型的键会显示类型名称，而不是抛出异常</li>
+     * </ul>
+     *
      * @param cacheKey 缓存键名
-     * @return 缓存详细信息，若键不存在返回null
+     * @return 缓存详细信息（包含键名、分类、TTL、值、数据类型、大小），若键不存在返回null
      */
     private CacheSysInfo buildCacheInfo(String cacheKey) {
+        // 1. 校验缓存键是否存在，不存在直接返回null
         if (!hasCacheKey(cacheKey)) {
             return null;
         }
 
+        // 2. 创建缓存信息对象并设置基本属性
         CacheSysInfo cacheInfo = new CacheSysInfo();
         cacheInfo.setCacheKey(cacheKey);
         cacheInfo.setCacheName(extractCacheCategory(cacheKey));
 
+        // 3. 获取缓存过期时间（TTL）并格式化显示
         Long ttl = redisTemplate.getExpire(cacheKey, TimeUnit.SECONDS);
         cacheInfo.setTtl(ttl);
         cacheInfo.setTtlDesc(formatTtl(ttl));
 
-        Object value = redisTemplate.opsForValue().get(cacheKey);
-        if (value != null) {
-            cacheInfo.setCacheValue(truncateValue(value.toString()));
-            cacheInfo.setDataType(value.getClass().getSimpleName());
-            cacheInfo.setDataSize(estimateObjectSize(value));
+        // 4. 【关键修复】获取缓存值前先检查数据类型，避免 WRONGTYPE 错误
+        // Redis 中不同数据类型的操作命令不同：
+        // - String: GET/SET
+        // - Hash: HGET/HSET
+        // - List: LPUSH/LPOP
+        // - Set: SADD/SMEMBERS
+        // - ZSet: ZADD/ZRANGE
+        // 使用 GET 命令操作非 String 类型的键会抛出 WRONGTYPE 异常
+        try {
+            // 先获取键的类型（返回 DataType 枚举）
+            DataType dataType = redisTemplate.execute((RedisCallback<DataType>) connection ->
+                    connection.type(cacheKey.getBytes(StandardCharsets.UTF_8))
+            );
+
+            // 只有 String 类型才能使用 opsForValue().get() 获取值
+            if (DataType.STRING == dataType) {
+                Object value = redisTemplate.opsForValue().get(cacheKey);
+                if (value != null) {
+                    cacheInfo.setCacheValue(truncateValue(value.toString()));
+                    cacheInfo.setDataType(value.getClass().getSimpleName());
+                    cacheInfo.setDataSize(estimateObjectSize(value));
+                }
+            } else {
+                cacheInfo.setDataType(dataType != null ? dataType.name().toUpperCase() : "UNKNOWN");
+                handleNonStringType(cacheKey, dataType, cacheInfo);
+            }
+        } catch (Exception e) {
+            // 获取值失败时记录调试日志，设置友好的错误提示
+            log.debug("获取缓存值失败: {}", cacheKey, e);
+            cacheInfo.setDataType("UNKNOWN");
+            cacheInfo.setCacheValue("获取值失败");
         }
 
+        // 5. 设置创建时间（实际为查询时间）
         cacheInfo.setCreateTime(System.currentTimeMillis());
         return cacheInfo;
     }
@@ -648,6 +721,71 @@ public class CacheSysServiceImpl implements ICacheSysService {
             return value.substring(0, maxLength) + "...";
         }
         return value;
+    }
+
+    /**
+     * 处理非 String 类型的缓存数据
+     *
+     * @param cacheKey  缓存键名
+     * @param dataType  数据类型
+     * @param cacheInfo 缓存信息对象
+     */
+    private void handleNonStringType(String cacheKey, DataType dataType, CacheSysInfo cacheInfo) {
+        try {
+            switch (dataType) {
+                case SET:
+                    Set<Object> setMembers = redisTemplate.opsForSet().members(cacheKey);
+                    Long setSize = redisTemplate.opsForSet().size(cacheKey);
+                    if (setMembers != null && !setMembers.isEmpty()) {
+                        cacheInfo.setCacheValue(truncateValue(setMembers.toString()));
+                        cacheInfo.setDataSize(setSize != null ? setSize : (long) setMembers.size());
+                    } else {
+                        cacheInfo.setCacheValue("[]");
+                        cacheInfo.setDataSize(0L);
+                    }
+                    break;
+                case HASH:
+                    Map<Object, Object> hashEntries = redisTemplate.opsForHash().entries(cacheKey);
+                    Long hashSize = redisTemplate.opsForHash().size(cacheKey);
+                    if (hashEntries != null && !hashEntries.isEmpty()) {
+                        cacheInfo.setCacheValue(truncateValue(hashEntries.toString()));
+                        cacheInfo.setDataSize(hashSize != null ? hashSize : (long) hashEntries.size());
+                    } else {
+                        cacheInfo.setCacheValue("{}");
+                        cacheInfo.setDataSize(0L);
+                    }
+                    break;
+                case LIST:
+                    List<Object> listValues = redisTemplate.opsForList().range(cacheKey, 0, 20);
+                    Long listSize = redisTemplate.opsForList().size(cacheKey);
+                    if (listValues != null && !listValues.isEmpty()) {
+                        cacheInfo.setCacheValue(truncateValue(listValues.toString()));
+                        cacheInfo.setDataSize(listSize != null ? listSize : (long) listValues.size());
+                    } else {
+                        cacheInfo.setCacheValue("[]");
+                        cacheInfo.setDataSize(0L);
+                    }
+                    break;
+                case ZSET:
+                    Set<Object> zsetMembers = redisTemplate.opsForZSet().range(cacheKey, 0, 20);
+                    Long zsetSize = redisTemplate.opsForZSet().size(cacheKey);
+                    if (zsetMembers != null && !zsetMembers.isEmpty()) {
+                        cacheInfo.setCacheValue(truncateValue(zsetMembers.toString()));
+                        cacheInfo.setDataSize(zsetSize != null ? zsetSize : (long) zsetMembers.size());
+                    } else {
+                        cacheInfo.setCacheValue("[]");
+                        cacheInfo.setDataSize(0L);
+                    }
+                    break;
+                default:
+                    cacheInfo.setCacheValue("[" + dataType.name().toUpperCase() + " 类型]");
+                    cacheInfo.setDataSize(0L);
+            }
+        } catch (Exception e) {
+            log.debug("获取非String类型缓存值失败: {}", cacheKey, e);
+            cacheInfo.setCacheValue("[" + dataType.name().toUpperCase() + " 类型]");
+            cacheInfo.setDataSize(0L);
+        }
     }
 
     /**

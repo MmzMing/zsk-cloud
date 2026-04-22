@@ -1,47 +1,45 @@
 package com.zsk.system.service;
 
+import com.zsk.common.datasource.domain.PageResult;
+import com.zsk.system.domain.dto.SysBehaviorQuery;
+import com.zsk.system.domain.vo.SysBehaviorDetailVO;
+import com.zsk.system.domain.vo.SysBehaviorEventVO;
+import com.zsk.system.domain.vo.SysBehaviorUserVO;
+
 import java.util.List;
-import java.util.Map;
 
 /**
- * 行为审计 服务接口
+ * 行为审计 服务接口 (v2)
+ * <p>
+ * 数据源：MongoDB collection {@code sys_oper_log} ({@link com.zsk.common.log.domain.OperLog})。
+ * 关联：通过 {@code operName} 与 {@code sys_user.user_name} 关联。
  *
  * @author wuhuaming
- * @date 2026-02-15
- * @version 1.0
+ * @date 2026-04-22
+ * @version 2.0
  */
 public interface ISysBehaviorService {
 
     /**
-     * 获取行为审计用户列表
+     * 获取有行为记录的用户列表（聚合，用于前端筛选）
      *
      * @return 用户列表
      */
-    List<Map<String, Object>> getUsers();
+    List<SysBehaviorUserVO> listBehaviorUsers();
 
     /**
-     * 获取用户行为时间轴
+     * 分页查询用户行为列表（多条件）
      *
-     * @param userId 用户ID
-     * @param range 时间范围
-     * @return 行为数据点列表
+     * @param query 查询条件
+     * @return 行为分页结果
      */
-    List<Map<String, Object>> getTimeline(String userId, String range);
+    PageResult<SysBehaviorEventVO> pageEvents(SysBehaviorQuery query);
 
     /**
-     * 获取行为审计事件列表
+     * 获取行为详情（完整请求/响应）
      *
-     * @param userId 用户ID
-     * @param keyword 关键字
-     * @return 事件列表
+     * @param id 行为记录ID（MongoDB _id）
+     * @return 行为详情
      */
-    List<Map<String, Object>> getEvents(String userId, String keyword);
-
-    /**
-     * 计算用户风险等级
-     *
-     * @param userId 用户ID
-     * @return 风险等级（low/medium/high）
-     */
-    String calculateRiskLevel(Long userId);
+    SysBehaviorDetailVO getDetail(String id);
 }

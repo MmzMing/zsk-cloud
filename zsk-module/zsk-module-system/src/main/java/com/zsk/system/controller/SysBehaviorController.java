@@ -1,21 +1,34 @@
 package com.zsk.system.controller;
 
 import com.zsk.common.core.domain.R;
+import com.zsk.common.datasource.domain.PageResult;
+import com.zsk.system.domain.dto.SysBehaviorQuery;
+import com.zsk.system.domain.vo.SysBehaviorDetailVO;
+import com.zsk.system.domain.vo.SysBehaviorEventVO;
+import com.zsk.system.domain.vo.SysBehaviorUserVO;
 import com.zsk.system.service.ISysBehaviorService;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.Map;
 
 /**
- * 行为审计 控制器
+ * 行为审计 控制器 (v2)
+ * <p>
+ * 数据源：MongoDB sys_oper_log。提供：
+ * <ul>
+ *   <li>GET  /monitor/behavior/users   - 用户列表（聚合）</li>
+ *   <li>GET  /monitor/behavior/events  - 行为分页列表（多条件）</li>
+ *   <li>GET  /monitor/behavior/{id}    - 行为详情（完整请求/响应）</li>
+ * </ul>
  *
  * @author wuhuaming
- * @date 2026-02-15
- * @version 1.0
+ * @date 2026-04-22
+ * @version 2.0
  */
 @Tag(name = "行为审计")
 @RestController
@@ -27,42 +40,29 @@ public class SysBehaviorController {
 
     /**
      * 获取行为审计用户列表
-     *
-     * @return 用户列表
      */
     @Operation(summary = "获取行为审计用户列表")
     @GetMapping("/users")
-    public R<List<Map<String, Object>>> getUsers() {
-        return R.ok(behaviorService.getUsers());
+    public R<List<SysBehaviorUserVO>> listUsers() {
+        return R.ok(behaviorService.listBehaviorUsers());
     }
 
     /**
-     * 获取用户行为时间轴
-     *
-     * @param userId 用户ID
-     * @param range 时间范围
-     * @return 行为数据点列表
+     * 分页查询用户行为列表
      */
-    @Operation(summary = "获取用户行为时间轴")
-    @GetMapping("/timeline")
-    public R<List<Map<String, Object>>> getTimeline(
-            @RequestParam String userId,
-            @RequestParam(defaultValue = "today") String range) {
-        return R.ok(behaviorService.getTimeline(userId, range));
-    }
-
-    /**
-     * 获取行为审计事件列表
-     *
-     * @param userId 用户ID
-     * @param keyword 关键字
-     * @return 事件列表
-     */
-    @Operation(summary = "获取行为审计事件列表")
+    @Operation(summary = "分页查询用户行为列表")
     @GetMapping("/events")
-    public R<List<Map<String, Object>>> getEvents(
-            @RequestParam(required = false) String userId,
-            @RequestParam(required = false) String keyword) {
-        return R.ok(behaviorService.getEvents(userId, keyword));
+    public R<PageResult<SysBehaviorEventVO>> pageEvents(@Valid SysBehaviorQuery query) {
+        return R.ok(behaviorService.pageEvents(query));
+    }
+
+    /**
+     * 获取行为详情（完整请求/响应）
+     */
+    @Operation(summary = "获取行为详情")
+    @GetMapping("/{id}")
+    public R<SysBehaviorDetailVO> getDetail(
+            @Parameter(description = "行为记录ID", required = true) @PathVariable String id) {
+        return R.ok(behaviorService.getDetail(id));
     }
 }

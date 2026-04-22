@@ -159,6 +159,60 @@ public class JwtUtils {
     }
 
     /**
+     * 根据令牌获取用户ID（Long类型）
+     * <p>
+     * 该方法从JWT Token中提取用户ID，并返回Long类型，避免了字符串转换的麻烦。
+     * 支持多种类型的用户ID值（Long、Integer、String），自动进行类型转换。
+     * <p>
+     * 处理逻辑：
+     * 1. 解析JWT Token获取Claims对象
+     * 2. 从Claims中获取user_id字段
+     * 3. 根据实际类型进行转换：
+     *    - Long类型：直接返回
+     *    - Integer类型：转换为Long
+     *    - String类型：解析为Long
+     * <p>
+     * 使用场景：
+     * - Token验证时获取用户ID
+     * - 刷新Token时获取用户ID
+     * - 登出时获取用户ID
+     *
+     * @param token JWT令牌
+     * @return 用户ID（Long类型），如果解析失败返回null
+     */
+    public static Long getUserIdAsLong(String token) {
+        // 解析JWT Token，获取Claims对象
+        Claims claims = parseToken(token);
+        
+        // 从Claims中获取user_id字段
+        Object value = claims.get(SecurityConstants.USER_ID);
+        if (value == null) {
+            return null;
+        }
+        
+        // 类型转换处理：支持Long、Integer、String三种类型
+        // 情况1：已经是Long类型，直接返回
+        if (value instanceof Long) {
+            return (Long) value;
+        }
+        
+        // 情况2：是Integer类型，转换为Long
+        // 这种情况通常发生在JSON序列化/反序列化过程中
+        if (value instanceof Integer) {
+            return ((Integer) value).longValue();
+        }
+        
+        // 情况3：是String类型或其他类型，尝试解析
+        // 这种情况可能发生在某些特殊场景下
+        try {
+            return Long.parseLong(String.valueOf(value));
+        } catch (NumberFormatException e) {
+            log.error("解析用户ID失败: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
      * 根据令牌获取用户名
      *
      * @param token 令牌

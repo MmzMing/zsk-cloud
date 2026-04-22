@@ -1,267 +1,271 @@
 package com.zsk.system.service.impl;
 
 import cn.hutool.core.util.StrUtil;
+import com.zsk.common.core.exception.BusinessException;
+import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.common.log.domain.OperLog;
+import com.zsk.system.domain.dto.SysBehaviorQuery;
+import com.zsk.system.domain.vo.SysBehaviorDetailVO;
+import com.zsk.system.domain.vo.SysBehaviorEventVO;
+import com.zsk.system.domain.vo.SysBehaviorUserVO;
 import com.zsk.system.service.ISysBehaviorService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
-import org.springframework.data.mongodb.core.aggregation.*;
+import org.springframework.data.mongodb.core.aggregation.Aggregation;
+import org.springframework.data.mongodb.core.aggregation.AggregationResults;
+import org.springframework.data.mongodb.core.aggregation.GroupOperation;
+import org.springframework.data.mongodb.core.aggregation.SortOperation;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.time.temporal.ChronoUnit;
-import java.util.*;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
 
 /**
- * 行为审计 服务层实现
+ * 行为审计 服务层实现 (v2)
+ * <p>
+ * 数据源：MongoDB {@code sys_oper_log}。
+ * <ol>
+ *   <li>用户列表：聚合 operName 维度，统计行为次数 + 计算风险等级</li>
+ *   <li>行为列表：多条件分页查询（用户/类型/时间范围/IP），列表参数响应做截断</li>
+ *   <li>行为详情：根据 _id 返回完整 OperLog</li>
+ * </ol>
  *
  * @author wuhuaming
- * @date 2026-02-15
- * @version 1.0
+ * @date 2026-04-22
+ * @version 2.0
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class SysBehaviorServiceImpl implements ISysBehaviorService {
 
+    /** 列表场景下参数/响应字段截断长度 */
+    private static final int LIST_PREVIEW_MAX_LEN = 200;
+
     private final MongoTemplate mongoTemplate;
 
-    /**
-     * 获取行为审计用户列表
-     *
-     * @return 用户列表
-     */
     @Override
-    public List<Map<String, Object>> getUsers() {
-        List<Map<String, Object>> users = new ArrayList<>();
-
-        /** 从操作日志聚合用户信息 */
-        GroupOperation groupByUser = Aggregation.group("operName")
-                .first("operName").as("userName")
+    public List<SysBehaviorUserVO> listBehaviorUsers() {
+        // 按 operName 聚合
+        GroupOperation group = Aggregation.group("operName")
+                .first("operName").as("operName")
                 .count().as("operCount")
                 .max("operTime").as("lastOperTime")
-                .first("operIp").as("lastOperIp");
+                .last("operIp").as("lastOperIp");
+        SortOperation sort = Aggregation.sort(Sort.by(Sort.Direction.DESC, "operCount"));
+        Aggregation aggregation = Aggregation.newAggregation(group, sort);
 
-        Aggregation aggregation = Aggregation.newAggregation(groupByUser);
         AggregationResults<Map> results = mongoTemplate.aggregate(
                 aggregation, OperLog.class, Map.class);
 
+        List<SysBehaviorUserVO> users = new ArrayList<>();
         for (Map result : results) {
-            Map<String, Object> user = new HashMap<>();
-            user.put("id", result.get("_id"));
-            user.put("name", result.get("userName"));
-            user.put("role", "用户");
-            user.put("department", "未知");
-            user.put("lastLoginAt", result.get("lastOperTime"));
-            user.put("lastLoginIp", result.get("lastOperIp") != null ? result.get("lastOperIp").toString() : "");
-
-            /** 根据操作次数计算风险等级 */
-            Integer operCount = (Integer) result.get("operCount");
-            String riskLevel = calculateRiskLevelByCount(operCount);
-            user.put("riskLevel", riskLevel);
-
-            users.add(user);
+            String operName = result.get("operName") != null ? result.get("operName").toString() : null;
+            if (StrUtil.isBlank(operName)) {
+                continue;
+            }
+            SysBehaviorUserVO vo = new SysBehaviorUserVO();
+            vo.setOperName(operName);
+            Number operCount = (Number) result.get("operCount");
+            vo.setOperCount(operCount != null ? operCount.longValue() : 0L);
+            vo.setLastOperTime(toLocalDateTime(result.get("lastOperTime")));
+            vo.setLastOperIp(result.get("lastOperIp") != null ? result.get("lastOperIp").toString() : null);
+            vo.setRiskLevel(calcRiskLevel(vo.getOperCount()));
+            users.add(vo);
         }
-
-        /** 按操作次数降序排序 */
-        users.sort((a, b) -> {
-            Integer countA = (Integer) a.getOrDefault("operCount", 0);
-            Integer countB = (Integer) b.getOrDefault("operCount", 0);
-            return countB.compareTo(countA);
-        });
-
         return users;
     }
 
-    /**
-     * 获取用户行为时间轴
-     *
-     * @param userId 用户ID
-     * @param range 时间范围
-     * @return 行为数据点列表
-     */
     @Override
-    public List<Map<String, Object>> getTimeline(String userId, String range) {
-        List<Map<String, Object>> timeline = new ArrayList<>();
+    public PageResult<SysBehaviorEventVO> pageEvents(SysBehaviorQuery query) {
+        Query mongoQuery = buildEventQuery(query);
 
-        /** 计算时间范围 */
-        LocalDateTime startTime = calculateStartTime(range);
-        LocalDateTime endTime = LocalDateTime.now();
-
-        /** 查询操作日志 */
-        Query query = new Query();
-        query.addCriteria(Criteria.where("operName").is(userId));
-        query.addCriteria(Criteria.where("operTime").gte(startTime).lte(endTime));
-        query.with(Sort.by(Sort.Direction.ASC, "operTime"));
-
-        List<OperLog> logs = mongoTemplate.find(query, OperLog.class);
-
-        /** 按时间分组统计 */
-        Map<String, Integer> countByTime = new LinkedHashMap<>();
-        DateTimeFormatter formatter = getFormatter(range);
-
-        for (OperLog log : logs) {
-            if (log.getOperTime() != null) {
-                String timeKey = log.getOperTime().format(formatter);
-                countByTime.merge(timeKey, 1, Integer::sum);
-            }
+        // 1. 总数
+        long total = mongoTemplate.count(mongoQuery, OperLog.class);
+        if (total == 0) {
+            return PageResult.of(List.of(), 0L, query.getPageNum(), query.getPageSize());
         }
 
-        /** 转换为时间轴数据 */
-        for (Map.Entry<String, Integer> entry : countByTime.entrySet()) {
-            Map<String, Object> point = new HashMap<>();
-            point.put("userId", userId);
-            point.put("range", range);
-            point.put("time", entry.getKey());
-            point.put("count", entry.getValue());
-            timeline.add(point);
-        }
+        // 2. 分页 + 排序（最近时间倒序）
+        long pageNum = query.getPageNum();
+        long pageSize = query.getPageSize();
+        mongoQuery.with(Sort.by(Sort.Direction.DESC, "operTime"))
+                .skip((pageNum - 1) * pageSize)
+                .limit((int) pageSize);
 
-        return timeline;
+        List<OperLog> logs = mongoTemplate.find(mongoQuery, OperLog.class);
+
+        // 3. 转 VO（列表场景做参数/响应截断）
+        List<SysBehaviorEventVO> records = new ArrayList<>(logs.size());
+        for (OperLog operLog : logs) {
+            records.add(toEventVO(operLog));
+        }
+        return PageResult.of(records, total, pageNum, pageSize);
     }
 
-    /**
-     * 获取行为审计事件列表
-     *
-     * @param userId 用户ID
-     * @param keyword 关键字
-     * @return 事件列表
-     */
     @Override
-    public List<Map<String, Object>> getEvents(String userId, String keyword) {
-        List<Map<String, Object>> events = new ArrayList<>();
-
-        /** 查询操作日志 */
-        Query query = new Query();
-        if (StrUtil.isNotBlank(userId)) {
-            query.addCriteria(Criteria.where("operName").is(userId));
+    public SysBehaviorDetailVO getDetail(String id) {
+        if (StrUtil.isBlank(id)) {
+            throw new BusinessException("行为记录ID不能为空");
         }
-        if (StrUtil.isNotBlank(keyword)) {
-            Criteria keywordCriteria = new Criteria().orOperator(
-                    Criteria.where("title").regex(keyword, "i"),
-                    Criteria.where("operUrl").regex(keyword, "i"),
-                    Criteria.where("operParam").regex(keyword, "i")
-            );
-            query.addCriteria(keywordCriteria);
+        OperLog operLog = mongoTemplate.findById(id, OperLog.class);
+        if (operLog == null) {
+            throw new BusinessException("行为记录不存在或已被清理: " + id);
         }
-        query.addCriteria(Criteria.where("operTime").gte(LocalDateTime.now().minusDays(7)));
-        query.with(Sort.by(Sort.Direction.DESC, "operTime"));
-        query.limit(100);
+        return toDetailVO(operLog);
+    }
 
-        List<OperLog> logs = mongoTemplate.find(query, OperLog.class);
+    // ====================== 私有方法 ======================
 
-        /** 转换为事件列表 */
-        for (OperLog log : logs) {
-            Map<String, Object> event = new HashMap<>();
-            event.put("id", log.getId());
-            event.put("userId", log.getOperName());
-            event.put("time", log.getOperTime() != null ? log.getOperTime().toString() : "");
-            event.put("action", getActionType(log.getBusinessType()));
-            event.put("module", log.getTitle() != null ? log.getTitle() : "");
-            event.put("detail", buildDetail(log));
-            event.put("riskLevel", log.getStatus() != null && log.getStatus() == 1 ? "high" : "low");
-            events.add(event);
+    /**
+     * 构建行为列表查询条件
+     */
+    private Query buildEventQuery(SysBehaviorQuery query) {
+        Query mongoQuery = new Query();
+        if (StrUtil.isNotBlank(query.getUserName())) {
+            // 操作人精确匹配（前端从用户列表选择）
+            mongoQuery.addCriteria(Criteria.where("operName").is(query.getUserName()));
         }
-
-        return events;
+        if (query.getBusinessType() != null) {
+            mongoQuery.addCriteria(Criteria.where("businessType").is(query.getBusinessType()));
+        }
+        if (StrUtil.isNotBlank(query.getTitle())) {
+            mongoQuery.addCriteria(Criteria.where("title").regex(query.getTitle(), "i"));
+        }
+        if (StrUtil.isNotBlank(query.getOperIp())) {
+            mongoQuery.addCriteria(Criteria.where("operIp").regex(query.getOperIp(), "i"));
+        }
+        if (query.getStatus() != null) {
+            mongoQuery.addCriteria(Criteria.where("status").is(query.getStatus()));
+        }
+        if (query.getBeginTime() != null && query.getEndTime() != null) {
+            mongoQuery.addCriteria(Criteria.where("operTime")
+                    .gte(query.getBeginTime()).lte(query.getEndTime()));
+        } else if (query.getBeginTime() != null) {
+            mongoQuery.addCriteria(Criteria.where("operTime").gte(query.getBeginTime()));
+        } else if (query.getEndTime() != null) {
+            mongoQuery.addCriteria(Criteria.where("operTime").lte(query.getEndTime()));
+        }
+        return mongoQuery;
     }
 
     /**
-     * 计算用户风险等级
-     *
-     * @param userId 用户ID
-     * @return 风险等级
+     * OperLog → SysBehaviorEventVO（列表，截断）
      */
-    @Override
-    public String calculateRiskLevel(Long userId) {
-        return "low";
+    private SysBehaviorEventVO toEventVO(OperLog operLog) {
+        SysBehaviorEventVO vo = new SysBehaviorEventVO();
+        vo.setId(operLog.getId());
+        vo.setOperName(operLog.getOperName());
+        vo.setTitle(operLog.getTitle());
+        vo.setBusinessType(operLog.getBusinessType());
+        vo.setActionType(actionName(operLog.getBusinessType()));
+        vo.setOperUrl(operLog.getOperUrl());
+        vo.setRequestMethod(operLog.getRequestMethod());
+        vo.setOperParam(truncate(operLog.getOperParam()));
+        vo.setJsonResult(truncate(operLog.getJsonResult()));
+        vo.setOperIp(operLog.getOperIp());
+        vo.setOperLocation(operLog.getOperLocation());
+        vo.setStatus(operLog.getStatus());
+        vo.setOperTime(operLog.getOperTime());
+        vo.setCostTime(operLog.getCostTime());
+        return vo;
     }
 
     /**
-     * 根据操作次数计算风险等级
-     *
-     * @param count 操作次数
-     * @return 风险等级
+     * OperLog → SysBehaviorDetailVO（详情，完整字段）
      */
-    private String calculateRiskLevelByCount(Integer count) {
-        if (count == null) return "low";
-        if (count > 100) return "high";
-        if (count > 50) return "medium";
-        return "low";
+    private SysBehaviorDetailVO toDetailVO(OperLog operLog) {
+        SysBehaviorDetailVO vo = new SysBehaviorDetailVO();
+        vo.setId(operLog.getId());
+        vo.setOperName(operLog.getOperName());
+        vo.setTitle(operLog.getTitle());
+        vo.setBusinessType(operLog.getBusinessType());
+        vo.setActionType(actionName(operLog.getBusinessType()));
+        vo.setMethod(operLog.getMethod());
+        vo.setRequestMethod(operLog.getRequestMethod());
+        vo.setOperUrl(operLog.getOperUrl());
+        vo.setOperIp(operLog.getOperIp());
+        vo.setOperLocation(operLog.getOperLocation());
+        vo.setOperParam(operLog.getOperParam());
+        vo.setJsonResult(operLog.getJsonResult());
+        vo.setStatus(operLog.getStatus());
+        vo.setErrorMsg(operLog.getErrorMsg());
+        vo.setOperTime(operLog.getOperTime());
+        vo.setCostTime(operLog.getCostTime());
+        return vo;
     }
 
     /**
-     * 根据时间范围计算开始时间
-     *
-     * @param range 时间范围
-     * @return 开始时间
+     * 业务类型代码转名称（与 OperLog.businessType 注释一致）
      */
-    private LocalDateTime calculateStartTime(String range) {
-        return switch (range) {
-            case "today" -> LocalDateTime.now().truncatedTo(ChronoUnit.DAYS);
-            case "7d" -> LocalDateTime.now().minus(7, ChronoUnit.DAYS);
-            case "30d" -> LocalDateTime.now().minus(30, ChronoUnit.DAYS);
-            default -> LocalDateTime.now().minus(1, ChronoUnit.DAYS);
-        };
-    }
-
-    /**
-     * 根据时间范围获取格式化器
-     *
-     * @param range 时间范围
-     * @return 格式化器
-     */
-    private DateTimeFormatter getFormatter(String range) {
-        return switch (range) {
-            case "today" -> DateTimeFormatter.ofPattern("HH:mm");
-            case "7d", "30d" -> DateTimeFormatter.ofPattern("MM-dd");
-            default -> DateTimeFormatter.ofPattern("HH:mm");
-        };
-    }
-
-    /**
-     * 获取动作类型
-     *
-     * @param businessType 业务类型
-     * @return 动作类型
-     */
-    private String getActionType(Integer businessType) {
-        if (businessType == null) return "其他";
+    private String actionName(Integer businessType) {
+        if (businessType == null) {
+            return "其它";
+        }
         return switch (businessType) {
             case 1 -> "新增";
             case 2 -> "修改";
             case 3 -> "删除";
-            case 4 -> "查询";
+            case 4 -> "授权";
             case 5 -> "导出";
             case 6 -> "导入";
-            default -> "其他";
+            case 7 -> "强退";
+            case 8 -> "生成代码";
+            case 9 -> "清空数据";
+            case 10 -> "查询";
+            default -> "其它";
         };
     }
 
     /**
-     * 构建详情描述
-     *
-     * @param log 操作日志
-     * @return 详情描述
+     * 列表场景截断字符串
      */
-    private String buildDetail(OperLog log) {
-        StringBuilder detail = new StringBuilder();
-        if (StrUtil.isNotBlank(log.getOperUrl())) {
-            detail.append(log.getOperUrl());
+    private String truncate(String text) {
+        if (StrUtil.isBlank(text)) {
+            return text;
         }
-        if (StrUtil.isNotBlank(log.getOperParam())) {
-            if (detail.length() > 0) detail.append(" ");
-            String param = log.getOperParam();
-            if (param.length() > 100) {
-                param = param.substring(0, 100) + "...";
-            }
-            detail.append(param);
+        return text.length() > LIST_PREVIEW_MAX_LEN
+                ? text.substring(0, LIST_PREVIEW_MAX_LEN) + "..."
+                : text;
+    }
+
+    /**
+     * 风险等级
+     */
+    private String calcRiskLevel(Long count) {
+        if (count == null) {
+            return "low";
         }
-        return detail.toString();
+        if (count > 100) {
+            return "high";
+        }
+        if (count > 50) {
+            return "medium";
+        }
+        return "low";
+    }
+
+    /**
+     * MongoDB 聚合返回的时间统一转 LocalDateTime
+     */
+    private LocalDateTime toLocalDateTime(Object value) {
+        if (value == null) {
+            return null;
+        }
+        if (value instanceof LocalDateTime ldt) {
+            return ldt;
+        }
+        if (value instanceof Date date) {
+            return date.toInstant().atZone(ZoneId.systemDefault()).toLocalDateTime();
+        }
+        return null;
     }
 }

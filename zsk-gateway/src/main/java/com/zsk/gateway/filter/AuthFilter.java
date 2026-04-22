@@ -47,83 +47,121 @@ public class AuthFilter implements GlobalFilter, Ordered {
 
     /**
      * 过滤逻辑实现
+     * <p>
+     * 该方法是网关认证的核心过滤器，负责对所有请求进行Token验证和用户信息注入。
+     * 采用"网关管令牌，Security管权限"的设计理念，网关仅负责Token有效性验证，
+     * 具体的权限控制由下游微服务的Spring Security处理。
+     * <p>
+     * 处理流程：
+     * 1. 白名单校验 - 跳过不需要认证的路径
+     * 2. Token提取 - 从请求头中解析Bearer Token
+     * 3. Token验证 - 解析JWT并验证Redis中的Token状态
+     * 4. 用户信息注入 - 将用户信息添加到请求头传递给下游服务
+     * <p>
+     * Token存储结构（变更后）：
+     * - Key: zsk:login:token:{userId}
+     * - Value: Set<token> (支持多设备登录，最多5个Token)
      *
-     * @param exchange 服务网络交换器
-     * @param chain    过滤器链
-     * @return Mono<Void>
+     * @param exchange 服务网络交换器，包含请求和响应信息
+     * @param chain    过滤器链，用于继续执行后续过滤器
+     * @return Mono<Void> 异步处理结果
      */
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
         String url = request.getURI().getPath();
 
-        // 1. 白名单校验：跳过不需要验证的路径（如登录、验证码、静态资源等）
+        // ==================== 步骤1：白名单校验 ====================
+        // 检查请求路径是否在白名单中（登录、验证码、静态资源等）
+        // 白名单配置在 ignoreWhiteProperties 中，支持Ant路径匹配模式
         if (matches(url, ignoreWhiteProperties.getWhites())) {
             return chain.filter(exchange);
         }
 
-        // 2. 令牌提取：从请求头 Authorization 中解析 Token
+        // ==================== 步骤2：Token提取 ====================
+        // 从请求头 Authorization 中解析 Token
+        // 格式：Authorization: Bearer {token}
         String token = getToken(request);
 
-        // 3. 匿名访问处理：
-        // 走网关就必须要有token，否则无法访问
-        // 不走网关的话，如果令牌为空，则直接放行。下游微服务将根据方法上的安全注解（如 @PreAuthorize）决定是否拦截。
-        // 网关管令牌，security管权限
+        // ==================== 步骤3：匿名访问处理 ====================
+        // 网关强制要求Token验证，不走网关的请求由下游微服务处理
+        // 设计原则：网关管令牌，Security管权限
         if (StringUtils.isEmpty(token)) {
             return unauthorizedResponse(exchange, "令牌不能为空");
-            //return chain.filter(exchange);
         }
 
-        // 4. 令牌有效性校验 & 5. 用户信息获取
-        // 使用 JWT 解析获取用户信息，Redis 仅用于校验 Token 状态（是否过期/黑名单）
+        // ==================== 步骤4：Token有效性校验 ====================
+        // 4.1 解析JWT获取Claims（用户信息载体）
+        // 4.2 从Redis验证Token状态（是否过期/被踢出）
+        // 4.3 刷新Token过期时间（滑动过期机制）
         try {
+            // 解析JWT Token，获取Claims对象
+            // Claims包含：user_id, user_name, nick_name等信息
             Claims claims = JwtUtils.parseToken(token);
             if (claims == null) {
                 return unauthorizedResponse(exchange, "令牌已过期或验证不正确");
             }
 
-            // 获取 Token 唯一标识 (jti/uuid)
-            String uuid = (String) claims.get(SecurityConstants.USER_KEY);
-            String tokenKey = CacheConstants.CACHE_LOGIN_TOKEN + uuid;
+            // 从Claims中提取用户ID
+            String userId = claims.get(SecurityConstants.USER_ID).toString();
+            
+            // 构建Redis Key：zsk:login:token:{userId}
+            // 该Key存储该用户的所有有效Token集合（Set结构）
+            String tokenKey = CacheConstants.CACHE_LOGIN_TOKEN + userId;
 
-            // 检查 Redis 中是否存在该 Key (状态管控)
-            boolean hasKey = redisService.hasKey(tokenKey);
-            if (!hasKey) {
+            // 验证当前Token是否在用户的Token集合中
+            // 支持多设备登录：一个用户可以有多个有效Token
+            Boolean isMember = redisService.isMemberOfSet(tokenKey, token);
+            if (Boolean.FALSE.equals(isMember)) {
+                // Token不在集合中，可能已被踢出或过期
                 return unauthorizedResponse(exchange, "令牌已过期或验证不正确");
             }
 
-            // 刷新 Token 在 Redis 中的过期时间 (滑动过期)
+            // 刷新Token集合的过期时间（滑动过期）
+            // 每次请求都会重置过期时间，保持活跃用户的登录状态
             redisService.expire(tokenKey, SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
 
-            String userId = claims.get(SecurityConstants.USER_ID).toString();
+            // ==================== 步骤5：获取用户详细信息 ====================
+            // 从Claims中提取用户基本信息
             String username = claims.get(SecurityConstants.USER_NAME).toString();
             String nickname = claims.get(SecurityConstants.NICK_NAME) != null ? claims.get(SecurityConstants.NICK_NAME).toString() : "";
 
-            String rolesKey = CacheConstants.CACHE_LOGIN_ROLES + uuid;
-            String permsKey = CacheConstants.CACHE_LOGIN_PERMISSIONS + uuid;
+            // 从Redis获取用户的角色和权限信息
+            // Key格式：
+            // - zsk:login:roles:{userId} -> Set<String> 角色集合
+            // - zsk:login:permissions:{userId} -> Set<String> 权限集合
+            String rolesKey = CacheConstants.CACHE_LOGIN_ROLES + userId;
+            String permsKey = CacheConstants.CACHE_LOGIN_PERMISSIONS + userId;
             Set<String> rolesSet = redisService.getCacheObject(rolesKey);
             Set<String> permsSet = redisService.getCacheObject(permsKey);
 
+            // 将Set集合转换为逗号分隔的字符串
+            // 例如：admin,user,guest 或 system:user:list,system:role:add
             String roles = StringUtils.isNotEmpty(rolesSet) ? StringUtils.join(rolesSet, ",") : "";
             String permissions = StringUtils.isNotEmpty(permsSet) ? StringUtils.join(permsSet, ",") : "";
 
+            // 刷新角色和权限缓存的过期时间
+            // 与Token保持一致的过期时间
             redisService.expire(rolesKey, SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
             redisService.expire(permsKey, SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
 
-            // 将用户信息注入请求头
+            // ==================== 步骤6：注入用户信息到请求头 ====================
+            // 将用户信息添加到请求头，传递给下游微服务
+            // 下游服务通过解析请求头获取用户信息，无需再次查询数据库
             ServerHttpRequest mutableReq = request.mutate()
-                    .header(SecurityConstants.USER_ID_HEADER, userId)
-                    .header(SecurityConstants.USER_NAME_HEADER, username)
-                    .header(SecurityConstants.NICK_NAME_HEADER, nickname)
-                    .header(SecurityConstants.USER_KEY_HEADER, uuid) // 注意：这里传递的是 uuid 而不是完整的 JWT
-                    .header(SecurityConstants.ROLES, roles)
-                    .header(SecurityConstants.PERMISSIONS, permissions)
+                    .header(SecurityConstants.USER_ID_HEADER, userId)           // 用户ID
+                    .header(SecurityConstants.USER_NAME_HEADER, username)       // 用户名
+                    .header(SecurityConstants.NICK_NAME_HEADER, nickname)       // 昵称
+                    .header(SecurityConstants.USER_KEY_HEADER, userId)          // 用户标识（原uuid，现改为userId）
+                    .header(SecurityConstants.ROLES, roles)                     // 角色列表
+                    .header(SecurityConstants.PERMISSIONS, permissions)         // 权限列表
                     .build();
             ServerWebExchange mutableExchange = exchange.mutate().request(mutableReq).build();
 
-            // 继续执行后续过滤器链
+            // 继续执行后续过滤器链，将请求转发给下游服务
             return chain.filter(mutableExchange);
         } catch (Exception e) {
+            // JWT解析失败，记录日志并返回401错误
             log.error("JWT解析失败: {}", e.getMessage());
             return unauthorizedResponse(exchange, "令牌已过期或验证不正确");
         }

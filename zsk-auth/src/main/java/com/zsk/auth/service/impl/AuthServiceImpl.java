@@ -3,11 +3,7 @@ package com.zsk.auth.service.impl;
 import com.zsk.auth.domain.LoginRequest;
 import com.zsk.auth.domain.LoginResponse;
 import com.zsk.auth.domain.RegisterBody;
-import com.zsk.auth.service.IAuthService;
-import com.zsk.auth.service.ICaptchaService;
-import com.zsk.auth.service.IEmailService;
-import com.zsk.auth.service.IEncryptService;
-import com.zsk.auth.service.IThirdPartyAuthService;
+import com.zsk.auth.service.*;
 import com.zsk.common.core.constant.CacheConstants;
 import com.zsk.common.core.constant.CommonConstants;
 import com.zsk.common.core.constant.SecurityConstants;
@@ -22,16 +18,17 @@ import com.zsk.common.security.utils.SecurityUtils;
 import com.zsk.system.api.RemoteUserService;
 import com.zsk.system.api.domain.SysUserApi;
 import com.zsk.system.api.model.LoginUser;
+import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import jakarta.servlet.http.HttpServletRequest;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -197,13 +194,13 @@ public class AuthServiceImpl implements IAuthService {
         }
 
         SysUserApi user = loginUser.getSysUser();
-        
+
         // 校验密码
         if (StringUtils.isNotEmpty(password)) {
-             String decryptedPassword = encryptService.decrypt(password);
-             if (!SecurityUtils.matchesPassword(decryptedPassword, user.getPassword())) {
-                 throw new AuthException("邮箱或密码错误");
-             }
+            String decryptedPassword = encryptService.decrypt(password);
+            if (!SecurityUtils.matchesPassword(decryptedPassword, user.getPassword())) {
+                throw new AuthException("邮箱或密码错误");
+            }
         }
 
         if ("1".equals(user.getStatus())) {
@@ -272,92 +269,194 @@ public class AuthServiceImpl implements IAuthService {
 
     /**
      * 生成访问令牌（Access Token）并缓存
+     * <p>
+     * 该方法负责生成JWT Token并将Token存储到Redis中，支持多设备登录。
+     * 采用基于用户ID的Token集合存储方式，一个用户最多可以同时登录5个设备。
+     * <p>
+     * 存储结构变更说明：
+     * - 变更前：key=uuid, value=userId（单Token模式）
+     * - 变更后：key=userId, value=Set<token>（多Token模式）
+     * <p>
+     * 处理流程：
+     * 1. 构建JWT Claims（用户信息载体）
+     * 2. 生成JWT Token
+     * 3. 检查用户Token数量，超过5个则删除最旧的
+     * 4. 将Token添加到Redis Set集合
+     * 5. 缓存用户的角色和权限信息
+     * <p>
+     * Redis存储结构：
+     * - Token集合：zsk:login:token:{userId} -> Set<token>
+     * - 角色集合：zsk:login:roles:{userId} -> Set<String>
+     * - 权限集合：zsk:login:permissions:{userId} -> Set<String>
      *
-     * @param loginUser 登录用户信息
-     * @return 访问令牌
+     * @param loginUser 登录用户信息，包含用户基本信息、角色、权限等
+     * @return 访问令牌（JWT格式）
      */
     private String generateAccessToken(LoginUser loginUser) {
         SysUserApi user = loginUser.getSysUser();
-        // 生成唯一标识 jti (JWT ID)，作为 Redis Key
-        String uuid = UUID.randomUUID().toString().replace("-", "");
-        String tokenKey = CacheConstants.CACHE_LOGIN_TOKEN + uuid;
+        Long userId = user.getId();
 
+        // ==================== 步骤1：构建JWT Claims ====================
+        // Claims是JWT的载荷部分，包含用户基本信息
+        // 不再使用uuid作为user_key，直接使用userId
         Map<String, Object> claims = new HashMap<>();
-        claims.put(SecurityConstants.USER_KEY, uuid);
-        claims.put(SecurityConstants.USER_ID, user.getId());
-        claims.put(SecurityConstants.USER_NAME, user.getUserName());
-        claims.put(SecurityConstants.NICK_NAME, user.getNickName());
+        claims.put(SecurityConstants.USER_ID, userId);              // 用户ID
+        claims.put(SecurityConstants.USER_NAME, user.getUserName()); // 用户名
+        claims.put(SecurityConstants.NICK_NAME, user.getNickName()); // 昵称
 
-        redisService.setCacheObject(tokenKey, user.getId(), SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
+        // ==================== 步骤2：生成JWT Token ====================
+        // 使用配置的密钥（对称或非对称）生成Token
+        String token = JwtUtils.createToken(claims);
 
-        String rolesKey = CacheConstants.CACHE_LOGIN_ROLES + uuid;
-        String permsKey = CacheConstants.CACHE_LOGIN_PERMISSIONS + uuid;
+        // ==================== 步骤3：Token数量控制 ====================
+        // 检查用户当前的Token数量，支持最多5个设备同时登录
+        String tokenKey = CacheConstants.CACHE_LOGIN_TOKEN + userId;
+        Long tokenCount = redisService.getSetSize(tokenKey);
+        
+        if (tokenCount != null && tokenCount >= 5) {
+            // 已达到最大Token数量限制，删除最旧的Token
+            // 注意：Redis Set是无序的，这里删除的是随机一个Token
+            // 如需精确删除最旧Token，建议使用Redis Sorted Set
+            Set<String> tokens = redisService.getCacheSet(tokenKey);
+            if (tokens != null && !tokens.isEmpty()) {
+                String oldestToken = tokens.iterator().next();
+                redisService.removeSetCacheObject(tokenKey, oldestToken);
+                log.info("用户 {} Token数量达到上限，删除旧Token", userId);
+            }
+        }
+
+        // ==================== 步骤4：存储Token到Redis ====================
+        // 将新生成的Token添加到用户的Token集合中
+        redisService.setSetCacheObject(tokenKey, token);
+        
+        // 设置Token集合的过期时间（滑动过期）
+        // 每次登录或请求都会刷新过期时间
+        redisService.expire(tokenKey, SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
+
+        // ==================== 步骤5：缓存角色和权限信息 ====================
+        // 每次登录都重新缓存用户的角色和权限信息
+        // 这样可以确保权限变更后，重新登录即可生效
+        String rolesKey = CacheConstants.CACHE_LOGIN_ROLES + userId;
+        String permsKey = CacheConstants.CACHE_LOGIN_PERMISSIONS + userId;
+        
+        // 先删除旧的缓存
         redisService.deleteObject(rolesKey);
         redisService.deleteObject(permsKey);
+        
+        // 缓存新的角色和权限信息
+        // 过期时间与Token保持一致
         redisService.setCacheObject(rolesKey, loginUser.getRoles(), SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
         redisService.setCacheObject(permsKey, loginUser.getPermissions(), SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
 
-        // 生成 JWT
-        return JwtUtils.createToken(claims);
+        return token;
     }
 
 
     /**
      * 刷新令牌处理
+     * <p>
+     * 该方法用于刷新Token的过期时间，实现滑动过期机制。
+     * 用户在Token即将过期前，可以通过此方法延长Token的有效期。
+     * <p>
+     * 处理流程：
+     * 1. 验证Token格式（去除Bearer前缀）
+     * 2. 从Token中解析用户ID
+     * 3. 验证Token是否在用户的Token集合中
+     * 4. 刷新Token集合、角色集合、权限集合的过期时间
+     * <p>
+     * 注意事项：
+     * - 只刷新Token集合的过期时间，不生成新Token
+     * - 同时刷新角色和权限缓存的过期时间
+     * - 如果Token不在集合中，说明已被踢出或过期
      *
-     * @param refreshToken 刷新令牌
-     * @return 新的登录结果
-     * @throws AuthException 刷新失败异常
+     * @param refreshToken 刷新令牌（可带Bearer前缀）
+     * @throws AuthException Token无效或已过期
      */
     @Override
     public void refreshTokenTime(String refreshToken) {
+        // 参数校验
         if (StringUtils.isEmpty(refreshToken)) {
             throw new AuthException("刷新令牌不能为空");
         }
-        // 如果带了 Bearer 前缀，先去掉
+        
+        // 去除Bearer前缀（如果有）
         if (refreshToken.startsWith(SecurityConstants.TOKEN_PREFIX)) {
             refreshToken = refreshToken.replace(SecurityConstants.TOKEN_PREFIX, "");
         }
-        // 从 refreshToken 获取 uuid (user_key)
-        String uuid = JwtUtils.getUserKey(refreshToken);
-        if (StringUtils.isEmpty(uuid)) {
+
+        // 从Token中解析用户ID
+        Long userId = JwtUtils.getUserIdAsLong(refreshToken);
+        if (userId == null) {
             throw new AuthException("刷新令牌无效");
         }
-        // 根据 uuid 获取 redis 中的缓存
-        String tokenKey = CacheConstants.CACHE_LOGIN_TOKEN + uuid;
-        Object userId = redisService.getCacheObject(tokenKey);
-        if (userId == null) {
+
+        // 验证Token是否在用户的Token集合中
+        String tokenKey = CacheConstants.CACHE_LOGIN_TOKEN + userId;
+        Boolean isMember = redisService.isMemberOfSet(tokenKey, refreshToken);
+        if (Boolean.FALSE.equals(isMember)) {
+            // Token不在集合中，可能已被踢出或过期
             throw new AuthException("刷新令牌已过期或不存在");
         }
-        redisService.expire(tokenKey, SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
-        redisService.expire(CacheConstants.CACHE_LOGIN_ROLES + uuid, SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
-        redisService.expire(CacheConstants.CACHE_LOGIN_PERMISSIONS + uuid, SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
 
+        // 刷新Token集合的过期时间
+        redisService.expire(tokenKey, SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
+        
+        // 同时刷新角色和权限缓存的过期时间
+        redisService.expire(CacheConstants.CACHE_LOGIN_ROLES + userId, SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
+        redisService.expire(CacheConstants.CACHE_LOGIN_PERMISSIONS + userId, SecurityConstants.TOKEN_EXPIRE, TimeUnit.MINUTES);
     }
 
     /**
      * 退出登录处理
+     * <p>
+     * 该方法负责处理用户退出登录，删除指定的Token。
+     * 支持多设备登录场景，退出时只删除当前设备的Token，不影响其他设备的登录状态。
+     * <p>
+     * 处理流程：
+     * 1. 验证Token格式（去除Bearer前缀）
+     * 2. 从Token中解析用户ID
+     * 3. 从用户的Token集合中删除指定Token
+     * 4. 检查用户是否还有其他Token
+     * 5. 如果没有剩余Token，清理角色和权限缓存
+     * <p>
+     * 注意事项：
+     * - 只删除当前Token，不删除其他设备的Token
+     * - 当用户所有Token都被删除后，才清理角色和权限缓存
+     * - 异常情况仅记录日志，不影响退出流程
      *
-     * @param token 访问令牌
+     * @param token 访问令牌（可带Bearer前缀）
      */
     @Override
     public void logout(String token) {
+        // 参数校验
         if (StringUtils.isEmpty(token)) {
             return;
         }
 
         try {
+            // 去除Bearer前缀（如果有）
             if (token.startsWith(SecurityConstants.TOKEN_PREFIX)) {
                 token = token.replace(SecurityConstants.TOKEN_PREFIX, "");
             }
 
-            String uuid = JwtUtils.getUserKey(token);
-            if (StringUtils.isNotEmpty(uuid)) {
-                redisService.deleteObject(CacheConstants.CACHE_LOGIN_TOKEN + uuid);
-                redisService.deleteObject(CacheConstants.CACHE_LOGIN_ROLES + uuid);
-                redisService.deleteObject(CacheConstants.CACHE_LOGIN_PERMISSIONS + uuid);
+            // 从Token中解析用户ID
+            Long userId = JwtUtils.getUserIdAsLong(token);
+            if (userId != null) {
+                // 从用户的Token集合中删除指定Token
+                String tokenKey = CacheConstants.CACHE_LOGIN_TOKEN + userId;
+                redisService.removeSetCacheObject(tokenKey, token);
+
+                // 检查用户是否还有剩余Token
+                Long remainingTokens = redisService.getSetSize(tokenKey);
+                if (remainingTokens == null || remainingTokens == 0) {
+                    // 用户没有任何Token了，清理角色和权限缓存
+                    redisService.deleteObject(CacheConstants.CACHE_LOGIN_ROLES + userId);
+                    redisService.deleteObject(CacheConstants.CACHE_LOGIN_PERMISSIONS + userId);
+                    log.info("用户 {} 所有设备已退出登录", userId);
+                }
             }
         } catch (Exception e) {
+            // 异常情况仅记录日志，不影响退出流程
             log.error("退出登录时解析 Token 失败: {}", e.getMessage());
         }
     }
@@ -371,17 +470,17 @@ public class AuthServiceImpl implements IAuthService {
         if (userResult == null || !userResult.isSuccess()) {
             throw new AuthException("用户不存在");
         }
-        
+
         LoginUser loginUser = userResult.getData();
         if (loginUser == null || loginUser.getSysUser() == null) {
             throw new AuthException("用户不存在");
         }
-        
+
         String email = loginUser.getSysUser().getEmail();
         if (StringUtils.isEmpty(email)) {
             throw new AuthException("该用户未绑定邮箱");
         }
-        
+
         emailService.sendEmailCode(email);
     }
 
@@ -395,7 +494,7 @@ public class AuthServiceImpl implements IAuthService {
         if (StringUtils.isEmpty(email)) {
             throw new AuthException("邮箱地址不能为空");
         }
-        
+
         // 验证滑块验证码凭证
         captchaService.verifyCaptchaToken(captchaVerification);
 
@@ -418,7 +517,7 @@ public class AuthServiceImpl implements IAuthService {
      * 验证重置验证码
      *
      * @param email 邮箱地址
-     * @param code 验证码
+     * @param code  验证码
      * @return 验证令牌（用于后续重置密码）
      */
     @Override
@@ -443,7 +542,7 @@ public class AuthServiceImpl implements IAuthService {
     /**
      * 重置密码
      *
-     * @param email 邮箱地址
+     * @param email       邮箱地址
      * @param verifyToken 验证令牌
      * @param newPassword 新密码（已加密）
      */
@@ -523,7 +622,7 @@ public class AuthServiceImpl implements IAuthService {
      * 5. 发送包含魔法链接的邮件
      * <p>限流由 Controller 层 @RateLimit 注解控制
      *
-     * @param email 邮箱地址
+     * @param email          邮箱地址
      * @param turnstileToken Cloudflare Turnstile验证Token
      * @throws AuthException 参数校验失败或人机校验失败
      */
@@ -582,7 +681,7 @@ public class AuthServiceImpl implements IAuthService {
         redisService.deleteObject(magicLinkKey);
 
         R<LoginUser> userResult = remoteUserService.getUserInfoByEmail(email, CommonConstants.REQUEST_SOURCE_INNER);
-        
+
         LoginUser loginUser;
         if (userResult == null || !userResult.isSuccess() || userResult.getData() == null) {
             loginUser = createUserByEmail(email);
