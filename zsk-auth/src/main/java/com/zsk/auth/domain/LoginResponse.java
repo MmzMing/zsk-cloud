@@ -30,7 +30,7 @@ public class LoginResponse {
     /**
      * 令牌类型
      */
-    private String tokenType = "Bearer";
+    private String tokenType;
 
     /**
      * 过期时间（秒）
