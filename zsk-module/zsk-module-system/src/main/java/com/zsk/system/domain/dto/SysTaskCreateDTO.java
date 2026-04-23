@@ -56,4 +56,8 @@ public class SysTaskCreateDTO implements Serializable {
     /** 任务描述 */
     @Schema(description = "任务描述/备注")
     private String details;
+
+    /** 任务颜色，可选 */
+    @Schema(description = "任务颜色，可选")
+    private String color;
 }

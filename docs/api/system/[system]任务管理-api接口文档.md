@@ -43,7 +43,8 @@
         "type": "task",
         "parent": 0,
         "open": true,
-        "details": "任务描述"
+        "details": "任务描述",
+        "color": "#3DB9D3"
       }
     ],
     "links": [
@@ -72,6 +73,7 @@
 | data.tasks[].parent | Long | 父任务ID，顶级为 0，可选 |
 | data.tasks[].open | Boolean | 是否默认展开 |
 | data.tasks[].details | String | 任务描述/备注 |
+| data.tasks[].color | String | 任务颜色，默认：project-#7B68EE(紫)、task-#3DB9D3(青)、milestone-#FFA500(橙) |
 | data.links | Array | 任务依赖关系列表 |
 | data.links[].id | Long | 依赖关系唯一ID |
 | data.links[].source | Long | 源任务ID（前驱任务） |
@@ -113,7 +115,8 @@
     "type": "task",
     "parent": 0,
     "open": true,
-    "details": "任务描述"
+    "details": "任务描述",
+    "color": "#3DB9D3"
   }
 }
 ```
@@ -153,7 +156,8 @@
   "progress": 0,
   "type": "task",
   "parent": 0,
-  "details": "任务描述"
+  "details": "任务描述",
+  "color": "#3DB9D3"
 }
 ```
 
@@ -168,6 +172,7 @@
 | type | String | 是 | 任务类型：task-普通任务 / project-项目 / milestone-里程碑 |
 | parent | Long | 否 | 父任务ID，可选（顶级任务不传或传0） |
 | details | String | 否 | 任务描述/备注 |
+| color | String | 否 | 任务颜色，可选，不传则按类型取默认色 |
 
 **成功响应** (200):
 
@@ -184,7 +189,8 @@
     "type": "task",
     "parent": 0,
     "open": true,
-    "details": "任务描述"
+    "details": "任务描述",
+    "color": "#3DB9D3"
   }
 }
 ```
@@ -225,7 +231,8 @@
   "progress": 75,
   "type": "task",
   "parent": 0,
-  "details": "更新后的任务描述"
+  "details": "更新后的任务描述",
+  "color": "#7B68EE"
 }
 ```
 
@@ -241,6 +248,7 @@
 | type | String | 否 | 任务类型：task-普通任务 / project-项目 / milestone-里程碑 |
 | parent | Long | 否 | 父任务ID（拖拽改变层级时传），可选 |
 | details | String | 否 | 任务描述/备注 |
+| color | String | 否 | 任务颜色，可选 |
 
 **成功响应** (200):
 

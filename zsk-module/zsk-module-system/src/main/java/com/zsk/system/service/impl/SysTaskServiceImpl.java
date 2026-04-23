@@ -41,6 +41,8 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
+    
+
     private final ISysTaskLinkService taskLinkService;
 
     /**
@@ -138,6 +140,9 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
         // 设置任务详情描述
         task.setDetails(dto.getDetails());
 
+        // 设置任务颜色（前端控制，后端不限制）
+        task.setColor(dto.getColor());
+
         // 保存任务到数据库
         this.save(task);
         
@@ -191,6 +196,9 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
         }
         if (dto.getDetails() != null) {
             task.setDetails(dto.getDetails());
+        }
+        if (dto.getColor() != null) {
+            task.setColor(dto.getColor());
         }
 
         // 更新任务到数据库
@@ -270,6 +278,7 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
         vo.setParent(task.getParentId());
         vo.setOpen(task.getOpenFlag() != null && task.getOpenFlag() == 1);
         vo.setDetails(task.getDetails());
+        vo.setColor(task.getColor());
         return vo;
     }
 }

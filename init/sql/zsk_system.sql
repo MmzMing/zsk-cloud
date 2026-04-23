@@ -196,6 +196,7 @@ CREATE TABLE `sys_task` (
   `parent_id` bigint(20) DEFAULT 0 COMMENT '父任务ID，顶级为 0',
   `open_flag` tinyint(1) DEFAULT 1 COMMENT '是否展开',
   `details` varchar(500) DEFAULT NULL COMMENT '备注',
+  `color` varchar(20) DEFAULT NULL COMMENT '任务颜色',
   `deleted` tinyint(1) DEFAULT 0 COMMENT '是否已删除(0否 1是)',
   `create_name` varchar(100) DEFAULT NULL COMMENT '创建者姓名',
   `create_time` datetime DEFAULT NULL COMMENT '创建时间',

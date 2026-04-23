@@ -55,4 +55,8 @@ public class SysTask extends TenantEntity {
     /** 任务描述 */
     @Schema(description = "任务描述")
     private String details;
+
+    /** 任务颜色 */
+    @Schema(description = "任务颜色")
+    private String color;
 }
