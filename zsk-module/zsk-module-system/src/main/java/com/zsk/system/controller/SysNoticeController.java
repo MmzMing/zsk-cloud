@@ -1,6 +1,9 @@
 package com.zsk.system.controller;
 
+import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.zsk.common.core.domain.R;
+import com.zsk.common.datasource.domain.PageQuery;
+import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.system.domain.SysNotice;
 import com.zsk.system.service.ISysNoticeService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -30,6 +33,25 @@ public class SysNoticeController {
     @GetMapping("/list")
     public R<List<SysNotice>> list(SysNotice notice) {
         return R.ok(noticeService.list());
+    }
+
+    /**
+     * 分页查询通知公告列表
+     */
+    @Operation(summary = "分页查询通知公告列表")
+    @GetMapping("/page")
+    public R<PageResult<SysNotice>> page(PageQuery pageQuery, SysNotice notice) {
+        IPage<SysNotice> page = noticeService.page(pageQuery, notice);
+        return R.ok(PageResult.build(page));
+    }
+
+    /**
+     * 获取控制台最新公告（限制5条）
+     */
+    @Operation(summary = "获取控制台最新公告")
+    @GetMapping("/console")
+    public R<List<SysNotice>> listConsoleNotices() {
+        return R.ok(noticeService.listLatest());
     }
 
     /**
