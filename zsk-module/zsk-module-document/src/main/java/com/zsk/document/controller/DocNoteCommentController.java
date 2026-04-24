@@ -23,7 +23,7 @@ import java.util.List;
  */
 @Tag(name = "笔记评论管理")
 @RestController
-@RequestMapping("/note/comment")
+@RequestMapping("/docNoteComment")
 @RequiredArgsConstructor
 public class DocNoteCommentController {
 

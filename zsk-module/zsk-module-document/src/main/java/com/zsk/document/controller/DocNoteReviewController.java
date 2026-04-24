@@ -28,7 +28,7 @@ import java.util.List;
  */
 @Tag(name = "文档审核")
 @RestController
-@RequestMapping("/note/review")
+@RequestMapping("/docNoteReview")
 @RequiredArgsConstructor
 public class DocNoteReviewController {
 

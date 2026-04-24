@@ -47,4 +47,9 @@ public final class DocUserInteractionContext {
      * 交互类型：关注
      */
     public static final int INTERACTION_TYPE_FOLLOW = 3;
+
+    /**
+     * 交互类型：浏览
+     */
+    public static final int INTERACTION_TYPE_VIEW = 4;
 }

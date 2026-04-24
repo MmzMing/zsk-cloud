@@ -26,7 +26,7 @@ import java.io.InputStream;
 @Tag(name = "OSS上传测试")
 @Slf4j
 @RestController
-@RequestMapping("/oss/test")
+@RequestMapping("/docOssTest")
 @RequiredArgsConstructor
 public class DocOssTestController {
 

@@ -23,7 +23,7 @@ import java.util.List;
  */
 @Tag(name = "笔记图片管理")
 @RestController
-@RequestMapping("/note/pic")
+@RequestMapping("/docNotePic")
 @RequiredArgsConstructor
 public class DocNotePicController {
 

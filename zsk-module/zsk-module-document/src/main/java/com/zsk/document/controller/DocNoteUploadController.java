@@ -20,7 +20,7 @@ import java.util.List;
  */
 @Tag(name = "文档上传任务")
 @RestController
-@RequestMapping("/note/upload")
+@RequestMapping("/docNoteUpload")
 @RequiredArgsConstructor
 public class DocNoteUploadController {
 

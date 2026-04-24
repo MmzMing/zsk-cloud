@@ -23,7 +23,7 @@ import java.util.List;
  */
 @Tag(name = "文件处理历史管理")
 @RestController
-@RequestMapping("/process/history")
+@RequestMapping("/docProcessHistory")
 @RequiredArgsConstructor
 public class DocProcessHistoryController {
 

@@ -22,7 +22,7 @@ import java.util.List;
  */
 @Tag(name = "视频分类标签")
 @RestController
-@RequestMapping("/video/category")
+@RequestMapping("/docVideoCategory")
 @RequiredArgsConstructor
 public class DocVideoCategoryController {
 

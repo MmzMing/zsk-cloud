@@ -56,22 +56,6 @@ public class DocVideoDetail extends TenantEntity {
     @Schema(description = "元数据")
     private String metaData;
 
-    /** 浏览量 */
-    @Schema(description = "浏览量")
-    private Long viewCount;
-
-    /** 点赞量 */
-    @Schema(description = "点赞量")
-    private Long likeCount;
-
-    /** 评论量 */
-    @Schema(description = "评论量")
-    private Long commentCount;
-
-    /** 收藏量 */
-    @Schema(description = "收藏量")
-    private Long collectCount;
-
     /** 审核状态（0-待审核 1-审核通过 2-审核驳回） */
     @Schema(description = "审核状态（0-待审核 1-审核通过 2-审核驳回）")
     private Integer auditStatus;

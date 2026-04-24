@@ -163,6 +163,11 @@ public class CacheConstants {
     public static final String CACHE_FOLLOW_USER = CACHE_PREFIX + "follow:user:";
 
     /**
+     * 浏览计数缓存键前缀（用于存储浏览数量）
+     */
+    public static final String CACHE_VIEW_COUNT = CACHE_PREFIX + "view:count:";
+
+    /**
      * 密码重置验证令牌缓存键前缀
      */
     public static final String CACHE_PASSWORD_RESET = CACHE_PREFIX + "password:reset:";

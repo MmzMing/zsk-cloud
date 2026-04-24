@@ -79,22 +79,6 @@ public class DocNote extends TenantEntity {
     @Schema(description = "笔记发布时间")
     private LocalDateTime publishTime;
 
-    /** 笔记浏览量 */
-    @Schema(description = "笔记浏览量")
-    private Long viewCount;
-
-    /** 笔记点赞量 */
-    @Schema(description = "笔记点赞量")
-    private Long likeCount;
-
-    /** 评论量 */
-    @Schema(description = "评论量")
-    private Long commentCount;
-
-    /** 收藏量 */
-    @Schema(description = "收藏量")
-    private Long collectCount;
-
     /** 封面图 */
     @Schema(description = "封面图")
     private String cover;

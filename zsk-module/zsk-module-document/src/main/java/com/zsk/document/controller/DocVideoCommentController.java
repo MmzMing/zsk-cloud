@@ -23,7 +23,7 @@ import java.util.List;
  */
 @Tag(name = "视频详情评论管理")
 @RestController
-@RequestMapping("/video/comment")
+@RequestMapping("/docVideoComment")
 @RequiredArgsConstructor
 public class DocVideoCommentController {
 

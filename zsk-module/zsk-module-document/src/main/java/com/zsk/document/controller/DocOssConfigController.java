@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
  */
 @Tag(name = "OSS配置管理")
 @RestController
-@RequestMapping("/oss/config")
+@RequestMapping("/docOssConfig")
 @RequiredArgsConstructor
 public class DocOssConfigController {
 

@@ -23,7 +23,7 @@ import java.util.List;
  */
 @Tag(name = "文件处理任务管理")
 @RestController
-@RequestMapping("/process")
+@RequestMapping("/docProcess")
 @RequiredArgsConstructor
 public class DocProcessController {
 

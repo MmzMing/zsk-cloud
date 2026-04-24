@@ -6,7 +6,7 @@ import com.zsk.common.core.constant.CommonConstants;
 import com.zsk.common.core.context.SecurityContext;
 import com.zsk.common.core.domain.R;
 import com.zsk.common.datasource.domain.PageResult;
-import com.zsk.document.api.RemoteDocumentService;
+import com.zsk.document.api.RemoteDocFilesService;
 import com.zsk.document.api.domain.DocFilesApi;
 import com.zsk.system.api.domain.SysUserApi;
 import com.zsk.system.api.model.LoginUser;
@@ -40,7 +40,7 @@ public class SysUserController {
     private final ISysUserService userService;
     private final ISysRoleService roleService;
     private final ISysMenuService menuService;
-    private final RemoteDocumentService remoteDocumentService;
+    private final RemoteDocFilesService remoteDocFilesService;
 
     /**
      * 获取当前请求的用户信息（从本地线程中获取）
@@ -363,7 +363,7 @@ public class SysUserController {
             }
 
             // 调用文件服务上传头像
-            R<DocFilesApi> uploadResult = remoteDocumentService.upload(file, CommonConstants.REQUEST_SOURCE_INNER);
+            R<DocFilesApi> uploadResult = remoteDocFilesService.upload(file, CommonConstants.REQUEST_SOURCE_INNER);
             if (!uploadResult.isSuccess()) {
                 return R.fail("头像上传失败: " + uploadResult.getMsg());
             }
@@ -375,12 +375,12 @@ public class SysUserController {
 
             // 新头像与原头像不一致时，删除旧头像文件
             if (StrUtil.isNotEmpty(originalAvatar) && !originalAvatar.equals(docFilesApi.getUrl()) && originalAvatarId != null) {
-                remoteDocumentService.remove(String.valueOf(originalAvatarId), CommonConstants.REQUEST_SOURCE_INNER);
+                remoteDocFilesService.remove(String.valueOf(originalAvatarId), CommonConstants.REQUEST_SOURCE_INNER);
                 existingUser.setAvatarId(null);
             }
         } else if (StrUtil.isNotEmpty(user.getAvatar()) && !user.getAvatar().equals(originalAvatar) && originalAvatarId != null) {
             // 未上传文件但通过参数传入了新头像URL，且与原头像不一致时，删除旧头像文件
-            remoteDocumentService.remove(String.valueOf(originalAvatarId), CommonConstants.REQUEST_SOURCE_INNER);
+            remoteDocFilesService.remove(String.valueOf(originalAvatarId), CommonConstants.REQUEST_SOURCE_INNER);
             existingUser.setAvatarId(null);
         }
 

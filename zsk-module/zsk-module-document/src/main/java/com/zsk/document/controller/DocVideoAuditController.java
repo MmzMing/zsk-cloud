@@ -23,7 +23,7 @@ import java.util.List;
  */
 @Tag(name = "视频审核")
 @RestController
-@RequestMapping("/video/audit")
+@RequestMapping("/docVideoAudit")
 @RequiredArgsConstructor
 public class DocVideoAuditController {
 

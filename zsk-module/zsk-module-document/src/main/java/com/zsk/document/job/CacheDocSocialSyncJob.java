@@ -5,6 +5,7 @@ import com.zsk.common.xxljob.annotation.XxlJobAutoRegister;
 import com.zsk.document.service.ICacheDocCollectService;
 import com.zsk.document.service.ICacheDocFollowService;
 import com.zsk.document.service.ICacheDocLikeService;
+import com.zsk.document.service.ICacheDocViewService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -12,12 +13,12 @@ import org.springframework.stereotype.Component;
 /**
  * 缓存文档社交数据同步定时任务
  * <p>
- * 每5分钟将Redis中的点赞、收藏和关注数据同步到数据库
- * 同时写入DocUserInteraction表和更新目标表的计数
+ * 每5分钟将Redis中的点赞、收藏、关注和浏览数据同步到数据库
+ * 同时写入DocUserInteraction表
  *
  * @author wuhuaming
- * @version 1.0
- * @date 2026-02-15
+ * @version 2.0
+ * @date 2026-04-25
  */
 @Slf4j
 @Component
@@ -27,6 +28,7 @@ public class CacheDocSocialSyncJob {
     private final ICacheDocLikeService cacheDocLikeService;
     private final ICacheDocCollectService cacheDocCollectService;
     private final ICacheDocFollowService cacheDocFollowService;
+    private final ICacheDocViewService cacheDocViewService;
 
     /**
      * 同步点赞数据到数据库
@@ -88,6 +90,27 @@ public class CacheDocSocialSyncJob {
             log.info("关注数据同步定时任务执行完成");
         } catch (Exception e) {
             log.error("关注数据同步定时任务执行失败", e);
+        }
+    }
+
+    /**
+     * 同步浏览数据到数据库
+     * 每10分钟执行一次
+     */
+    @XxlJob("viewSyncJob")
+    @XxlJobAutoRegister(
+            name = "浏览数据同步任务",
+            description = "每10分钟同步Redis浏览数据到数据库，同时写入DocUserInteraction表",
+            cron = "0 0/10 * * * ?",
+            author = "wuhuaming"
+    )
+    public void syncViewData() {
+        log.info("开始执行浏览数据同步定时任务...");
+        try {
+            cacheDocViewService.syncViewDataToDb();
+            log.info("浏览数据同步定时任务执行完成");
+        } catch (Exception e) {
+            log.error("浏览数据同步定时任务执行失败", e);
         }
     }
 }

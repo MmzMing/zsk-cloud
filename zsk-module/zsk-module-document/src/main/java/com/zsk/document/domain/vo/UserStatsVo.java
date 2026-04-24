@@ -25,4 +25,7 @@ public class UserStatsVo {
 
     @Schema(description = "收藏总数")
     private Long collectCount;
+
+    @Schema(description = "评论总数")
+    private Long commentCount;
 }

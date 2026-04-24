@@ -3,7 +3,7 @@ package com.zsk.system.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zsk.common.core.constant.CommonConstants;
 import com.zsk.common.core.domain.R;
-import com.zsk.document.api.RemoteDocumentService;
+import com.zsk.document.api.RemoteDocAllContentService;
 import com.zsk.document.api.domain.DocStatisticsApi;
 import com.zsk.system.domain.SysUser;
 import com.zsk.system.domain.vo.SysDashboardOverviewVo;
@@ -30,7 +30,7 @@ import java.util.List;
 public class SysDashboardServiceImpl implements ISysDashboardService {
 
     private final SysUserMapper userMapper;
-    private final RemoteDocumentService remoteDocumentService;
+    private final RemoteDocAllContentService remoteDocAllContentService;
 
     /**
      * 获取仪表盘概览数据
@@ -88,7 +88,7 @@ public class SysDashboardServiceImpl implements ISysDashboardService {
      */
     private DocStatisticsApi getDocStatistics() {
         try {
-            R<DocStatisticsApi> result = remoteDocumentService.getStatisticsOverview(CommonConstants.INNER);
+            R<DocStatisticsApi> result = remoteDocAllContentService.getContentStats(CommonConstants.INNER);
             if (result != null && result.isSuccess()) {
                 return result.getData();
             }

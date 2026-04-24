@@ -46,6 +46,17 @@ public interface DocUserInteractionMapper extends BaseMapper<DocUserInteraction>
                        @Param("interactionType") Integer interactionType);
 
     /**
+     * 统计用户的交互数量
+     *
+     * @param userId 用户ID
+     * @param interactionType 交互类型
+     * @return 数量
+     */
+    @Select("SELECT COUNT(*) FROM doc_user_interaction WHERE user_id = #{userId} AND interaction_type = #{interactionType} AND status = 1")
+    Long countByUser(@Param("userId") Long userId,
+                     @Param("interactionType") Integer interactionType);
+
+    /**
      * 取消交互
      *
      * @param id 记录ID

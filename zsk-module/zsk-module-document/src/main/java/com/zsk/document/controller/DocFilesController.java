@@ -27,7 +27,7 @@ import java.io.InputStream;
  */
 @Tag(name = "文件管理")
 @RestController
-@RequestMapping("/files")
+@RequestMapping("/docFiles")
 @RequiredArgsConstructor
 public class DocFilesController {
 

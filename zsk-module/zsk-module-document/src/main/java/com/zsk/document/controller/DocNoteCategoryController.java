@@ -27,7 +27,7 @@ import java.util.stream.Collectors;
  */
 @Tag(name = "文档分类标签")
 @RestController
-@RequestMapping("/note")
+@RequestMapping("/docNoteCategory")
 @RequiredArgsConstructor
 public class DocNoteCategoryController {
 
