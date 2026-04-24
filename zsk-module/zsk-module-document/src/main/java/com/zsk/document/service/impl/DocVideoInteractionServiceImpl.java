@@ -59,6 +59,7 @@ public class DocVideoInteractionServiceImpl implements IDocVideoInteractionServi
      */
     @Override
     public InteractionResultVo getVideoInteraction(Long videoId, Long userId) {
+        log.info("获取视频交互数据, videoId={}, userId={}", videoId, userId);
         // 1. 查询各项统计数据（从Redis缓存）
         Long viewCount = cacheDocViewService.getViewCount(CacheDocViewTypeEnum.VIDEO.getCode(), videoId);
         Long likeCount = cacheDocLikeService.getLikeCount(CacheDocLikeTypeEnum.VIDEO.getCode(), videoId);
@@ -73,14 +74,16 @@ public class DocVideoInteractionServiceImpl implements IDocVideoInteractionServi
         }
 
         // 3. 构建并返回交互数据
-        return InteractionResultVo.builder()
-            .success(true)
-            .viewCount(viewCount)
-            .likeCount(likeCount)
-            .collectCount(collectCount)
-            .hasLiked(hasLiked)
-            .hasCollected(hasCollected)
-            .build();
+        InteractionResultVo result = InteractionResultVo.builder()
+                .success(true)
+                .viewCount(viewCount)
+                .likeCount(likeCount)
+                .collectCount(collectCount)
+                .hasLiked(hasLiked)
+                .hasCollected(hasCollected)
+                .build();
+        log.info("获取视频交互数据完成, videoId={}, viewCount={}, likeCount={}, collectCount={}", videoId, viewCount, likeCount, collectCount);
+        return result;
     }
 
     /**
@@ -95,6 +98,7 @@ public class DocVideoInteractionServiceImpl implements IDocVideoInteractionServi
      */
     @Override
     public void incrementViewCount(Long videoId, Long userId) {
+        log.info("增加视频浏览量, videoId={}, userId={}", videoId, userId);
         // 调用缓存浏览服务增加浏览量
         cacheDocViewService.view(CacheDocViewTypeEnum.VIDEO.getCode(), videoId, userId);
     }

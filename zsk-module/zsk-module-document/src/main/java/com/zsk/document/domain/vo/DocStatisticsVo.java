@@ -10,8 +10,8 @@ import java.io.Serializable;
  * 文档统计信息 视图对象
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Data
 @Schema(description = "文档统计信息")
@@ -20,43 +20,63 @@ public class DocStatisticsVo implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** 文档总数 */
+    /**
+     * 文档总数
+     */
     @Schema(description = "文档总数")
     private Long noteCount;
 
-    /** 视频总数 */
+    /**
+     * 视频总数
+     */
     @Schema(description = "视频总数")
     private Long videoCount;
 
-    /** 文档总浏览量 */
+    /**
+     * 文档总浏览量
+     */
     @Schema(description = "文档总浏览量")
     private Long noteViewCount;
 
-    /** 视频总浏览量 */
+    /**
+     * 视频总浏览量
+     */
     @Schema(description = "视频总浏览量")
     private Long videoViewCount;
 
-    /** 上周文档总数 */
+    /**
+     * 上周文档总数
+     */
     @Schema(description = "上周文档总数")
     private Long lastWeekNoteCount;
 
-    /** 上周视频总数 */
+    /**
+     * 上周视频总数
+     */
     @Schema(description = "上周视频总数")
     private Long lastWeekVideoCount;
 
-    /** 上周文档总浏览量 */
+    /**
+     * 上周文档总浏览量
+     */
     @Schema(description = "上周文档总浏览量")
     private Long lastWeekNoteViewCount;
 
-    /** 上周视频总浏览量 */
+    /**
+     * 上周视频总浏览量
+     */
     @Schema(description = "上周视频总浏览量")
     private Long lastWeekVideoViewCount;
 
-    /** 评论总数 */
+    /**
+     * 评论总数
+     */
     @Schema(description = "评论总数")
     private Long commentCount;
 
-    /** 上周评论总数 */
+    /**
+     * 上周评论总数
+     */
     @Schema(description = "上周评论总数")
     private Long lastWeekCommentCount;
 }

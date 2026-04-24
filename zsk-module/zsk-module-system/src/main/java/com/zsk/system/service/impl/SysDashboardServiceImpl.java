@@ -21,8 +21,8 @@ import java.util.List;
  * 仪表盘 服务实现
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Slf4j
 @Service
@@ -43,16 +43,16 @@ public class SysDashboardServiceImpl implements ISysDashboardService {
 
         /** 用户总数 */
         Long userCount = userMapper.selectCount(
-            new LambdaQueryWrapper<SysUser>()
-                .eq(SysUser::getDeleted, 0)
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getDeleted, 0)
         );
 
         /** 最近一周新增用户数 */
         LocalDateTime lastWeekStart = LocalDateTime.now().minusWeeks(1).withHour(0).withMinute(0).withSecond(0).withNano(0);
         Long lastWeekUserCount = userMapper.selectCount(
-            new LambdaQueryWrapper<SysUser>()
-                .eq(SysUser::getDeleted, 0)
-                .ge(SysUser::getCreateTime, lastWeekStart)
+                new LambdaQueryWrapper<SysUser>()
+                        .eq(SysUser::getDeleted, 0)
+                        .ge(SysUser::getCreateTime, lastWeekStart)
         );
         String userDelta = calculateDelta(userCount, lastWeekUserCount);
         list.add(createItem("users", "用户总数", String.valueOf(userCount), userDelta, "系统注册用户数量"));
@@ -102,7 +102,7 @@ public class SysDashboardServiceImpl implements ISysDashboardService {
     /**
      * 计算变化率
      *
-     * @param current 当前值
+     * @param current  当前值
      * @param lastWeek 上周新增值
      * @return 变化率字符串（如：+12.5%）；若上周新增值为 0 则返回空字符串；若当前值为 0 则返回 "-100%"
      */
@@ -124,10 +124,10 @@ public class SysDashboardServiceImpl implements ISysDashboardService {
     /**
      * 创建概览数据项
      *
-     * @param key 唯一标识
-     * @param label 显示标签
-     * @param value 当前数值
-     * @param delta 变化量
+     * @param key         唯一标识
+     * @param label       显示标签
+     * @param value       当前数值
+     * @param delta       变化量
      * @param description 描述说明
      * @return 概览数据项实例
      */

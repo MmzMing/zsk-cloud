@@ -17,8 +17,8 @@ import java.util.Map;
  * 系统监控 控制器
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Tag(name = "系统监控")
 @RestController
@@ -67,7 +67,7 @@ public class SysMonitorController {
      * 获取服务器监控趋势
      *
      * @param metric 指标类型
-     * @param range 时间范围
+     * @param range  时间范围
      * @return 监控趋势数据
      */
     @Operation(summary = "获取服务器监控趋势")

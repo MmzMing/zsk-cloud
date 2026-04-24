@@ -59,6 +59,7 @@ public class DocNoteInteractionServiceImpl implements IDocNoteInteractionService
      */
     @Override
     public InteractionResultVo getNoteInteraction(Long noteId, Long userId) {
+        log.info("获取笔记交互数据, noteId={}, userId={}", noteId, userId);
         // 1. 查询各项统计数据（从Redis缓存）
         Long viewCount = cacheDocViewService.getViewCount(CacheDocViewTypeEnum.NOTE.getCode(), noteId);
         Long likeCount = cacheDocLikeService.getLikeCount(CacheDocLikeTypeEnum.NOTE.getCode(), noteId);
@@ -73,14 +74,16 @@ public class DocNoteInteractionServiceImpl implements IDocNoteInteractionService
         }
 
         // 3. 构建并返回交互数据
-        return InteractionResultVo.builder()
-            .success(true)
-            .viewCount(viewCount)
-            .likeCount(likeCount)
-            .collectCount(collectCount)
-            .hasLiked(hasLiked)
-            .hasCollected(hasCollected)
-            .build();
+        InteractionResultVo result = InteractionResultVo.builder()
+                .success(true)
+                .viewCount(viewCount)
+                .likeCount(likeCount)
+                .collectCount(collectCount)
+                .hasLiked(hasLiked)
+                .hasCollected(hasCollected)
+                .build();
+        log.info("获取笔记交互数据完成, noteId={}, viewCount={}, likeCount={}, collectCount={}", noteId, viewCount, likeCount, collectCount);
+        return result;
     }
 
     /**
@@ -95,6 +98,7 @@ public class DocNoteInteractionServiceImpl implements IDocNoteInteractionService
      */
     @Override
     public void incrementViewCount(Long noteId, Long userId) {
+        log.info("增加笔记浏览量, noteId={}, userId={}", noteId, userId);
         // 调用缓存浏览服务增加浏览量
         cacheDocViewService.view(CacheDocViewTypeEnum.NOTE.getCode(), noteId, userId);
     }

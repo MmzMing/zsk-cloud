@@ -9,8 +9,8 @@ import java.util.List;
  * 视频分类标签缓存Service接口
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 public interface IVideoCategoryCacheService {
 

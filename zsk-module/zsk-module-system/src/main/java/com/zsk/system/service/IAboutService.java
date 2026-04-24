@@ -9,8 +9,8 @@ import java.util.List;
  * About页面 服务接口
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 public interface IAboutService {
 

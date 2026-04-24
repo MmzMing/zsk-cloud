@@ -28,7 +28,7 @@ public interface DocNoteMapper extends BaseMapper<DocNote> {
      * 按时间范围统计文档浏览量
      *
      * @param startTime 开始时间
-     * @param endTime 结束时间
+     * @param endTime   结束时间
      * @return 浏览量
      */
     @Select("SELECT COALESCE(SUM(view_count), 0) FROM document_note WHERE deleted = 0 AND create_time BETWEEN #{startTime} AND #{endTime}")

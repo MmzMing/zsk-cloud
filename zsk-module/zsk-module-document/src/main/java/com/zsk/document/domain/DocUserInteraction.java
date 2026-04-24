@@ -13,8 +13,8 @@ import java.io.Serial;
  * 统一管理点赞、收藏、关注关系
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -25,23 +25,33 @@ public class DocUserInteraction extends BaseEntity {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** 用户ID */
+    /**
+     * 用户ID
+     */
     @Schema(description = "用户ID")
     private Long userId;
 
-    /** 目标类型（1-文档 2-视频 3-用户 4-评论） */
+    /**
+     * 目标类型（1-文档 2-视频 3-用户 4-评论）
+     */
     @Schema(description = "目标类型（1-文档 2-视频 3-用户 4-评论）")
     private Integer targetType;
 
-    /** 目标ID */
+    /**
+     * 目标ID
+     */
     @Schema(description = "目标ID")
     private Long targetId;
 
-    /** 交互类型（1-点赞 2-收藏 3-关注） */
+    /**
+     * 交互类型（1-点赞 2-收藏 3-关注）
+     */
     @Schema(description = "交互类型（1-点赞 2-收藏 3-关注）")
     private Integer interactionType;
 
-    /** 状态（0-取消 1-有效） */
+    /**
+     * 状态（0-取消 1-有效）
+     */
     @Schema(description = "状态（0-取消 1-有效）")
     private Integer status;
 }

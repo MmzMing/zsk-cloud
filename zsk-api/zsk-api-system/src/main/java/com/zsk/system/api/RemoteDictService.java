@@ -14,8 +14,8 @@ import java.util.List;
  * 字典服务
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @FeignClient(contextId = "remoteDictService", value = ServiceNameConstants.SYSTEM_SERVICE, fallbackFactory = RemoteDictFallbackFactory.class, url = "http://127.0.0.1:20010")
 public interface RemoteDictService {

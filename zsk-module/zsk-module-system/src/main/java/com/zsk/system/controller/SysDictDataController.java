@@ -20,8 +20,8 @@ import java.util.List;
  * 字典数据 控制器
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Tag(name = "字典数据")
 @RestController

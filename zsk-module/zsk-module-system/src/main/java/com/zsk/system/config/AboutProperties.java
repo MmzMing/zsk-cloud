@@ -11,8 +11,8 @@ import java.util.List;
  * About页面配置属性
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Data
 @Component
@@ -34,11 +34,17 @@ public class AboutProperties {
      */
     @Data
     public static class TechStackItem {
-        /** 唯一标识 */
+        /**
+         * 唯一标识
+         */
         private String id;
-        /** 名称 */
+        /**
+         * 名称
+         */
         private String name;
-        /** 描述 */
+        /**
+         * 描述
+         */
         private String description;
     }
 
@@ -47,9 +53,13 @@ public class AboutProperties {
      */
     @Data
     public static class FaqCategory {
-        /** 分类名称 */
+        /**
+         * 分类名称
+         */
         private String title;
-        /** 该分类下的FAQ列表 */
+        /**
+         * 该分类下的FAQ列表
+         */
         private List<FaqItem> items = new ArrayList<>();
     }
 
@@ -58,11 +68,17 @@ public class AboutProperties {
      */
     @Data
     public static class FaqItem {
-        /** 唯一标识 */
+        /**
+         * 唯一标识
+         */
         private String id;
-        /** 问题 */
+        /**
+         * 问题
+         */
         private String question;
-        /** 回答 */
+        /**
+         * 回答
+         */
         private String answer;
     }
 }

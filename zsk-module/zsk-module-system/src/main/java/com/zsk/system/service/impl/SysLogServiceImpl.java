@@ -25,8 +25,8 @@ import java.util.List;
  * 管理日志 服务实现
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Slf4j
 @Service
@@ -41,7 +41,7 @@ public class SysLogServiceImpl implements ISysLogService {
      * 分页查询管理日志
      *
      * @param pageQuery 分页参数
-     * @param queryDTO 查询条件
+     * @param queryDTO  查询条件
      * @return 分页日志结果
      */
     @Override
@@ -210,7 +210,7 @@ public class SysLogServiceImpl implements ISysLogService {
      * 确定动作名称
      *
      * @param businessType 业务类型
-     * @param title 标题
+     * @param title        标题
      * @return 动作名称
      */
     private String determineAction(Integer businessType, String title) {

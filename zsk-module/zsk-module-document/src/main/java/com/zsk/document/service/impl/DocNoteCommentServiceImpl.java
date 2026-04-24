@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zsk.document.domain.DocNoteComment;
 import com.zsk.document.mapper.DocNoteCommentMapper;
 import com.zsk.document.service.IDocNoteCommentService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 /**
@@ -13,6 +14,7 @@ import org.springframework.stereotype.Service;
  * @version 1.0
  * @date 2026-02-14
  */
+@Slf4j
 @Service
 public class DocNoteCommentServiceImpl extends ServiceImpl<DocNoteCommentMapper, DocNoteComment> implements IDocNoteCommentService {
 }

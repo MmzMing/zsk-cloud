@@ -7,8 +7,8 @@ import lombok.Data;
  * 用户统计信息 API 对象
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Data
 @Builder

@@ -1,6 +1,5 @@
 package com.zsk.document.domain;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.zsk.common.datasource.domain.entity.TenantEntity;
 import io.swagger.v3.oas.annotations.media.Schema;

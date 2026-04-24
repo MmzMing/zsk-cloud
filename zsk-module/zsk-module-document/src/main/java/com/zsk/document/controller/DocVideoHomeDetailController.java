@@ -4,24 +4,14 @@ import com.zsk.common.core.domain.R;
 import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.common.security.utils.SecurityUtils;
+import com.zsk.document.domain.DocVideo;
 import com.zsk.document.domain.DocVideoComment;
-import com.zsk.document.domain.DocVideoDetail;
-import com.zsk.document.domain.vo.DocVideoCommentVo;
-import com.zsk.document.domain.vo.DocVideoHomeDetailAuthorVo;
-import com.zsk.document.domain.vo.DocVideoHomeDetailStatsInfoVo;
-import com.zsk.document.domain.vo.DocVideoHomeDetailVo;
-import com.zsk.document.domain.vo.InteractionResultVo;
-import com.zsk.document.domain.vo.VideoCommentRequestVo;
+import com.zsk.document.domain.vo.*;
 import com.zsk.document.enums.CacheDocCollectTypeEnum;
 import com.zsk.document.enums.CacheDocFollowTypeEnum;
 import com.zsk.document.enums.CacheDocLikeTypeEnum;
 import com.zsk.document.enums.CacheDocViewTypeEnum;
-import com.zsk.document.service.ICacheDocCollectService;
-import com.zsk.document.service.ICacheDocFollowService;
-import com.zsk.document.service.ICacheDocLikeService;
-import com.zsk.document.service.ICacheDocViewService;
-import com.zsk.document.service.IDocVideoCommentService;
-import com.zsk.document.service.IDocVideoDetailService;
+import com.zsk.document.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -40,8 +30,8 @@ import java.util.List;
  * </p>
  *
  * @author wuhuaming
- * @date 2026-04-25
  * @version 2.0
+ * @date 2026-04-25
  */
 @Tag(name = "前台视频首页详情")
 @RestController
@@ -50,9 +40,9 @@ import java.util.List;
 public class DocVideoHomeDetailController {
 
     /**
-     * 视频详情服务
+     * 视频服务
      */
-    private final IDocVideoDetailService videoService;
+    private final IDocVideoService videoService;
 
     /**
      * 视频评论服务
@@ -99,7 +89,7 @@ public class DocVideoHomeDetailController {
     @GetMapping("/detail/{id}")
     public R<DocVideoHomeDetailVo> getDetail(@PathVariable("id") Long id) {
         // 1. 根据ID查询视频
-        DocVideoDetail video = videoService.getById(id);
+        DocVideo video = videoService.getById(id);
         if (video == null) {
             return R.fail("视频不存在");
         }
@@ -137,7 +127,7 @@ public class DocVideoHomeDetailController {
     @GetMapping("/interaction/{id}")
     public R<DocVideoHomeDetailStatsInfoVo> getInteraction(@PathVariable("id") Long id) {
         // 1. 验证视频是否存在
-        DocVideoDetail video = videoService.getById(id);
+        DocVideo video = videoService.getById(id);
         if (video == null) {
             return R.fail("视频不存在");
         }
@@ -184,10 +174,10 @@ public class DocVideoHomeDetailController {
 
         // 5. 构建并返回结果
         InteractionResultVo result = InteractionResultVo.builder()
-            .success(true)
-            .status(!isLiked)
-            .count(likeCount)
-            .build();
+                .success(true)
+                .status(!isLiked)
+                .count(likeCount)
+                .build();
         return R.ok(result);
     }
 
@@ -225,10 +215,10 @@ public class DocVideoHomeDetailController {
 
         // 5. 构建并返回结果
         InteractionResultVo result = InteractionResultVo.builder()
-            .success(true)
-            .status(!isFavorited)
-            .count(collectCount)
-            .build();
+                .success(true)
+                .status(!isFavorited)
+                .count(collectCount)
+                .build();
         return R.ok(result);
     }
 
@@ -270,10 +260,10 @@ public class DocVideoHomeDetailController {
 
         // 6. 构建并返回结果
         InteractionResultVo result = InteractionResultVo.builder()
-            .success(true)
-            .status(!isFollowing)
-            .count(followCount)
-            .build();
+                .success(true)
+                .status(!isFollowing)
+                .count(followCount)
+                .build();
         return R.ok(result);
     }
 
@@ -292,16 +282,16 @@ public class DocVideoHomeDetailController {
     @Operation(summary = "获取视频评论列表")
     @GetMapping("/comments/{id}")
     public R<PageResult<DocVideoCommentVo>> getComments(
-        @PathVariable("id") Long id,
-        PageQuery pageQuery,
-        @RequestParam(value = "sort", required = false) String sort) {
+            @PathVariable("id") Long id,
+            PageQuery pageQuery,
+            @RequestParam(value = "sort", required = false) String sort) {
 
         // 1. 构建查询条件：查询未被删除的顶级评论
         com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<DocVideoComment> wrapper =
-            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<DocVideoComment>()
-                .eq(DocVideoComment::getDeleted, 0)
-                .eq(DocVideoComment::getVideoId, String.valueOf(id))
-                .isNull(DocVideoComment::getParentCommentId);
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<DocVideoComment>()
+                        .eq(DocVideoComment::getDeleted, 0)
+                        .eq(DocVideoComment::getVideoId, String.valueOf(id))
+                        .isNull(DocVideoComment::getParentCommentId);
 
         // 2. 根据排序参数设置排序方式
         if ("hot".equals(sort)) {
@@ -330,10 +320,10 @@ public class DocVideoHomeDetailController {
 
             // 7.2 查询该评论的回复列表
             List<DocVideoComment> replies = commentService.list(
-                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<DocVideoComment>()
-                    .eq(DocVideoComment::getDeleted, 0)
-                    .eq(DocVideoComment::getParentCommentId, comment.getId())
-                    .orderByAsc(DocVideoComment::getCreateTime)
+                    new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<DocVideoComment>()
+                            .eq(DocVideoComment::getDeleted, 0)
+                            .eq(DocVideoComment::getParentCommentId, comment.getId())
+                            .orderByAsc(DocVideoComment::getCreateTime)
             );
 
             // 7.3 构建回复VO列表
@@ -348,10 +338,10 @@ public class DocVideoHomeDetailController {
 
         // 8. 构建分页结果
         PageResult<DocVideoCommentVo> pageResult = PageResult.of(
-            commentVos,
-            total,
-            pageQuery.getPageNum(),
-            pageQuery.getPageSize()
+                commentVos,
+                total,
+                pageQuery.getPageNum(),
+                pageQuery.getPageSize()
         );
 
         return R.ok(pageResult);
@@ -449,10 +439,10 @@ public class DocVideoHomeDetailController {
 
         // 6. 构建并返回结果
         InteractionResultVo resultVo = InteractionResultVo.builder()
-            .success(result)
-            .status(result && !isLiked)
-            .count(likeCount)
-            .build();
+                .success(result)
+                .status(result && !isLiked)
+                .count(likeCount)
+                .build();
         return R.ok(resultVo);
     }
 
@@ -465,7 +455,7 @@ public class DocVideoHomeDetailController {
      * @param video 视频实体
      * @return 视频首页详情VO
      */
-    private DocVideoHomeDetailVo buildVideoHomeDetailVo(DocVideoDetail video) {
+    private DocVideoHomeDetailVo buildVideoHomeDetailVo(DocVideo video) {
         DocVideoHomeDetailVo vo = new DocVideoHomeDetailVo();
         vo.setId(String.valueOf(video.getId()));
         vo.setTitle(video.getVideoTitle());
@@ -511,9 +501,9 @@ public class DocVideoHomeDetailController {
 
         // 4. 获取评论数
         Long commentCount = commentService.count(
-            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<DocVideoComment>()
-                .eq(DocVideoComment::getDeleted, 0)
-                .eq(DocVideoComment::getVideoId, String.valueOf(videoId))
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<DocVideoComment>()
+                        .eq(DocVideoComment::getDeleted, 0)
+                        .eq(DocVideoComment::getVideoId, String.valueOf(videoId))
         );
         stats.setComments(commentCount.intValue());
 
@@ -542,7 +532,7 @@ public class DocVideoHomeDetailController {
      * @param userId 当前用户ID（可为null）
      * @return 视频作者信息VO
      */
-    private DocVideoHomeDetailAuthorVo buildVideoAuthorInfo(DocVideoDetail video, Long userId) {
+    private DocVideoHomeDetailAuthorVo buildVideoAuthorInfo(DocVideo video, Long userId) {
         DocVideoHomeDetailAuthorVo author = new DocVideoHomeDetailAuthorVo();
         author.setId(String.valueOf(video.getUserId()));
         author.setName("作者" + video.getUserId());
@@ -550,13 +540,13 @@ public class DocVideoHomeDetailController {
 
         // 获取作者粉丝数
         Long fansCount = cacheDocFollowService.getFollowCount(
-            CacheDocFollowTypeEnum.VIDEO_AUTHOR.getCode(), video.getUserId());
+                CacheDocFollowTypeEnum.VIDEO_AUTHOR.getCode(), video.getUserId());
         author.setFans(String.valueOf(fansCount));
 
         // 查询当前用户是否关注作者
         if (userId != null) {
             boolean isFollowing = cacheDocFollowService.hasFollowed(
-                CacheDocFollowTypeEnum.VIDEO_AUTHOR.getCode(), video.getUserId(), userId);
+                    CacheDocFollowTypeEnum.VIDEO_AUTHOR.getCode(), video.getUserId(), userId);
             author.setIsFollowing(isFollowing);
         } else {
             author.setIsFollowing(false);
@@ -606,7 +596,7 @@ public class DocVideoHomeDetailController {
         // 查询当前用户是否点赞该评论
         if (currentUserId != null) {
             vo.setIsLiked(cacheDocLikeService.hasLiked(
-                CacheDocLikeTypeEnum.VIDEO_COMMENT.getCode(), comment.getId(), currentUserId));
+                    CacheDocLikeTypeEnum.VIDEO_COMMENT.getCode(), comment.getId(), currentUserId));
         } else {
             vo.setIsLiked(false);
         }

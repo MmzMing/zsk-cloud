@@ -5,8 +5,8 @@ package com.zsk.document.domain.context;
  * 定义目标类型和交互类型常量
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 public final class DocUserInteractionContext {
 

@@ -11,8 +11,8 @@ import org.apache.ibatis.annotations.Update;
  * 用户交互关系Mapper接口
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Mapper
 public interface DocUserInteractionMapper extends BaseMapper<DocUserInteraction> {
@@ -20,23 +20,23 @@ public interface DocUserInteractionMapper extends BaseMapper<DocUserInteraction>
     /**
      * 查询用户交互状态
      *
-     * @param userId 用户ID
-     * @param targetType 目标类型
-     * @param targetId 目标ID
+     * @param userId          用户ID
+     * @param targetType      目标类型
+     * @param targetId        目标ID
      * @param interactionType 交互类型
      * @return 交互记录
      */
     @Select("SELECT * FROM doc_user_interaction WHERE user_id = #{userId} AND target_type = #{targetType} AND target_id = #{targetId} AND interaction_type = #{interactionType} ORDER BY create_time DESC LIMIT 1")
     DocUserInteraction selectByUserAndTarget(@Param("userId") Long userId,
-                                              @Param("targetType") Integer targetType,
-                                              @Param("targetId") Long targetId,
-                                              @Param("interactionType") Integer interactionType);
+                                             @Param("targetType") Integer targetType,
+                                             @Param("targetId") Long targetId,
+                                             @Param("interactionType") Integer interactionType);
 
     /**
      * 统计目标的交互数量
      *
-     * @param targetType 目标类型
-     * @param targetId 目标ID
+     * @param targetType      目标类型
+     * @param targetId        目标ID
      * @param interactionType 交互类型
      * @return 数量
      */
@@ -48,7 +48,7 @@ public interface DocUserInteractionMapper extends BaseMapper<DocUserInteraction>
     /**
      * 统计用户的交互数量
      *
-     * @param userId 用户ID
+     * @param userId          用户ID
      * @param interactionType 交互类型
      * @return 数量
      */

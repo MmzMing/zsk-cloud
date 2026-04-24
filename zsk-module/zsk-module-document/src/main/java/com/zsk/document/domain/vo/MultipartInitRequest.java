@@ -1,7 +1,7 @@
 package com.zsk.document.domain.vo;
 
-import lombok.Data;
 import io.swagger.v3.oas.annotations.media.Schema;
+import lombok.Data;
 
 @Data
 @Schema(description = "分片上传初始化请求")

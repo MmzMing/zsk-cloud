@@ -12,8 +12,8 @@ import com.zsk.system.domain.vo.SysOnlineUserVO;
  * 判断在线状态；强制下线按 userId 批量执行。
  *
  * @author wuhuaming
- * @date 2026-04-22
  * @version 2.0
+ * @date 2026-04-22
  */
 public interface ISysLoginManageService {
 

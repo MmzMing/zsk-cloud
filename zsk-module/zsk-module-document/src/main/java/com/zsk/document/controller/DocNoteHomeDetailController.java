@@ -7,22 +7,12 @@ import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.common.security.utils.SecurityUtils;
 import com.zsk.document.domain.DocNote;
 import com.zsk.document.domain.DocNoteComment;
-import com.zsk.document.domain.vo.CommentRequestVo;
-import com.zsk.document.domain.vo.DocCommentVo;
-import com.zsk.document.domain.vo.DocNoteHomeDetailAuthorVo;
-import com.zsk.document.domain.vo.DocNoteHomeDetailStatsInfoVo;
-import com.zsk.document.domain.vo.DocNoteHomeDetailVo;
-import com.zsk.document.domain.vo.InteractionResultVo;
+import com.zsk.document.domain.vo.*;
 import com.zsk.document.enums.CacheDocCollectTypeEnum;
 import com.zsk.document.enums.CacheDocFollowTypeEnum;
 import com.zsk.document.enums.CacheDocLikeTypeEnum;
 import com.zsk.document.enums.CacheDocViewTypeEnum;
-import com.zsk.document.service.ICacheDocCollectService;
-import com.zsk.document.service.ICacheDocFollowService;
-import com.zsk.document.service.ICacheDocLikeService;
-import com.zsk.document.service.ICacheDocViewService;
-import com.zsk.document.service.IDocNoteCommentService;
-import com.zsk.document.service.IDocNoteService;
+import com.zsk.document.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -40,8 +30,8 @@ import java.util.List;
  * </p>
  *
  * @author wuhuaming
- * @date 2026-04-25
  * @version 2.0
+ * @date 2026-04-25
  */
 @Tag(name = "前台笔记首页详情")
 @RestController
@@ -184,10 +174,10 @@ public class DocNoteHomeDetailController {
 
         // 5. 构建并返回结果
         InteractionResultVo result = InteractionResultVo.builder()
-            .success(true)
-            .status(!isLiked)
-            .count(likeCount)
-            .build();
+                .success(true)
+                .status(!isLiked)
+                .count(likeCount)
+                .build();
         return R.ok(result);
     }
 
@@ -225,10 +215,10 @@ public class DocNoteHomeDetailController {
 
         // 5. 构建并返回结果
         InteractionResultVo result = InteractionResultVo.builder()
-            .success(true)
-            .status(!isFavorited)
-            .count(collectCount)
-            .build();
+                .success(true)
+                .status(!isFavorited)
+                .count(collectCount)
+                .build();
         return R.ok(result);
     }
 
@@ -270,10 +260,10 @@ public class DocNoteHomeDetailController {
 
         // 6. 构建并返回结果
         InteractionResultVo result = InteractionResultVo.builder()
-            .success(true)
-            .status(!isFollowing)
-            .count(followCount)
-            .build();
+                .success(true)
+                .status(!isFollowing)
+                .count(followCount)
+                .build();
         return R.ok(result);
     }
 
@@ -292,15 +282,15 @@ public class DocNoteHomeDetailController {
     @Operation(summary = "获取笔记评论列表")
     @GetMapping("/comments/{id}")
     public R<PageResult<DocCommentVo>> getComments(
-        @PathVariable("id") Long id,
-        PageQuery pageQuery,
-        @RequestParam(value = "sort", required = false) String sort) {
+            @PathVariable("id") Long id,
+            PageQuery pageQuery,
+            @RequestParam(value = "sort", required = false) String sort) {
 
         // 1. 构建查询条件：查询未被删除的顶级评论
         LambdaQueryWrapper<DocNoteComment> wrapper = new LambdaQueryWrapper<DocNoteComment>()
-            .eq(DocNoteComment::getDeleted, 0)
-            .eq(DocNoteComment::getNoteId, id)
-            .isNull(DocNoteComment::getParentCommentId);
+                .eq(DocNoteComment::getDeleted, 0)
+                .eq(DocNoteComment::getNoteId, id)
+                .isNull(DocNoteComment::getParentCommentId);
 
         // 2. 根据排序参数设置排序方式
         if ("hot".equals(sort)) {
@@ -329,10 +319,10 @@ public class DocNoteHomeDetailController {
 
             // 7.2 查询该评论的回复列表
             List<DocNoteComment> replies = commentService.list(
-                new LambdaQueryWrapper<DocNoteComment>()
-                    .eq(DocNoteComment::getDeleted, 0)
-                    .eq(DocNoteComment::getParentCommentId, comment.getId())
-                    .orderByAsc(DocNoteComment::getCreateTime)
+                    new LambdaQueryWrapper<DocNoteComment>()
+                            .eq(DocNoteComment::getDeleted, 0)
+                            .eq(DocNoteComment::getParentCommentId, comment.getId())
+                            .orderByAsc(DocNoteComment::getCreateTime)
             );
 
             // 7.3 构建回复VO列表
@@ -347,10 +337,10 @@ public class DocNoteHomeDetailController {
 
         // 8. 构建分页结果
         PageResult<DocCommentVo> pageResult = PageResult.of(
-            commentVos,
-            total,
-            pageQuery.getPageNum(),
-            pageQuery.getPageSize()
+                commentVos,
+                total,
+                pageQuery.getPageNum(),
+                pageQuery.getPageSize()
         );
 
         return R.ok(pageResult);
@@ -448,10 +438,10 @@ public class DocNoteHomeDetailController {
 
         // 6. 构建并返回结果
         InteractionResultVo resultVo = InteractionResultVo.builder()
-            .success(result)
-            .status(result && !isLiked)
-            .count(likeCount)
-            .build();
+                .success(result)
+                .status(result && !isLiked)
+                .count(likeCount)
+                .build();
         return R.ok(resultVo);
     }
 
@@ -503,9 +493,9 @@ public class DocNoteHomeDetailController {
 
         // 4. 获取评论数
         Long commentCount = commentService.count(
-            new LambdaQueryWrapper<DocNoteComment>()
-                .eq(DocNoteComment::getDeleted, 0)
-                .eq(DocNoteComment::getNoteId, noteId)
+                new LambdaQueryWrapper<DocNoteComment>()
+                        .eq(DocNoteComment::getDeleted, 0)
+                        .eq(DocNoteComment::getNoteId, noteId)
         );
         stats.setComments(commentCount.intValue());
 
@@ -542,13 +532,13 @@ public class DocNoteHomeDetailController {
 
         // 获取作者粉丝数
         Long fansCount = cacheDocFollowService.getFollowCount(
-            CacheDocFollowTypeEnum.NOTE_AUTHOR.getCode(), note.getUserId());
+                CacheDocFollowTypeEnum.NOTE_AUTHOR.getCode(), note.getUserId());
         author.setFans(String.valueOf(fansCount));
 
         // 查询当前用户是否关注作者
         if (userId != null) {
             boolean isFollowing = cacheDocFollowService.hasFollowed(
-                CacheDocFollowTypeEnum.NOTE_AUTHOR.getCode(), note.getUserId(), userId);
+                    CacheDocFollowTypeEnum.NOTE_AUTHOR.getCode(), note.getUserId(), userId);
             author.setIsFollowing(isFollowing);
         } else {
             author.setIsFollowing(false);
@@ -598,7 +588,7 @@ public class DocNoteHomeDetailController {
         // 查询当前用户是否点赞该评论
         if (currentUserId != null) {
             vo.setIsLiked(cacheDocLikeService.hasLiked(
-                CacheDocLikeTypeEnum.NOTE_COMMENT.getCode(), comment.getId(), currentUserId));
+                    CacheDocLikeTypeEnum.NOTE_COMMENT.getCode(), comment.getId(), currentUserId));
         } else {
             vo.setIsLiked(false);
         }

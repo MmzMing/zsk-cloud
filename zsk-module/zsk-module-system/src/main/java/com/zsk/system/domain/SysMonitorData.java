@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
  * 系统监控数据实体类
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Data
 @Document(collection = "sys_monitor_data")

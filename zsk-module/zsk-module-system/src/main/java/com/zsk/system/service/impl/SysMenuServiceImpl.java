@@ -125,7 +125,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
 
         // 获取顶级菜单（parentId = 0）
         List<SysMenu> topMenus = groupedMenus.getOrDefault(0L, Collections.emptyList());
-        
+
         // 处理排序号重复问题，重新分配序号
         List<SysMenu> sortedTopMenus = resolveDuplicateOrderNum(topMenus);
 
@@ -199,7 +199,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         // 单次遍历：检测重复并重新分配序号
         for (SysMenu menu : sortedMenus) {
             Integer currentOrder = menu.getOrderNum();
-            
+
             // 如果当前序号小于期望序号，说明有重复或乱序
             if (currentOrder == null || currentOrder < expectedOrder) {
                 menu.setOrderNum(expectedOrder);
@@ -211,7 +211,7 @@ public class SysMenuServiceImpl extends ServiceImpl<SysMenuMapper, SysMenu> impl
         }
 
         if (hasDuplicate) {
-            log.debug("检测到菜单排序号重复，已重新分配序号: {}", 
+            log.debug("检测到菜单排序号重复，已重新分配序号: {}",
                     sortedMenus.stream().map(m -> m.getMenuName() + ":" + m.getOrderNum())
                             .collect(Collectors.toList()));
         }

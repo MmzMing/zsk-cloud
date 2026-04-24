@@ -6,19 +6,25 @@ import lombok.Getter;
  * 审核状态枚举
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Getter
 public enum AuditStatus {
 
-    /** 待审核 */
+    /**
+     * 待审核
+     */
     PENDING(0, "pending", "待审核"),
 
-    /** 审核通过 */
+    /**
+     * 审核通过
+     */
     APPROVED(1, "approved", "审核通过"),
 
-    /** 审核驳回 */
+    /**
+     * 审核驳回
+     */
     REJECTED(2, "rejected", "审核驳回");
 
     private final Integer code;

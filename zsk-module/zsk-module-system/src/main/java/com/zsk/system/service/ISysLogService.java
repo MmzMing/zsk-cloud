@@ -11,8 +11,8 @@ import java.util.List;
  * 管理日志 服务接口
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 public interface ISysLogService {
 
@@ -20,7 +20,7 @@ public interface ISysLogService {
      * 分页查询管理日志
      *
      * @param pageQuery 分页参数
-     * @param queryDTO 查询条件
+     * @param queryDTO  查询条件
      * @return 分页日志结果
      */
     PageResult<SysRecentLogVo> pageLogs(PageQuery pageQuery, SysLogQueryDTO queryDTO);

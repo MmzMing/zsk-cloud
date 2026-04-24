@@ -1,7 +1,6 @@
 package com.zsk.system.service;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.system.domain.SysNotice;

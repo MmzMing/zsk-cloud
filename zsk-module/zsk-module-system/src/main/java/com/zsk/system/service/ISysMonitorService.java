@@ -8,8 +8,8 @@ import java.util.List;
  * 系统监控 服务接口
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 public interface ISysMonitorService {
 
@@ -31,7 +31,7 @@ public interface ISysMonitorService {
      * 获取监控趋势数据
      *
      * @param metric 指标类型（cpu/memory/disk/network/jvmHeap/jvmThread）
-     * @param range 时间范围（1h/24h/7d）
+     * @param range  时间范围（1h/24h/7d）
      * @return 趋势数据列表
      */
     List<SysMonitorData> getTrendData(String metric, String range);

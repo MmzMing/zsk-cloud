@@ -10,8 +10,8 @@ import java.util.List;
  * 文档评论 API对象
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Data
 public class DocCommentApi implements Serializable {

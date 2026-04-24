@@ -223,7 +223,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
 
         // 4. 缓存未命中，从数据库加载
         Long dbCount = docUserInteractionMapper.countByTarget(
-            DocUserInteractionContext.TARGET_TYPE_USER, targetId, DocUserInteractionContext.INTERACTION_TYPE_FOLLOW);
+                DocUserInteractionContext.TARGET_TYPE_USER, targetId, DocUserInteractionContext.INTERACTION_TYPE_FOLLOW);
         if (dbCount != null && dbCount > 0) {
             // 写入缓存，后续请求可直接从缓存读取
             redisService.setCacheObject(countKey, dbCount);
@@ -263,7 +263,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
 
         // 4. 缓存未命中，从数据库查询
         DocUserInteraction interaction = docUserInteractionMapper.selectByUserAndTarget(
-            userId, DocUserInteractionContext.TARGET_TYPE_USER, targetId, DocUserInteractionContext.INTERACTION_TYPE_FOLLOW);
+                userId, DocUserInteractionContext.TARGET_TYPE_USER, targetId, DocUserInteractionContext.INTERACTION_TYPE_FOLLOW);
         return interaction != null && interaction.getStatus() == 1;
     }
 
@@ -339,7 +339,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
                     if (followType != null) {
                         // 保存交互记录到数据库
                         saveInteractionToDb(userId, DocUserInteractionContext.TARGET_TYPE_USER, targetId,
-                            DocUserInteractionContext.INTERACTION_TYPE_FOLLOW);
+                                DocUserInteractionContext.INTERACTION_TYPE_FOLLOW);
                         syncCount++;
                     }
                 }
@@ -428,7 +428,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
     private void saveInteractionToDb(Long userId, Integer targetType, Long targetId, Integer interactionType) {
         // 检查是否已存在交互记录
         DocUserInteraction existing = docUserInteractionMapper.selectByUserAndTarget(
-            userId, targetType, targetId, interactionType);
+                userId, targetType, targetId, interactionType);
         if (existing != null) {
             // 更新状态为已关注
             existing.setStatus(1);

@@ -4,18 +4,24 @@ package com.zsk.common.core.context;
  * 缓存上下文 - 缓存相关配置
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 public class CacheContext {
 
-    /** 默认缓存过期时间（小时） */
+    /**
+     * 默认缓存过期时间（小时）
+     */
     private static final long DEFAULT_CACHE_EXPIRE_HOURS = 24;
 
-    /** 视频分类缓存过期时间（小时） */
+    /**
+     * 视频分类缓存过期时间（小时）
+     */
     private static long videoCategoryCacheExpireHours = DEFAULT_CACHE_EXPIRE_HOURS;
 
-    /** 视频标签缓存过期时间（小时） */
+    /**
+     * 视频标签缓存过期时间（小时）
+     */
     private static long videoTagCacheExpireHours = DEFAULT_CACHE_EXPIRE_HOURS;
 
     private CacheContext() {

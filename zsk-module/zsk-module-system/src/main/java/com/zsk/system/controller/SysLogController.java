@@ -17,8 +17,8 @@ import java.util.List;
  * 管理日志 控制器
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Tag(name = "管理日志")
 @RestController
@@ -32,7 +32,7 @@ public class SysLogController {
      * 分页查询管理日志
      *
      * @param pageQuery 分页参数
-     * @param queryDTO 查询条件
+     * @param queryDTO  查询条件
      * @return 分页日志列表
      */
     @Operation(summary = "分页查询管理日志")

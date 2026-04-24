@@ -18,8 +18,8 @@ import java.util.List;
  * 视频审核 控制器
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Tag(name = "视频审核")
 @RestController
@@ -33,7 +33,7 @@ public class DocVideoAuditController {
      * 获取审核队列
      *
      * @param auditStatus 审核状态（可选）
-     * @param pageQuery 分页参数
+     * @param pageQuery   分页参数
      * @return 审核队列分页结果
      */
     @Operation(summary = "获取审核队列")

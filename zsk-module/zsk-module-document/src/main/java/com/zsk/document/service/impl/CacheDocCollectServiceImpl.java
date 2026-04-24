@@ -255,7 +255,7 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
 
         // 4. 缓存未命中，从数据库查询
         DocUserInteraction interaction = docUserInteractionMapper.selectByUserAndTarget(
-            userId, getTargetType(collectType), targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
+                userId, getTargetType(collectType), targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
         return interaction != null && interaction.getStatus() == 1;
     }
 
@@ -331,7 +331,7 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
                     if (collectType != null) {
                         // 保存交互记录到数据库
                         saveInteractionToDb(userId, getTargetType(collectType), targetId,
-                            DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
+                                DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
                         syncCount++;
                     }
                 }
@@ -417,7 +417,7 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
      */
     private Long getCollectCountFromDb(CacheDocCollectTypeEnum type, Long targetId) {
         return docUserInteractionMapper.countByTarget(
-            getTargetType(type), targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
+                getTargetType(type), targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
     }
 
     /**
@@ -455,7 +455,7 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
     private void saveInteractionToDb(Long userId, Integer targetType, Long targetId, Integer interactionType) {
         // 检查是否已存在交互记录
         DocUserInteraction existing = docUserInteractionMapper.selectByUserAndTarget(
-            userId, targetType, targetId, interactionType);
+                userId, targetType, targetId, interactionType);
         if (existing != null) {
             // 更新状态为已收藏
             existing.setStatus(1);

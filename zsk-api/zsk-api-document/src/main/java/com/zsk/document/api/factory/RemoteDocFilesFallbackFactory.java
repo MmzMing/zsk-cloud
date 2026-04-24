@@ -13,8 +13,8 @@ import org.springframework.web.multipart.MultipartFile;
  * 文件服务降级处理
  *
  * @author wuhuaming
- * @date 2026-04-25
  * @version 1.0
+ * @date 2026-04-25
  */
 @Component
 public class RemoteDocFilesFallbackFactory implements FallbackFactory<RemoteDocFilesService> {

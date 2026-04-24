@@ -7,13 +7,7 @@ import com.zsk.document.domain.vo.UserStatsVo;
 import com.zsk.document.enums.CacheDocCollectTypeEnum;
 import com.zsk.document.enums.CacheDocFollowTypeEnum;
 import com.zsk.document.enums.CacheDocLikeTypeEnum;
-import com.zsk.document.service.ICacheDocCollectService;
-import com.zsk.document.service.ICacheDocFollowService;
-import com.zsk.document.service.ICacheDocLikeService;
-import com.zsk.document.service.IDocNoteCommentService;
-import com.zsk.document.service.IDocNoteService;
-import com.zsk.document.service.IDocVideoCommentService;
-import com.zsk.document.service.IDocVideoDetailService;
+import com.zsk.document.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -28,8 +22,8 @@ import java.time.temporal.WeekFields;
  * 用户统计信息 控制器
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Tag(name = "用户统计信息")
 @RestController
@@ -42,7 +36,7 @@ public class DocAllContentController {
     private final ICacheDocFollowService cacheDocFollowService;
     private final IDocNoteCommentService commentService;
     private final IDocNoteService noteService;
-    private final IDocVideoDetailService videoService;
+    private final IDocVideoService videoService;
     private final IDocVideoCommentService videoCommentService;
 
     /**
@@ -77,9 +71,9 @@ public class DocAllContentController {
 
         // 计算评论总数（当前用户发表的评论）
         Long commentCount = commentService.count(
-            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocNoteComment>()
-                .eq(com.zsk.document.domain.DocNoteComment::getDeleted, 0)
-                .eq(com.zsk.document.domain.DocNoteComment::getCommentUserId, String.valueOf(userId))
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocNoteComment>()
+                        .eq(com.zsk.document.domain.DocNoteComment::getDeleted, 0)
+                        .eq(com.zsk.document.domain.DocNoteComment::getCommentUserId, String.valueOf(userId))
         );
 
         UserStatsVo statsVo = UserStatsVo.builder()
@@ -103,27 +97,27 @@ public class DocAllContentController {
     public R<AllStatsVo> getContentStats() {
         // 文章总数
         Long articleCount = noteService.count(
-            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocNote>()
-                .eq(com.zsk.document.domain.DocNote::getDeleted, 0)
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocNote>()
+                        .eq(com.zsk.document.domain.DocNote::getDeleted, 0)
         );
 
         // 视频总数
         Long videoCount = videoService.count(
-            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocVideoDetail>()
-                .eq(com.zsk.document.domain.DocVideoDetail::getDeleted, 0)
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocVideo>()
+                        .eq(com.zsk.document.domain.DocVideo::getDeleted, 0)
         );
 
         // 评论总数（文章评论 + 视频评论）
         Long noteCommentCount = commentService.count(
-            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocNoteComment>()
-                .eq(com.zsk.document.domain.DocNoteComment::getDeleted, 0)
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocNoteComment>()
+                        .eq(com.zsk.document.domain.DocNoteComment::getDeleted, 0)
         );
         Long videoCommentCount = videoCommentService.count(
-            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocVideoComment>()
-                .eq(com.zsk.document.domain.DocVideoComment::getDeleted, 0)
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocVideoComment>()
+                        .eq(com.zsk.document.domain.DocVideoComment::getDeleted, 0)
         );
         Long totalCommentCount = (noteCommentCount != null ? noteCommentCount : 0)
-            + (videoCommentCount != null ? videoCommentCount : 0);
+                + (videoCommentCount != null ? videoCommentCount : 0);
 
         // 计算上周时间范围
         LocalDateTime now = LocalDateTime.now();
@@ -132,31 +126,31 @@ public class DocAllContentController {
 
         // 上周新增文章数
         Long lastWeekArticleCount = noteService.count(
-            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocNote>()
-                .eq(com.zsk.document.domain.DocNote::getDeleted, 0)
-                .between(com.zsk.document.domain.DocNote::getCreateTime, lastWeekStart, lastWeekEnd)
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocNote>()
+                        .eq(com.zsk.document.domain.DocNote::getDeleted, 0)
+                        .between(com.zsk.document.domain.DocNote::getCreateTime, lastWeekStart, lastWeekEnd)
         );
 
         // 上周新增视频数
         Long lastWeekVideoCount = videoService.count(
-            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocVideoDetail>()
-                .eq(com.zsk.document.domain.DocVideoDetail::getDeleted, 0)
-                .between(com.zsk.document.domain.DocVideoDetail::getCreateTime, lastWeekStart, lastWeekEnd)
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocVideo>()
+                        .eq(com.zsk.document.domain.DocVideo::getDeleted, 0)
+                        .between(com.zsk.document.domain.DocVideo::getCreateTime, lastWeekStart, lastWeekEnd)
         );
 
         // 上周新增评论数
         Long lastWeekNoteCommentCount = commentService.count(
-            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocNoteComment>()
-                .eq(com.zsk.document.domain.DocNoteComment::getDeleted, 0)
-                .between(com.zsk.document.domain.DocNoteComment::getCreateTime, lastWeekStart, lastWeekEnd)
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocNoteComment>()
+                        .eq(com.zsk.document.domain.DocNoteComment::getDeleted, 0)
+                        .between(com.zsk.document.domain.DocNoteComment::getCreateTime, lastWeekStart, lastWeekEnd)
         );
         Long lastWeekVideoCommentCount = videoCommentService.count(
-            new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocVideoComment>()
-                .eq(com.zsk.document.domain.DocVideoComment::getDeleted, 0)
-                .between(com.zsk.document.domain.DocVideoComment::getCreateTime, lastWeekStart, lastWeekEnd)
+                new com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper<com.zsk.document.domain.DocVideoComment>()
+                        .eq(com.zsk.document.domain.DocVideoComment::getDeleted, 0)
+                        .between(com.zsk.document.domain.DocVideoComment::getCreateTime, lastWeekStart, lastWeekEnd)
         );
         Long lastWeekTotalCommentCount = (lastWeekNoteCommentCount != null ? lastWeekNoteCommentCount : 0)
-            + (lastWeekVideoCommentCount != null ? lastWeekVideoCommentCount : 0);
+                + (lastWeekVideoCommentCount != null ? lastWeekVideoCommentCount : 0);
 
         AllStatsVo statsVo = AllStatsVo.builder()
                 .docCount(articleCount != null ? articleCount : 0)

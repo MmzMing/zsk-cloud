@@ -19,11 +19,15 @@ public class SysTaskListVO implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** 任务列表（扁平结构，通过 parent 表示层级） */
+    /**
+     * 任务列表（扁平结构，通过 parent 表示层级）
+     */
     @Schema(description = "任务列表（扁平结构，通过 parent 表示层级）")
     private List<SysTaskVO> tasks;
 
-    /** 任务依赖关系列表 */
+    /**
+     * 任务依赖关系列表
+     */
     @Schema(description = "任务依赖关系列表")
     private List<SysTaskLinkVO> links;
 }

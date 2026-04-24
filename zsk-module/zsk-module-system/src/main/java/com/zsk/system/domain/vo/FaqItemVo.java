@@ -12,8 +12,8 @@ import java.io.Serializable;
  * FAQ项 视图对象
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Data
 @NoArgsConstructor
@@ -24,15 +24,21 @@ public class FaqItemVo implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** 唯一标识 */
+    /**
+     * 唯一标识
+     */
     @Schema(description = "唯一标识")
     private String id;
 
-    /** 问题 */
+    /**
+     * 问题
+     */
     @Schema(description = "问题")
     private String question;
 
-    /** 回答 */
+    /**
+     * 回答
+     */
     @Schema(description = "回答")
     private String answer;
 }

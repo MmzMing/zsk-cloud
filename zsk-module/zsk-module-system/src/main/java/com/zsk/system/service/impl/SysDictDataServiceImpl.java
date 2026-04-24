@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zsk.system.domain.SysDictData;
 import com.zsk.system.mapper.SysDictDataMapper;
 import com.zsk.system.service.ISysDictDataService;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -12,9 +13,10 @@ import java.util.List;
  * 字典数据管理 服务层实现
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
+@Slf4j
 @Service
 public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDictData> implements ISysDictDataService {
 
@@ -26,6 +28,7 @@ public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDi
      */
     @Override
     public List<SysDictData> selectDictDataByType(String dictType) {
+        log.info("根据字典类型查询字典数据, dictType={}", dictType);
         return this.lambdaQuery()
                 .eq(SysDictData::getDictType, dictType)
                 .orderByAsc(SysDictData::getDictSort)
@@ -35,35 +38,41 @@ public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDi
     /**
      * 切换字典状态
      *
-     * @param id 字典ID
+     * @param id     字典ID
      * @param status 状态（0正常 1停用）
      * @return 是否成功
      */
     @Override
     public boolean toggleStatus(Long id, String status) {
+        log.info("切换字典状态, id={}, status={}", id, status);
         SysDictData dictData = new SysDictData();
         dictData.setId(id);
         dictData.setStatus(status);
-        return this.updateById(dictData);
+        boolean result = this.updateById(dictData);
+        log.info("切换字典状态完成, id={}, result={}", id, result);
+        return result;
     }
 
     /**
      * 批量切换字典状态
      *
-     * @param ids 字典ID列表
+     * @param ids    字典ID列表
      * @param status 状态（0正常 1停用）
      * @return 是否成功
      */
     @Override
     public boolean batchToggleStatus(List<Long> ids, String status) {
+        log.info("批量切换字典状态, ids={}, status={}", ids, status);
         for (Long id : ids) {
             SysDictData dictData = new SysDictData();
             dictData.setId(id);
             dictData.setStatus(status);
             if (!this.updateById(dictData)) {
+                log.warn("批量切换字典状态失败, id={}", id);
                 return false;
             }
         }
+        log.info("批量切换字典状态完成, 数量={}", ids.size());
         return true;
     }
 }

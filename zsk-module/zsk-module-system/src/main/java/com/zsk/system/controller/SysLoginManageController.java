@@ -18,8 +18,8 @@ import org.springframework.web.bind.annotation.*;
  * 在线用户：用户维度展示（一用户一行），按 Redis Token Set 判断在线状态。
  *
  * @author wuhuaming
- * @date 2026-04-22
  * @version 2.0
+ * @date 2026-04-22
  */
 @Tag(name = "登录管理")
 @RestController

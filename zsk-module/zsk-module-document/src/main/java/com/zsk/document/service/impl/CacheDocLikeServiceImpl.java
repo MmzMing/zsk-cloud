@@ -255,7 +255,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
 
         // 4. 缓存未命中，从数据库查询
         DocUserInteraction interaction = docUserInteractionMapper.selectByUserAndTarget(
-            userId, getTargetType(likeType), targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
+                userId, getTargetType(likeType), targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
         return interaction != null && interaction.getStatus() == 1;
     }
 
@@ -331,7 +331,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
                     if (likeType != null) {
                         // 保存交互记录到数据库
                         saveInteractionToDb(userId, getTargetType(likeType), targetId,
-                            DocUserInteractionContext.INTERACTION_TYPE_LIKE);
+                                DocUserInteractionContext.INTERACTION_TYPE_LIKE);
                         syncCount++;
                     }
                 }
@@ -417,7 +417,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
      */
     private Long getLikeCountFromDb(CacheDocLikeTypeEnum type, Long targetId) {
         return docUserInteractionMapper.countByTarget(
-            getTargetType(type), targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
+                getTargetType(type), targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
     }
 
     /**
@@ -458,7 +458,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
     private void saveInteractionToDb(Long userId, Integer targetType, Long targetId, Integer interactionType) {
         // 检查是否已存在交互记录
         DocUserInteraction existing = docUserInteractionMapper.selectByUserAndTarget(
-            userId, targetType, targetId, interactionType);
+                userId, targetType, targetId, interactionType);
         if (existing != null) {
             // 更新状态为已点赞
             existing.setStatus(1);

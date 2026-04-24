@@ -16,8 +16,8 @@ import java.util.List;
  * 简历 控制器
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Tag(name = "简历")
 @RestController
@@ -52,20 +52,20 @@ public class ResumeController {
                 if (module.getData() != null) {
                     ResumeProperties.BasicInfo info = module.getData();
                     BasicInfoVo basicInfo = new BasicInfoVo(
-                        info.getName(),
-                        info.getJobIntention(),
-                        info.getAge(),
-                        info.getGender(),
-                        info.getCity(),
-                        info.getPhone(),
-                        info.getEmail(),
-                        info.getGithub(),
-                        info.getSummary(),
-                        info.getAvatar(),
-                        info.getExperience(),
-                        info.getSalary(),
-                        info.getPolitics(),
-                        info.getStatus()
+                            info.getName(),
+                            info.getJobIntention(),
+                            info.getAge(),
+                            info.getGender(),
+                            info.getCity(),
+                            info.getPhone(),
+                            info.getEmail(),
+                            info.getGithub(),
+                            info.getSummary(),
+                            info.getAvatar(),
+                            info.getExperience(),
+                            info.getSalary(),
+                            info.getPolitics(),
+                            info.getStatus()
                     );
                     vo.setData(basicInfo);
                 }

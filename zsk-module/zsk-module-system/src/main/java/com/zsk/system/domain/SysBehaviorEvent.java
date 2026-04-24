@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
  * 行为审计事件实体类
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Data
 @Document(collection = "sys_behavior_event")

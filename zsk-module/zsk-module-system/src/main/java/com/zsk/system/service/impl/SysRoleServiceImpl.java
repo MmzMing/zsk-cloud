@@ -10,6 +10,7 @@ import com.zsk.system.mapper.SysRoleMenuMapper;
 import com.zsk.system.mapper.SysUserRoleMapper;
 import com.zsk.system.service.ISysRoleService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -22,9 +23,10 @@ import java.util.stream.Collectors;
  * 角色管理 服务层实现
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> implements ISysRoleService {
@@ -40,6 +42,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
      */
     @Override
     public Set<String> selectRolePermissionByUserId(Long userId) {
+        log.info("根据用户ID查询角色权限, userId={}", userId);
         return new HashSet<>(baseMapper.selectRolePermissionByUserId(userId));
     }
 
@@ -52,6 +55,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean insertRole(SysRole role) {
+        log.info("新增角色, roleName={}", role.getRoleName());
         if (role.getRoleKey() == null || role.getRoleKey().isEmpty()) {
             role.setRoleKey("role_" + System.currentTimeMillis());
         }
@@ -61,6 +65,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         }
         boolean result = save(role);
         insertRoleMenu(role);
+        log.info("新增角色完成, roleName={}, result={}", role.getRoleName(), result);
         return result;
     }
 
@@ -73,9 +78,11 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateRole(SysRole role) {
+        log.info("修改角色, roleId={}, roleName={}", role.getId(), role.getRoleName());
         boolean result = updateById(role);
         roleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, role.getId()));
         insertRoleMenu(role);
+        log.info("修改角色完成, roleId={}, result={}", role.getId(), result);
         return result;
     }
 
@@ -93,6 +100,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean deleteRoleByIds(List<Long> roleIds) {
+        log.info("批量删除角色, roleIds={}", roleIds);
         /**
          * 1. 删除角色与菜单的关联关系
          */
@@ -106,7 +114,9 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         /**
          * 3. 物理删除角色记录
          */
-        return removeBatchByIds(roleIds);
+        boolean result = removeBatchByIds(roleIds);
+        log.info("批量删除角色完成, roleIds={}, result={}", roleIds, result);
+        return result;
     }
 
     /**
@@ -118,6 +128,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean copyRoles(List<Long> roleIds) {
+        log.info("批量复制角色, roleIds={}", roleIds);
         for (Long roleId : roleIds) {
             SysRole original = getById(roleId);
             if (original != null) {
@@ -139,8 +150,10 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
                     newRm.setMenuId(rm.getMenuId());
                     roleMenuMapper.insert(newRm);
                 }
+                log.info("复制角色完成, originalId={}, newId={}, newName={}", roleId, copy.getId(), copy.getRoleName());
             }
         }
+        log.info("批量复制角色完成, 数量={}", roleIds.size());
         return true;
     }
 
@@ -152,6 +165,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     public void insertRoleMenu(SysRole role) {
         Long[] menuIds = role.getMenuIds();
         if (menuIds != null) {
+            log.info("新增角色菜单关系, roleId={}, menuIds={}", role.getId(), menuIds);
             for (Long menuId : menuIds) {
                 SysRoleMenu rm = new SysRoleMenu();
                 rm.setRoleId(role.getId());
@@ -169,9 +183,12 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
      */
     @Override
     public List<Long> selectMenuIdsByRoleId(Long roleId) {
+        log.info("查询角色关联的菜单ID列表, roleId={}", roleId);
         List<SysRoleMenu> list = roleMenuMapper.selectList(
                 new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, roleId));
-        return list.stream().map(SysRoleMenu::getMenuId).collect(Collectors.toList());
+        List<Long> result = list.stream().map(SysRoleMenu::getMenuId).collect(Collectors.toList());
+        log.info("查询角色关联的菜单ID列表完成, roleId={}, 数量={}", roleId, result.size());
+        return result;
     }
 
     /**
@@ -184,16 +201,20 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean bindRoleMenus(Long roleId, List<Long> menuIds) {
+        log.info("绑定角色权限, roleId={}, menuIds={}", roleId, menuIds);
         List<Long> existMenuIds = selectMenuIdsByRoleId(roleId);
         Set<Long> existSet = new HashSet<>(existMenuIds);
+        int addCount = 0;
         for (Long menuId : menuIds) {
             if (!existSet.contains(menuId)) {
                 SysRoleMenu rm = new SysRoleMenu();
                 rm.setRoleId(roleId);
                 rm.setMenuId(menuId);
                 roleMenuMapper.insert(rm);
+                addCount++;
             }
         }
+        log.info("绑定角色权限完成, roleId={}, 新增数量={}", roleId, addCount);
         return true;
     }
 
@@ -207,9 +228,11 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean unbindRoleMenus(Long roleId, List<Long> menuIds) {
+        log.info("解绑角色权限, roleId={}, menuIds={}", roleId, menuIds);
         roleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>()
                 .eq(SysRoleMenu::getRoleId, roleId)
                 .in(SysRoleMenu::getMenuId, menuIds));
+        log.info("解绑角色权限完成, roleId={}", roleId);
         return true;
     }
 
@@ -223,6 +246,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateRoleMenus(Long roleId, List<Long> menuIds) {
+        log.info("更新角色权限, roleId={}, menuIds={}", roleId, menuIds);
         roleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, roleId));
         for (Long menuId : menuIds) {
             SysRoleMenu rm = new SysRoleMenu();
@@ -230,6 +254,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
             rm.setMenuId(menuId);
             roleMenuMapper.insert(rm);
         }
+        log.info("更新角色权限完成, roleId={}, 数量={}", roleId, menuIds.size());
         return true;
     }
 
@@ -241,9 +266,12 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
      */
     @Override
     public List<Long> selectUserIdsByRoleId(Long roleId) {
+        log.info("查询角色关联的用户ID列表, roleId={}", roleId);
         List<SysUserRole> list = userRoleMapper.selectList(
                 new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getRoleId, roleId));
-        return list.stream().map(SysUserRole::getUserId).collect(Collectors.toList());
+        List<Long> result = list.stream().map(SysUserRole::getUserId).collect(Collectors.toList());
+        log.info("查询角色关联的用户ID列表完成, roleId={}, 数量={}", roleId, result.size());
+        return result;
     }
 
     /**
@@ -256,16 +284,20 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean bindRoleUsers(Long roleId, List<Long> userIds) {
+        log.info("绑定角色用户, roleId={}, userIds={}", roleId, userIds);
         List<Long> existUserIds = selectUserIdsByRoleId(roleId);
         Set<Long> existSet = new HashSet<>(existUserIds);
+        int addCount = 0;
         for (Long userId : userIds) {
             if (!existSet.contains(userId)) {
                 SysUserRole ur = new SysUserRole();
                 ur.setRoleId(roleId);
                 ur.setUserId(userId);
                 userRoleMapper.insert(ur);
+                addCount++;
             }
         }
+        log.info("绑定角色用户完成, roleId={}, 新增数量={}", roleId, addCount);
         return true;
     }
 
@@ -279,9 +311,11 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean unbindRoleUsers(Long roleId, List<Long> userIds) {
+        log.info("解绑角色用户, roleId={}, userIds={}", roleId, userIds);
         userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>()
                 .eq(SysUserRole::getRoleId, roleId)
                 .in(SysUserRole::getUserId, userIds));
+        log.info("解绑角色用户完成, roleId={}", roleId);
         return true;
     }
 
@@ -295,13 +329,17 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean updateRoleUsers(Long roleId, List<Long> userIds) {
+        log.info("更新角色用户, roleId={}, userIds={}", roleId, userIds);
         userRoleMapper.delete(new LambdaQueryWrapper<SysUserRole>().eq(SysUserRole::getRoleId, roleId));
-        for (Long userId : userIds) {
-            SysUserRole ur = new SysUserRole();
-            ur.setRoleId(roleId);
-            ur.setUserId(userId);
-            userRoleMapper.insert(ur);
+        if (userIds != null && !userIds.isEmpty()) {
+            for (Long userId : userIds) {
+                SysUserRole ur = new SysUserRole();
+                ur.setRoleId(roleId);
+                ur.setUserId(userId);
+                userRoleMapper.insert(ur);
+            }
         }
+        log.info("更新角色用户完成, roleId={}, 数量={}", roleId, userIds != null ? userIds.size() : 0);
         return true;
     }
 }

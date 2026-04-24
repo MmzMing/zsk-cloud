@@ -13,8 +13,8 @@ import org.springframework.stereotype.Component;
  * 用户统计信息服务降级处理
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Component
 public class RemoteDocAllContentFallbackFactory implements FallbackFactory<RemoteDocAllContentService> {

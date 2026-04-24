@@ -25,8 +25,8 @@ import java.util.stream.Collectors;
  * 视频分类标签缓存Service业务层处理
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Slf4j
 @Service
@@ -43,13 +43,18 @@ public class VideoCategoryCacheServiceImpl implements IVideoCategoryCacheService
      */
     @Override
     public List<VideoCategoryVO> getCategoryListFromCache() {
+        log.info("从缓存获取视频分类列表");
         List<VideoCategoryVO> list = redisService.getCacheObject(CacheConstants.CACHE_VIDEO_CATEGORY);
         if (list == null) {
+            log.info("视频分类缓存未命中, 从字典服务加载");
             list = buildCategoriesFromDict();
             if (!list.isEmpty()) {
-                redisService.setCacheObject(CacheConstants.CACHE_VIDEO_CATEGORY, list, 
+                redisService.setCacheObject(CacheConstants.CACHE_VIDEO_CATEGORY, list,
                         CacheContext.getVideoCategoryCacheExpireHours(), TimeUnit.HOURS);
+                log.info("视频分类缓存已更新, 共{}个分类", list.size());
             }
+        } else {
+            log.info("从缓存获取视频分类列表完成, 共{}个分类", list.size());
         }
         return list;
     }
@@ -61,13 +66,18 @@ public class VideoCategoryCacheServiceImpl implements IVideoCategoryCacheService
      */
     @Override
     public List<VideoTagVO> getTagListFromCache() {
+        log.info("从缓存获取视频标签列表");
         List<VideoTagVO> list = redisService.getCacheObject(CacheConstants.CACHE_VIDEO_TAG);
         if (list == null) {
+            log.info("视频标签缓存未命中, 从字典服务加载");
             list = buildTagsFromDict();
             if (!list.isEmpty()) {
-                redisService.setCacheObject(CacheConstants.CACHE_VIDEO_TAG, list, 
+                redisService.setCacheObject(CacheConstants.CACHE_VIDEO_TAG, list,
                         CacheContext.getVideoTagCacheExpireHours(), TimeUnit.HOURS);
+                log.info("视频标签缓存已更新, 共{}个标签", list.size());
             }
+        } else {
+            log.info("从缓存获取视频标签列表完成, 共{}个标签", list.size());
         }
         return list;
     }
@@ -77,11 +87,15 @@ public class VideoCategoryCacheServiceImpl implements IVideoCategoryCacheService
      */
     @Override
     public void refreshCategoryCache() {
+        log.info("刷新视频分类缓存");
         redisService.deleteObject(CacheConstants.CACHE_VIDEO_CATEGORY);
         List<VideoCategoryVO> list = buildCategoriesFromDict();
         if (!list.isEmpty()) {
-            redisService.setCacheObject(CacheConstants.CACHE_VIDEO_CATEGORY, list, 
+            redisService.setCacheObject(CacheConstants.CACHE_VIDEO_CATEGORY, list,
                     CacheContext.getVideoCategoryCacheExpireHours(), TimeUnit.HOURS);
+            log.info("刷新视频分类缓存完成, 共{}个分类", list.size());
+        } else {
+            log.warn("刷新视频分类缓存失败, 未获取到分类数据");
         }
     }
 
@@ -90,11 +104,15 @@ public class VideoCategoryCacheServiceImpl implements IVideoCategoryCacheService
      */
     @Override
     public void refreshTagCache() {
+        log.info("刷新视频标签缓存");
         redisService.deleteObject(CacheConstants.CACHE_VIDEO_TAG);
         List<VideoTagVO> list = buildTagsFromDict();
         if (!list.isEmpty()) {
-            redisService.setCacheObject(CacheConstants.CACHE_VIDEO_TAG, list, 
+            redisService.setCacheObject(CacheConstants.CACHE_VIDEO_TAG, list,
                     CacheContext.getVideoTagCacheExpireHours(), TimeUnit.HOURS);
+            log.info("刷新视频标签缓存完成, 共{}个标签", list.size());
+        } else {
+            log.warn("刷新视频标签缓存失败, 未获取到标签数据");
         }
     }
 

@@ -8,8 +8,8 @@ import lombok.Data;
  * 内容统计信息
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Data
 @Builder

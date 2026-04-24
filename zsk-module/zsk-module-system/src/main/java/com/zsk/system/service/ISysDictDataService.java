@@ -9,8 +9,8 @@ import java.util.List;
  * 字典数据管理 服务层
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 public interface ISysDictDataService extends IService<SysDictData> {
 
@@ -25,7 +25,7 @@ public interface ISysDictDataService extends IService<SysDictData> {
     /**
      * 切换字典状态
      *
-     * @param id 字典ID
+     * @param id     字典ID
      * @param status 状态（0正常 1停用）
      * @return 是否成功
      */
@@ -34,7 +34,7 @@ public interface ISysDictDataService extends IService<SysDictData> {
     /**
      * 批量切换字典状态
      *
-     * @param ids 字典ID列表
+     * @param ids    字典ID列表
      * @param status 状态（0正常 1停用）
      * @return 是否成功
      */

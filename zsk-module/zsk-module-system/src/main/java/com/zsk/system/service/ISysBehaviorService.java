@@ -15,8 +15,8 @@ import java.util.List;
  * 关联：通过 {@code operName} 与 {@code sys_user.user_name} 关联。
  *
  * @author wuhuaming
- * @date 2026-04-22
  * @version 2.0
+ * @date 2026-04-22
  */
 public interface ISysBehaviorService {
 

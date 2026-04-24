@@ -13,8 +13,8 @@ import org.springframework.web.bind.annotation.RequestHeader;
  * 用户统计信息服务远程调用接口
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @FeignClient(contextId = "remoteDocAllContentService", value = "zsk-module-document", fallbackFactory = RemoteDocAllContentFallbackFactory.class)
 public interface RemoteDocAllContentService {

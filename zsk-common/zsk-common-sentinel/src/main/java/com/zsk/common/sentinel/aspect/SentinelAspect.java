@@ -58,7 +58,7 @@ public class SentinelAspect {
      * 使用 Sentinel 进行限流保护
      * 当 Redis 不可用或未配置业务 Key 时，降级为 Sentinel 原生限流
      *
-     * @param point 切面连接点，用于执行目标方法
+     * @param point     切面连接点，用于执行目标方法
      * @param rateLimit 限流注解对象，包含资源名、限流规则等信息
      * @return 目标方法的执行结果
      * @throws Throwable 方法执行异常或限流异常（RateLimitException）
@@ -88,7 +88,7 @@ public class SentinelAspect {
      * 使用 Redis 进行限流保护
      * 基于 Redis INCR 原子操作实现分布式限流，支持动态业务 Key（如邮箱、用户名等）
      *
-     * @param point 切面连接点，用于执行目标方法
+     * @param point     切面连接点，用于执行目标方法
      * @param rateLimit 限流注解对象，包含资源名、业务 Key、限流阈值等信息
      * @return 目标方法的执行结果
      * @throws Throwable 方法执行异常或限流异常（RateLimitException）
@@ -113,7 +113,7 @@ public class SentinelAspect {
 
         // 超过限流阈值，抛出限流异常
         if (count != null && count > limit) {
-             throw new RateLimitException(rateLimit.message());
+            throw new RateLimitException(rateLimit.message());
         }
 
         // 未触发限流，继续执行目标方法
@@ -125,7 +125,7 @@ public class SentinelAspect {
      * 解析 SpEL 表达式，提取动态业务 Key
      * 将方法参数绑定到 Spring EL 上下文，支持如 "#user.id" 等表达式语法
      *
-     * @param key SpEL 表达式字符串（例如："#registerBody.email"）
+     * @param key   SpEL 表达式字符串（例如："#registerBody.email"）
      * @param point 切面连接点，用于获取方法签名和参数信息
      * @return 解析后的业务 Key 值；如果解析失败返回 "default"
      */
@@ -135,18 +135,18 @@ public class SentinelAspect {
         Method method = signature.getMethod();
         // 创建 Spring EL 评估上下文
         EvaluationContext context = new StandardEvaluationContext();
-        
+
         // 获取方法参数名称和实际参数值
         String[] paramNames = signature.getParameterNames();
         Object[] args = point.getArgs();
-        
+
         // 将参数名和参数值绑定到 EL 上下文，支持表达式引用
         if (paramNames != null) {
             for (int i = 0; i < args.length; i++) {
                 context.setVariable(paramNames[i], args[i]);
             }
         }
-        
+
         try {
             // 解析 SpEL 表达式并获取结果
             return parser.parseExpression(key).getValue(context, String.class);
@@ -162,7 +162,7 @@ public class SentinelAspect {
      * 拦截标注了 {@link CircuitBreaker} 注解的方法，使用 Sentinel 进行熔断保护
      * 当触发熔断规则时，抛出服务不可用异常
      *
-     * @param point 切面连接点，用于执行目标方法
+     * @param point          切面连接点，用于执行目标方法
      * @param circuitBreaker 熔断注解对象，包含资源配置信息
      * @return 目标方法的执行结果
      * @throws Throwable 方法执行异常或熔断异常

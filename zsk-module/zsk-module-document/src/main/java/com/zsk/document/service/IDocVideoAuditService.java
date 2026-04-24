@@ -12,8 +12,8 @@ import java.util.List;
  * 视频审核详情Service接口
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 public interface IDocVideoAuditService extends IService<DocVideoAudit> {
 
@@ -21,7 +21,7 @@ public interface IDocVideoAuditService extends IService<DocVideoAudit> {
      * 获取审核队列
      *
      * @param auditStatus 审核状态（可选）
-     * @param pageQuery 分页参数
+     * @param pageQuery   分页参数
      * @return 审核队列分页结果
      */
     PageResult<VideoAuditQueueVO> getAuditQueue(Integer auditStatus, PageQuery pageQuery);

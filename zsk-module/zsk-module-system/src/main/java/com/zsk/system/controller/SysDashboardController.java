@@ -16,8 +16,8 @@ import java.util.List;
  * 仪表盘 控制器
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Tag(name = "仪表盘")
 @RestController

@@ -15,10 +15,12 @@ import java.util.List;
 
 /**
  * About页面 控制器
+ * <p>
+ * 提供关于页面的技术栈和FAQ信息查询接口
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Tag(name = "About页面")
 @RestController
@@ -26,10 +28,13 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AboutController {
 
+    /** About页面服务 */
     private final IAboutService aboutService;
 
     /**
      * 获取技术栈列表
+     * <p>
+     * 返回系统使用的技术栈信息，包括前端、后端、数据库等技术组件
      *
      * @return 技术栈列表
      */
@@ -41,6 +46,8 @@ public class AboutController {
 
     /**
      * 获取FAQ列表
+     * <p>
+     * 返回常见问题分类及问答列表
      *
      * @return FAQ分类列表
      */

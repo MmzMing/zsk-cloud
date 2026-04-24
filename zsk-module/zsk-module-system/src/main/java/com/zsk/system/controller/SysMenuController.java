@@ -15,8 +15,8 @@ import java.util.List;
  * 菜单管理 控制器
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Tag(name = "菜单管理")
 @RestController

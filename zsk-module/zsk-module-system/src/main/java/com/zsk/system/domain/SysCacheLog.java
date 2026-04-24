@@ -11,8 +11,8 @@ import java.time.LocalDateTime;
  * 缓存日志实体类
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Data
 @Document(collection = "sys_cache_log")

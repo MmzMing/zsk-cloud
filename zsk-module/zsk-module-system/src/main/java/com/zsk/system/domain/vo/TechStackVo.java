@@ -12,8 +12,8 @@ import java.io.Serializable;
  * 技术栈项 视图对象
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Data
 @NoArgsConstructor
@@ -24,15 +24,21 @@ public class TechStackVo implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** 唯一标识 */
+    /**
+     * 唯一标识
+     */
     @Schema(description = "唯一标识")
     private String id;
 
-    /** 名称 */
+    /**
+     * 名称
+     */
     @Schema(description = "名称")
     private String name;
 
-    /** 描述 */
+    /**
+     * 描述
+     */
     @Schema(description = "描述")
     private String description;
 }

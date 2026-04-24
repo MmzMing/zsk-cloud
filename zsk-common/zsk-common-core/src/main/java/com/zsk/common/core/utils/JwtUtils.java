@@ -168,9 +168,9 @@ public class JwtUtils {
      * 1. 解析JWT Token获取Claims对象
      * 2. 从Claims中获取user_id字段
      * 3. 根据实际类型进行转换：
-     *    - Long类型：直接返回
-     *    - Integer类型：转换为Long
-     *    - String类型：解析为Long
+     * - Long类型：直接返回
+     * - Integer类型：转换为Long
+     * - String类型：解析为Long
      * <p>
      * 使用场景：
      * - Token验证时获取用户ID
@@ -183,25 +183,25 @@ public class JwtUtils {
     public static Long getUserIdAsLong(String token) {
         // 解析JWT Token，获取Claims对象
         Claims claims = parseToken(token);
-        
+
         // 从Claims中获取user_id字段
         Object value = claims.get(SecurityConstants.USER_ID);
         if (value == null) {
             return null;
         }
-        
+
         // 类型转换处理：支持Long、Integer、String三种类型
         // 情况1：已经是Long类型，直接返回
         if (value instanceof Long) {
             return (Long) value;
         }
-        
+
         // 情况2：是Integer类型，转换为Long
         // 这种情况通常发生在JSON序列化/反序列化过程中
         if (value instanceof Integer) {
             return ((Integer) value).longValue();
         }
-        
+
         // 情况3：是String类型或其他类型，尝试解析
         // 这种情况可能发生在某些特殊场景下
         try {

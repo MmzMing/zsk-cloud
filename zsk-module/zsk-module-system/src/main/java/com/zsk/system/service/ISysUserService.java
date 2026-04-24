@@ -10,8 +10,8 @@ import java.util.List;
  * 用户管理 服务层
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 public interface ISysUserService extends IService<SysUser> {
     /**
@@ -33,7 +33,7 @@ public interface ISysUserService extends IService<SysUser> {
     /**
      * 通过第三方ID查询用户信息
      *
-     * @param loginType 第三方登录类型
+     * @param loginType    第三方登录类型
      * @param thirdPartyId 第三方ID
      * @return 用户信息
      */
@@ -98,8 +98,8 @@ public interface ISysUserService extends IService<SysUser> {
     /**
      * 根据条件分页查询用户列表
      *
-     * @param user 查询条件
-     * @param pageNum 当前页码
+     * @param user     查询条件
+     * @param pageNum  当前页码
      * @param pageSize 每页大小
      * @return 分页结果
      */

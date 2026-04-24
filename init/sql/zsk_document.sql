@@ -1,3 +1,6 @@
+-- ----------------------------
+-- 1. 笔记信息表
+-- ----------------------------
 DROP TABLE IF EXISTS `document_note`;
 CREATE TABLE `document_note`  (
   `id` bigint(20) NOT NULL COMMENT '主键',
@@ -27,6 +30,9 @@ CREATE TABLE `document_note`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文档管理服务_笔记信息表' ROW_FORMAT = DYNAMIC;
 
 
+-- ----------------------------
+-- 2. 笔记评论表
+-- ----------------------------
 DROP TABLE IF EXISTS `document_note_comment`;
 CREATE TABLE `document_note_comment`  (
   `id` bigint(20) NOT NULL COMMENT '主键',
@@ -52,25 +58,8 @@ CREATE TABLE `document_note_comment`  (
   INDEX `idx_nc_create_time`(`create_time` ASC) USING BTREE COMMENT '评论时间索引（按时间排序/筛选）'
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文档管理服务_笔记评论表' ROW_FORMAT = COMPACT;
 
-DROP TABLE IF EXISTS `document_note_pic`;
-CREATE TABLE `document_note_pic`  (
-  `id` bigint(20) NOT NULL COMMENT '主键',
-    `tenant_id` bigint(20) DEFAULT 0 COMMENT '租户ID',
-  `note_id` bigint(20) NOT NULL COMMENT '笔记ID',
-  `pic_url` varchar(1024) NOT NULL COMMENT '图片URL',
-  `sort` int(4) NULL DEFAULT 1 COMMENT '排序（1-封面图）',
-  `create_name` varchar(100) DEFAULT NULL COMMENT '创建者姓名',
-  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
-  `update_name` varchar(100) DEFAULT NULL COMMENT '更新者姓名',
-  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
-  `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否已删除(0否1是)',
-  PRIMARY KEY (`id`) USING BTREE,
-  INDEX `idx_np_note_id`(`note_id` ASC) USING BTREE COMMENT '笔记ID'
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_笔记多图关联表' ROW_FORMAT = DYNAMIC;
-
-
 -- ----------------------------
--- 4. 文件表
+-- 3. 文件表
 -- ----------------------------
 DROP TABLE IF EXISTS `document_files`;
 CREATE TABLE `document_files`  (
@@ -95,7 +84,7 @@ CREATE TABLE `document_files`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_文件表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- 5. 文件处理任务表
+-- 4. 文件处理任务表
 -- ----------------------------
 DROP TABLE IF EXISTS `document_process`;
 CREATE TABLE `document_process`  (
@@ -120,7 +109,7 @@ CREATE TABLE `document_process`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_文件类型转换表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- 6. 文件处理历史记录表
+-- 5. 文件处理历史记录表
 -- ----------------------------
 DROP TABLE IF EXISTS `document_process_history`;
 CREATE TABLE `document_process_history`  (
@@ -145,10 +134,10 @@ CREATE TABLE `document_process_history`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_文件处理历史表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- 7. 视频详情表
+-- 6. 视频表
 -- ----------------------------
-DROP TABLE IF EXISTS `document_video_detail`;
-CREATE TABLE `document_video_detail`  (
+DROP TABLE IF EXISTS `document_video`;
+CREATE TABLE `document_video`  (
   `id` bigint(20) NOT NULL COMMENT '主键',
   `tenant_id` bigint(20) DEFAULT 0 COMMENT '租户ID',
   `file_id` varchar(32) NOT NULL COMMENT '文件ID（关联document_files.file_id）',
@@ -176,10 +165,10 @@ CREATE TABLE `document_video_detail`  (
   INDEX `idx_dvd_category`(`broad_code`, `narrow_code`) USING BTREE COMMENT '分类复合索引',
   INDEX `idx_dvd_audit_status`(`audit_status` ASC) USING BTREE COMMENT '审核状态索引',
   INDEX `idx_dvd_status`(`status` ASC) USING BTREE COMMENT '状态索引'
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_视频详情表' ROW_FORMAT = DYNAMIC;
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_视频表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- 8. 视频审核详情表
+-- 7. 视频审核详情表
 -- ----------------------------
 DROP TABLE IF EXISTS `document_video_audit`;
 CREATE TABLE `document_video_audit` (
@@ -206,7 +195,7 @@ CREATE TABLE `document_video_audit` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='视频审核详情表';
 
 -- ----------------------------
--- 9. 视频详情评论表
+-- 8. 视频详情评论表
 -- ----------------------------
 DROP TABLE IF EXISTS `document_video_comment`;
 CREATE TABLE `document_video_comment`  (
@@ -234,7 +223,7 @@ CREATE TABLE `document_video_comment`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_视频详情评论表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- 10. 用户交互关系表
+-- 9. 用户交互关系表
 -- ----------------------------
 DROP TABLE IF EXISTS `doc_user_interaction`;
 CREATE TABLE `doc_user_interaction`  (

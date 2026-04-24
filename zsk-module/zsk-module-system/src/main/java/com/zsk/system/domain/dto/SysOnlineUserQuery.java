@@ -11,8 +11,8 @@ import java.io.Serial;
  * 在线用户查询条件
  *
  * @author wuhuaming
- * @date 2026-04-22
  * @version 1.0
+ * @date 2026-04-22
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -22,15 +22,21 @@ public class SysOnlineUserQuery extends PageQuery {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** 用户账号（模糊查询） */
+    /**
+     * 用户账号（模糊查询）
+     */
     @Schema(description = "用户账号（模糊查询）")
     private String userName;
 
-    /** 用户昵称（模糊查询） */
+    /**
+     * 用户昵称（模糊查询）
+     */
     @Schema(description = "用户昵称（模糊查询）")
     private String nickName;
 
-    /** 登录IP（模糊查询） */
+    /**
+     * 登录IP（模糊查询）
+     */
     @Schema(description = "登录IP（模糊查询）")
     private String ipaddr;
 }

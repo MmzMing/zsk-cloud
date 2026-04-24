@@ -17,8 +17,8 @@ import java.util.List;
  * 视频分类标签 控制器
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Tag(name = "视频分类标签")
 @RestController

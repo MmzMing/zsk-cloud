@@ -11,8 +11,8 @@ import java.io.Serializable;
  * 趋势数据项 API对象
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Data
 @NoArgsConstructor
@@ -22,9 +22,13 @@ public class DocTrendItemApi implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** 日期/周期标签 */
+    /**
+     * 日期/周期标签
+     */
     private String date;
 
-    /** 访问量 */
+    /**
+     * 访问量
+     */
     private Long value;
 }

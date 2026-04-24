@@ -5,10 +5,10 @@ import cn.hutool.core.util.IdUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zsk.common.core.exception.BusinessException;
+import com.zsk.common.core.utils.StringUtils;
 import com.zsk.common.oss.core.DynamicOssTemplate;
 import com.zsk.common.oss.core.OssTemplate;
 import com.zsk.common.oss.utils.OssUtils;
-import com.zsk.common.core.utils.StringUtils;
 import com.zsk.document.domain.DocFiles;
 import com.zsk.document.domain.vo.MultipartCompleteRequest;
 import com.zsk.document.domain.vo.MultipartInitRequest;
@@ -29,8 +29,8 @@ import java.util.List;
  * 文件Service业务层处理
  *
  * @author wuhuaming
- * @date 2026-02-14
  * @version 1.0
+ * @date 2026-02-14
  */
 @Service
 @RequiredArgsConstructor
@@ -49,6 +49,7 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
     @SneakyThrows
     public DocFiles uploadFile(MultipartFile file) {
         String originalFilename = file.getOriginalFilename();
+        log.info("开始上传文件, fileName={}", originalFilename);
         // 计算MD5
         String md5;
         try (InputStream is = file.getInputStream()) {
@@ -67,7 +68,9 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
         String url = ossTemplate.getObjectUrl(objectName);
 
         // 保存记录
-        return saveFileRecord(file, IdUtil.simpleUUID(), objectName, originalFilename, url);
+        DocFiles result = saveFileRecord(file, IdUtil.simpleUUID(), objectName, originalFilename, url);
+        log.info("文件上传完成, fileName={}, fileId={}", originalFilename, result.getFileId());
+        return result;
     }
 
     /**
@@ -80,16 +83,20 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
     @SneakyThrows
     public String initiateMultipartUpload(MultipartInitRequest request) {
         if (request == null) {
+            log.warn("初始化分片上传失败, 参数为空");
             throw new BusinessException("参数不能为空");
         }
         String fileName = request.getFileName();
         String contentType = request.getContentType();
         String md5 = request.getMd5();
+        log.info("初始化分片上传, fileName={}, md5={}", fileName, md5);
 
         if (StringUtils.isEmpty(fileName)) {
+            log.warn("初始化分片上传失败, 文件名为空");
             throw new BusinessException("文件名不能为空");
         }
         if (StringUtils.isEmpty(md5)) {
+            log.warn("初始化分片上传失败, MD5为空");
             throw new BusinessException("文件MD5不能为空");
         }
         // 生成存储路径
@@ -112,6 +119,7 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
         docFile.setStatus(1); // 上传中
         save(docFile);
 
+        log.info("初始化分片上传完成, uploadId={}", uploadId);
         return uploadId;
     }
 
@@ -127,15 +135,19 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
     @Override
     @SneakyThrows
     public String uploadPart(String uploadId, Integer partNumber, InputStream stream, long size) {
+        log.info("上传分片, uploadId={}, partNumber={}", uploadId, partNumber);
         // 查询文件记录
         DocFiles docFile = getByFileId(uploadId);
         if (docFile == null) {
+            log.warn("上传分片失败, 文件记录不存在, uploadId={}", uploadId);
             throw new BusinessException("文件记录不存在");
         }
 
         // 上传分片 (使用记录中的FilePath)
         try (InputStream is = stream) {
-            return ossTemplate.uploadPart(docFile.getBucket(), docFile.getFilePath(), uploadId, partNumber, is, size);
+            String etag = ossTemplate.uploadPart(docFile.getBucket(), docFile.getFilePath(), uploadId, partNumber, is, size);
+            log.info("上传分片完成, uploadId={}, partNumber={}", uploadId, partNumber);
+            return etag;
         }
     }
 
@@ -148,10 +160,12 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
     @SneakyThrows
     public void completeMultipartUpload(MultipartCompleteRequest request) {
         String uploadId = request.getUploadId();
+        log.info("完成分片上传, uploadId={}", uploadId);
 
         // 查询文件记录
         DocFiles docFile = getByFileId(uploadId);
         if (docFile == null) {
+            log.warn("完成分片上传失败, 文件记录不存在, uploadId={}", uploadId);
             throw new BusinessException("文件记录不存在");
         }
 
@@ -171,6 +185,7 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
         // 3. 比较MD5
         if (!expectedMd5.equalsIgnoreCase(actualMd5)) {
             // MD5不一致，删除文件和记录
+            log.error("文件校验失败, uploadId={}, expectedMd5={}, actualMd5={}", uploadId, expectedMd5, actualMd5);
             ossTemplate.removeObject(docFile.getBucket(), docFile.getFilePath());
             removeById(docFile.getId());
             throw new BusinessException("文件校验失败：MD5值不一致，文件可能已损坏或被篡改");
@@ -180,6 +195,7 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
         docFile.setUrl(ossTemplate.getObjectUrl(docFile.getBucket(), docFile.getFilePath()));
         docFile.setStatus(2); // 已上传
         updateById(docFile);
+        log.info("完成分片上传成功, uploadId={}", uploadId);
     }
 
     /**
@@ -190,7 +206,12 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
      */
     @Override
     public DocFiles getByFileId(String fileId) {
-        return getOne(new LambdaQueryWrapper<DocFiles>().eq(DocFiles::getFileId, fileId));
+        log.info("根据文件ID查询记录, fileId={}", fileId);
+        DocFiles docFile = getOne(new LambdaQueryWrapper<DocFiles>().eq(DocFiles::getFileId, fileId));
+        if (docFile == null) {
+            log.warn("文件记录不存在, fileId={}", fileId);
+        }
+        return docFile;
     }
 
     /**
@@ -233,30 +254,33 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
 
     /**
      * 批量删除文件（同时删除OSS文件和数据库记录）
-     * 
+     * <p>
      * 处理流程：
      * 1. 参数校验：检查ID列表是否为空
      * 2. 查询文件记录：根据ID列表查询数据库中的文件记录
      * 3. 删除OSS文件：遍历文件记录，调用OSS模板删除存储桶中的文件
      * 4. 删除数据库记录：最后删除数据库中的文件记录
-     * 
+     * <p>
      * 注意事项：
      * - OSS文件删除失败时仅记录警告日志，不影响数据库删除（保证数据一致性优先）
      * - 支持单个或多个文件ID批量删除
-     * 
+     *
      * @param ids 文件ID列表（数据库主键ID）
      * @return 删除结果：成功返回true，失败返回false
      */
     @Override
     public boolean removeFiles(List<String> ids) {
+        log.info("批量删除文件, ids={}", ids);
         // 参数校验：ID列表为空直接返回成功
         if (CollectionUtils.isEmpty(ids)) {
+            log.warn("批量删除文件失败, ID列表为空");
             return true;
         }
 
         // 根据ID列表查询文件记录
         List<DocFiles> fileList = listByIds(ids);
         if (CollectionUtils.isEmpty(fileList)) {
+            log.warn("批量删除文件失败, 未找到文件记录, ids={}", ids);
             return true;
         }
 
@@ -269,6 +293,7 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
                 // 只有当文件路径不为空时才执行OSS删除
                 if (StringUtils.isNotEmpty(filePath)) {
                     ossTemplate.removeObject(bucket, filePath);
+                    log.info("删除OSS文件成功, bucket={}, path={}", bucket, filePath);
                 }
             } catch (Exception e) {
                 // OSS删除失败不影响数据库删除，仅记录警告日志
@@ -277,6 +302,8 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
         }
 
         // 删除数据库记录
-        return removeByIds(ids);
+        boolean result = removeByIds(ids);
+        log.info("批量删除文件完成, 删除{}条记录", ids.size());
+        return result;
     }
 }

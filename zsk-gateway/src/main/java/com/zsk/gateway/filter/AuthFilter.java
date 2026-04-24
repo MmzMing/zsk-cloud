@@ -104,7 +104,7 @@ public class AuthFilter implements GlobalFilter, Ordered {
 
             // 从Claims中提取用户ID
             String userId = claims.get(SecurityConstants.USER_ID).toString();
-            
+
             // 构建Redis Key：zsk:login:token:{userId}
             // 该Key存储该用户的所有有效Token集合（Set结构）
             String tokenKey = CacheConstants.CACHE_LOGIN_TOKEN + userId;

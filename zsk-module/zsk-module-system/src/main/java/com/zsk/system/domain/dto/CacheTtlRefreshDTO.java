@@ -12,8 +12,8 @@ import java.io.Serializable;
  * 缓存TTL刷新 请求数据传输对象
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Data
 @Schema(description = "缓存TTL刷新请求")
@@ -22,12 +22,16 @@ public class CacheTtlRefreshDTO implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** 缓存键名 */
+    /**
+     * 缓存键名
+     */
     @Schema(description = "缓存键名", required = true)
     @NotBlank(message = "缓存键名不能为空")
     private String cacheKey;
 
-    /** 过期时间（秒） */
+    /**
+     * 过期时间（秒）
+     */
     @Schema(description = "过期时间（秒）", required = true)
     @NotNull(message = "过期时间不能为空")
     private Long ttl;

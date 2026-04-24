@@ -35,7 +35,7 @@ public class SysTaskLinkServiceImpl extends ServiceImpl<SysTaskLinkMapper, SysTa
     @Override
     public List<SysTaskLinkVO> listLinks() {
         log.info("获取任务依赖关系列表");
-        
+
         // 查询所有依赖关系并转换为VO
         return this.list().stream().map(this::toLinkVO).toList();
     }
@@ -86,9 +86,9 @@ public class SysTaskLinkServiceImpl extends ServiceImpl<SysTaskLinkMapper, SysTa
 
         // 保存到数据库
         this.save(link);
-        
+
         log.info("任务依赖关系创建成功, id={}", link.getId());
-        
+
         // 转换为VO并返回
         return toLinkVO(link);
     }
@@ -102,15 +102,15 @@ public class SysTaskLinkServiceImpl extends ServiceImpl<SysTaskLinkMapper, SysTa
     @Transactional(rollbackFor = Exception.class)
     public void deleteLinkByIds(List<Long> ids) {
         log.info("删除任务依赖关系, ids={}", ids);
-        
+
         // 空列表直接返回
         if (CollUtil.isEmpty(ids)) {
             return;
         }
-        
+
         // 按ID批量删除
         this.removeByIds(ids);
-        
+
         log.info("任务依赖关系删除成功, 删除数量={}", ids.size());
     }
 
@@ -125,21 +125,21 @@ public class SysTaskLinkServiceImpl extends ServiceImpl<SysTaskLinkMapper, SysTa
     @Transactional(rollbackFor = Exception.class)
     public void deleteLinksByTaskIds(List<Long> taskIds) {
         log.info("按任务ID删除依赖关系, taskIds={}", taskIds);
-        
+
         // 空列表直接返回
         if (CollUtil.isEmpty(taskIds)) {
             return;
         }
-        
+
         // 构建查询条件：删除源任务或目标任务在指定列表中的依赖关系
         LambdaQueryWrapper<SysTaskLink> wrapper = Wrappers.<SysTaskLink>lambdaQuery()
                 .in(SysTaskLink::getSourceId, taskIds)
                 .or()
                 .in(SysTaskLink::getTargetId, taskIds);
-        
+
         // 执行删除
         this.remove(wrapper);
-        
+
         log.info("按任务ID删除依赖关系成功");
     }
 
@@ -168,7 +168,7 @@ public class SysTaskLinkServiceImpl extends ServiceImpl<SysTaskLinkMapper, SysTa
         // BFS遍历所需的数据结构
         Set<Long> visited = new HashSet<>();  // 记录已访问的任务，避免重复遍历
         Deque<Long> queue = new ArrayDeque<>();  // BFS队列
-        
+
         // 从目标任务开始遍历
         queue.add(target);
         visited.add(target);
@@ -177,10 +177,10 @@ public class SysTaskLinkServiceImpl extends ServiceImpl<SysTaskLinkMapper, SysTa
         while (!queue.isEmpty()) {
             // 取出队首任务
             Long current = queue.poll();
-            
+
             // 获取当前任务的所有下游依赖任务
             List<Long> neighbors = adjacency.getOrDefault(current, Collections.emptyList());
-            
+
             // 遍历下游任务
             for (Long next : neighbors) {
                 // 如果下游任务是源任务，说明存在循环
@@ -193,7 +193,7 @@ public class SysTaskLinkServiceImpl extends ServiceImpl<SysTaskLinkMapper, SysTa
                 }
             }
         }
-        
+
         // 遍历完成未找到源任务，说明不存在循环
         return false;
     }

@@ -13,8 +13,8 @@ import java.util.List;
  * FAQ分类 视图对象
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Data
 @NoArgsConstructor
@@ -25,11 +25,15 @@ public class FaqCategoryVo implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** 分类名称 */
+    /**
+     * 分类名称
+     */
     @Schema(description = "分类名称")
     private String title;
 
-    /** 该分类下的FAQ列表 */
+    /**
+     * 该分类下的FAQ列表
+     */
     @Schema(description = "该分类下的FAQ列表")
     private List<FaqItemVo> items;
 }

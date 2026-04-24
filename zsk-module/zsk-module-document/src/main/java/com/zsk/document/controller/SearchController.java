@@ -5,19 +5,13 @@ import com.zsk.common.core.domain.R;
 import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.document.domain.DocNote;
-import com.zsk.document.domain.DocVideoDetail;
+import com.zsk.document.domain.DocVideo;
 import com.zsk.document.domain.dto.SearchRequestDto;
 import com.zsk.document.domain.vo.SearchResultVo;
 import com.zsk.document.enums.CacheDocCollectTypeEnum;
 import com.zsk.document.enums.CacheDocLikeTypeEnum;
 import com.zsk.document.enums.CacheDocViewTypeEnum;
-import com.zsk.document.service.ICacheDocCollectService;
-import com.zsk.document.service.ICacheDocLikeService;
-import com.zsk.document.service.ICacheDocViewService;
-import com.zsk.document.service.IDocNoteCommentService;
-import com.zsk.document.service.IDocNoteService;
-import com.zsk.document.service.IDocVideoCommentService;
-import com.zsk.document.service.IDocVideoDetailService;
+import com.zsk.document.service.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
@@ -39,8 +33,8 @@ import java.util.List;
  * </p>
  *
  * @author wuhuaming
- * @date 2026-04-25
  * @version 2.0
+ * @date 2026-04-25
  */
 @Tag(name = "全局搜索")
 @RestController
@@ -49,9 +43,9 @@ import java.util.List;
 public class SearchController {
 
     /**
-     * 视频详情服务
+     * 视频服务
      */
-    private final IDocVideoDetailService videoService;
+    private final IDocVideoService videoService;
 
     /**
      * 笔记服务
@@ -97,8 +91,8 @@ public class SearchController {
     @Operation(summary = "全站搜索")
     @GetMapping("/all")
     public R<PageResult<SearchResultVo>> searchAll(
-        SearchRequestDto searchRequest,
-        PageQuery pageQuery) {
+            SearchRequestDto searchRequest,
+            PageQuery pageQuery) {
 
         // 1. 获取搜索参数
         String keyword = searchRequest.getKeyword();
@@ -129,15 +123,15 @@ public class SearchController {
         int fromIndex = (int) ((pageQuery.getPageNum() - 1) * pageQuery.getPageSize());
         int toIndex = (int) Math.min(fromIndex + pageQuery.getPageSize(), total);
         List<SearchResultVo> pageResults = fromIndex < total
-            ? allResults.subList(fromIndex, toIndex)
-            : new ArrayList<>();
+                ? allResults.subList(fromIndex, toIndex)
+                : new ArrayList<>();
 
         // 7. 构建分页结果
         PageResult<SearchResultVo> pageResult = PageResult.of(
-            pageResults,
-            total,
-            pageQuery.getPageNum(),
-            pageQuery.getPageSize()
+                pageResults,
+                total,
+                pageQuery.getPageNum(),
+                pageQuery.getPageSize()
         );
 
         return R.ok(pageResult);
@@ -155,30 +149,30 @@ public class SearchController {
      */
     private List<SearchResultVo> searchVideos(String keyword, String category) {
         // 1. 构建查询条件：查询未删除且状态正常的视频
-        LambdaQueryWrapper<DocVideoDetail> wrapper = new LambdaQueryWrapper<DocVideoDetail>()
-            .eq(DocVideoDetail::getDeleted, 0)
-            .eq(DocVideoDetail::getStatus, 1);
+        LambdaQueryWrapper<DocVideo> wrapper = new LambdaQueryWrapper<DocVideo>()
+                .eq(DocVideo::getDeleted, 0)
+                .eq(DocVideo::getStatus, 1);
 
         // 2. 添加关键字模糊查询条件
         if (StringUtils.hasText(keyword)) {
             wrapper.and(w -> w
-                .like(DocVideoDetail::getVideoTitle, keyword)
-                .or()
-                .like(DocVideoDetail::getFileContent, keyword)
+                    .like(DocVideo::getVideoTitle, keyword)
+                    .or()
+                    .like(DocVideo::getFileContent, keyword)
             );
         }
 
         // 3. 添加分类筛选条件
         if (StringUtils.hasText(category)) {
-            wrapper.eq(DocVideoDetail::getBroadCode, category);
+            wrapper.eq(DocVideo::getBroadCode, category);
         }
 
         // 4. 执行查询
-        List<DocVideoDetail> videos = videoService.list(wrapper);
+        List<DocVideo> videos = videoService.list(wrapper);
 
         // 5. 构建搜索结果VO列表
         List<SearchResultVo> results = new ArrayList<>();
-        for (DocVideoDetail video : videos) {
+        for (DocVideo video : videos) {
             SearchResultVo vo = buildVideoSearchResult(video);
             results.add(vo);
         }
@@ -199,15 +193,15 @@ public class SearchController {
     private List<SearchResultVo> searchDocuments(String keyword, String category) {
         // 1. 构建查询条件：查询未删除且状态正常的笔记
         LambdaQueryWrapper<DocNote> wrapper = new LambdaQueryWrapper<DocNote>()
-            .eq(DocNote::getDeleted, 0)
-            .eq(DocNote::getStatus, 1);
+                .eq(DocNote::getDeleted, 0)
+                .eq(DocNote::getStatus, 1);
 
         // 2. 添加关键字模糊查询条件
         if (StringUtils.hasText(keyword)) {
             wrapper.and(w -> w
-                .like(DocNote::getNoteName, keyword)
-                .or()
-                .like(DocNote::getContent, keyword)
+                    .like(DocNote::getNoteName, keyword)
+                    .or()
+                    .like(DocNote::getContent, keyword)
             );
         }
 
@@ -238,7 +232,7 @@ public class SearchController {
      * @param video 视频实体
      * @return 搜索结果VO
      */
-    private SearchResultVo buildVideoSearchResult(DocVideoDetail video) {
+    private SearchResultVo buildVideoSearchResult(DocVideo video) {
         SearchResultVo vo = new SearchResultVo();
         vo.setId(String.valueOf(video.getId()));
         vo.setType("video");
@@ -269,9 +263,9 @@ public class SearchController {
 
         // 从数据库获取评论数
         Long commentCount = videoCommentService.count(
-            new LambdaQueryWrapper<com.zsk.document.domain.DocVideoComment>()
-                .eq(com.zsk.document.domain.DocVideoComment::getDeleted, 0)
-                .eq(com.zsk.document.domain.DocVideoComment::getVideoId, String.valueOf(video.getId()))
+                new LambdaQueryWrapper<com.zsk.document.domain.DocVideoComment>()
+                        .eq(com.zsk.document.domain.DocVideoComment::getDeleted, 0)
+                        .eq(com.zsk.document.domain.DocVideoComment::getVideoId, String.valueOf(video.getId()))
         );
         vo.setCommentCount(commentCount);
 
@@ -315,9 +309,9 @@ public class SearchController {
 
         // 从数据库获取评论数
         Long commentCount = noteCommentService.count(
-            new LambdaQueryWrapper<com.zsk.document.domain.DocNoteComment>()
-                .eq(com.zsk.document.domain.DocNoteComment::getDeleted, 0)
-                .eq(com.zsk.document.domain.DocNoteComment::getNoteId, note.getId())
+                new LambdaQueryWrapper<com.zsk.document.domain.DocNoteComment>()
+                        .eq(com.zsk.document.domain.DocNoteComment::getDeleted, 0)
+                        .eq(com.zsk.document.domain.DocNoteComment::getNoteId, note.getId())
         );
         vo.setCommentCount(commentCount);
 
@@ -390,9 +384,9 @@ public class SearchController {
                 // 按浏览量降序排序（视频用playCount，笔记用readCount）
                 results.sort((a, b) -> {
                     long aCount = (a.getPlayCount() != null ? a.getPlayCount() : 0)
-                        + (a.getReadCount() != null ? a.getReadCount() : 0);
+                            + (a.getReadCount() != null ? a.getReadCount() : 0);
                     long bCount = (b.getPlayCount() != null ? b.getPlayCount() : 0)
-                        + (b.getReadCount() != null ? b.getReadCount() : 0);
+                            + (b.getReadCount() != null ? b.getReadCount() : 0);
                     return Long.compare(bCount, aCount);
                 });
                 break;

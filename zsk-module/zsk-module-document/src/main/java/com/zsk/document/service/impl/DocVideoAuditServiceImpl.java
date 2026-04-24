@@ -7,11 +7,11 @@ import com.zsk.common.core.enums.AuditStatus;
 import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.common.security.utils.SecurityUtils;
+import com.zsk.document.domain.DocVideo;
 import com.zsk.document.domain.DocVideoAudit;
-import com.zsk.document.domain.DocVideoDetail;
 import com.zsk.document.domain.vo.*;
 import com.zsk.document.mapper.DocVideoAuditMapper;
-import com.zsk.document.mapper.DocVideoDetailMapper;
+import com.zsk.document.mapper.DocVideoMapper;
 import com.zsk.document.service.IDocVideoAuditService;
 import com.zsk.system.api.RemoteDictService;
 import com.zsk.system.api.domain.SysDictDataApi;
@@ -29,33 +29,34 @@ import java.util.List;
  * 视频审核详情Service业务层处理
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class DocVideoAuditServiceImpl extends ServiceImpl<DocVideoAuditMapper, DocVideoAudit> implements IDocVideoAuditService {
 
-    private final DocVideoDetailMapper videoDetailMapper;
+    private final DocVideoMapper videoMapper;
     private final RemoteDictService remoteDictService;
 
     /**
      * 获取审核队列
      *
      * @param auditStatus 审核状态（可选）
-     * @param pageQuery 分页参数
+     * @param pageQuery   分页参数
      * @return 审核队列分页结果
      */
     @Override
     public PageResult<VideoAuditQueueVO> getAuditQueue(Integer auditStatus, PageQuery pageQuery) {
+        log.info("获取审核队列, auditStatus={}, pageNum={}, pageSize={}", auditStatus, pageQuery.getPageNum(), pageQuery.getPageSize());
         List<VideoAuditQueueVO> list = new ArrayList<>();
 
-        List<DocVideoDetail> videoList = videoDetailMapper.selectAuditQueue(auditStatus, 
-                (pageQuery.getPageNum() - 1) * pageQuery.getPageSize(), 
+        List<DocVideo> videoList = videoMapper.selectAuditQueue(auditStatus,
+                (pageQuery.getPageNum() - 1) * pageQuery.getPageSize(),
                 pageQuery.getPageSize());
-        
-        for (DocVideoDetail detail : videoList) {
+
+        for (DocVideo detail : videoList) {
             VideoAuditQueueVO vo = new VideoAuditQueueVO();
             vo.setId(detail.getId());
             vo.setVideoTitle(detail.getVideoTitle());
@@ -67,8 +68,9 @@ public class DocVideoAuditServiceImpl extends ServiceImpl<DocVideoAuditMapper, D
             list.add(vo);
         }
 
-        long total = videoDetailMapper.countAuditQueue(auditStatus);
+        long total = videoMapper.countAuditQueue(auditStatus);
 
+        log.info("获取审核队列完成, 共{}条记录", total);
         return PageResult.of(list, total, pageQuery.getPageNum(), pageQuery.getPageSize());
     }
 
@@ -80,11 +82,16 @@ public class DocVideoAuditServiceImpl extends ServiceImpl<DocVideoAuditMapper, D
      */
     @Override
     public DocVideoAudit getAuditDetail(Long videoId) {
-        return this.lambdaQuery()
+        log.info("获取审核详情, videoId={}", videoId);
+        DocVideoAudit audit = this.lambdaQuery()
                 .eq(DocVideoAudit::getVideoId, videoId)
                 .orderByDesc(DocVideoAudit::getCreateTime)
                 .last("LIMIT 1")
                 .one();
+        if (audit == null) {
+            log.warn("审核详情不存在, videoId={}", videoId);
+        }
+        return audit;
     }
 
     /**
@@ -96,12 +103,13 @@ public class DocVideoAuditServiceImpl extends ServiceImpl<DocVideoAuditMapper, D
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean submitAudit(AuditSubmitRequest request) {
+        log.info("提交审核结果, videoId={}, auditStatus={}", request.getVideoId(), request.getAuditStatus());
         // 1. 更新视频审核状态
-        DocVideoDetail detail = new DocVideoDetail();
+        DocVideo detail = new DocVideo();
         detail.setId(request.getVideoId());
         detail.setAuditStatus(request.getAuditStatus());
         detail.setAuditMind(request.getAuditMind());
-        videoDetailMapper.updateById(detail);
+        videoMapper.updateById(detail);
 
         // 2. 创建审核记录
         DocVideoAudit audit = new DocVideoAudit();
@@ -116,11 +124,12 @@ public class DocVideoAuditServiceImpl extends ServiceImpl<DocVideoAuditMapper, D
         this.save(audit);
 
         // 3. 更新视频关联的审核ID
-        DocVideoDetail updateDetail = new DocVideoDetail();
+        DocVideo updateDetail = new DocVideo();
         updateDetail.setId(request.getVideoId());
         updateDetail.setAuditId(audit.getId());
-        videoDetailMapper.updateById(updateDetail);
+        videoMapper.updateById(updateDetail);
 
+        log.info("提交审核结果完成, videoId={}, auditId={}", request.getVideoId(), audit.getId());
         return true;
     }
 
@@ -133,6 +142,11 @@ public class DocVideoAuditServiceImpl extends ServiceImpl<DocVideoAuditMapper, D
     @Override
     @Transactional(rollbackFor = Exception.class)
     public boolean submitAuditBatch(AuditBatchSubmitRequest request) {
+        log.info("批量提交审核结果, videoIds={}, auditStatus={}", request.getVideoIds(), request.getAuditStatus());
+        if (request.getVideoIds() == null || request.getVideoIds().isEmpty()) {
+            log.warn("批量提交审核结果失败, 视频ID列表为空");
+            return false;
+        }
         for (Long videoId : request.getVideoIds()) {
             AuditSubmitRequest submitRequest = new AuditSubmitRequest();
             submitRequest.setVideoId(videoId);
@@ -140,6 +154,7 @@ public class DocVideoAuditServiceImpl extends ServiceImpl<DocVideoAuditMapper, D
             submitRequest.setAuditMind(request.getAuditMind());
             submitAudit(submitRequest);
         }
+        log.info("批量提交审核结果完成, 共{}条", request.getVideoIds().size());
         return true;
     }
 
@@ -151,10 +166,12 @@ public class DocVideoAuditServiceImpl extends ServiceImpl<DocVideoAuditMapper, D
      */
     @Override
     public PageResult<VideoAuditLogVO> getAuditLogs(PageQuery pageQuery) {
+        log.info("获取审核日志, pageNum={}, pageSize={}", pageQuery.getPageNum(), pageQuery.getPageSize());
         List<VideoAuditLogVO> list = baseMapper.selectAuditLogs(
                 (pageQuery.getPageNum() - 1) * pageQuery.getPageSize(),
                 pageQuery.getPageSize());
         long total = baseMapper.countAuditLogs();
+        log.info("获取审核日志完成, 共{}条记录", total);
         return PageResult.of(list, total, pageQuery.getPageNum(), pageQuery.getPageSize());
     }
 
@@ -165,10 +182,11 @@ public class DocVideoAuditServiceImpl extends ServiceImpl<DocVideoAuditMapper, D
      */
     @Override
     public List<ViolationReasonVO> getViolationReasons() {
+        log.info("获取违规原因列表");
         try {
             R<List<SysDictDataApi>> result = remoteDictService.getDictDataByType(DictTypeConstants.VIDEO_VIOLATION_REASON);
             if (result != null && result.getCode() == 200 && result.getData() != null) {
-                return result.getData().stream()
+                List<ViolationReasonVO> list = result.getData().stream()
                         .map(dict -> {
                             ViolationReasonVO vo = new ViolationReasonVO();
                             vo.setId(dict.getDictValue());
@@ -176,9 +194,12 @@ public class DocVideoAuditServiceImpl extends ServiceImpl<DocVideoAuditMapper, D
                             return vo;
                         })
                         .toList();
+                log.info("获取违规原因列表完成, 共{}条", list.size());
+                return list;
             }
+            log.warn("获取违规原因列表失败, 响应异常");
         } catch (Exception e) {
-            log.error("从字典服务获取违规原因失败: {}", e.getMessage());
+            log.error("从字典服务获取违规原因失败: {}", e.getMessage(), e);
         }
         return Collections.emptyList();
     }

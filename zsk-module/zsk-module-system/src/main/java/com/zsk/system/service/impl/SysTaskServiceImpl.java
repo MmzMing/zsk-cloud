@@ -41,7 +41,6 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd");
 
-    
 
     private final ISysTaskLinkService taskLinkService;
 
@@ -55,13 +54,13 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
     @Override
     public SysTaskListVO listTasksWithLinks() {
         log.info("获取任务列表及依赖关系");
-        
+
         // 查询所有任务记录
         List<SysTask> tasks = this.list();
-        
+
         // 将任务实体列表转换为 VO 列表
         List<SysTaskVO> taskVoList = tasks.stream().map(this::toTaskVO).toList();
-        
+
         // 获取所有任务依赖关系
         List<SysTaskLinkVO> linkVoList = taskLinkService.listLinks();
 
@@ -69,7 +68,7 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
         SysTaskListVO result = new SysTaskListVO();
         result.setTasks(taskVoList);
         result.setLinks(linkVoList);
-        
+
         return result;
     }
 
@@ -83,16 +82,16 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
     @Override
     public SysTaskVO getTaskDetail(Long id) {
         log.info("获取任务详情, id={}", id);
-        
+
         // 根据ID查询任务实体
         SysTask task = this.getById(id);
-        
+
         // 校验任务是否存在
         if (task == null) {
             log.warn("任务不存在, id={}", id);
             throw new BusinessException("任务不存在");
         }
-        
+
         // 转换为VO并返回
         return toTaskVO(task);
     }
@@ -109,34 +108,34 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
     @Transactional(rollbackFor = Exception.class)
     public SysTaskVO createTask(SysTaskCreateDTO dto) {
         log.info("创建任务, text={}", dto.getText());
-        
+
         // 初始化任务实体
         SysTask task = new SysTask();
-        
+
         // 设置任务名称
         task.setText(dto.getText());
-        
+
         // 解析开始时间（yyyy-MM-dd 格式字符串转 LocalDateTime）
         if (StrUtil.isNotBlank(dto.getStartDate())) {
             LocalDate date = LocalDate.parse(dto.getStartDate(), DATE_FORMATTER);
             task.setStartDate(LocalDateTime.of(date, LocalTime.MIN));
         }
-        
+
         // 设置持续时间
         task.setDuration(dto.getDuration());
-        
+
         // 设置进度（默认0）
         task.setProgress(dto.getProgress() != null ? dto.getProgress() : 0);
-        
+
         // 设置任务类型
         task.setType(dto.getType());
-        
+
         // 设置父任务ID（默认0表示无父任务）
         task.setParentId(dto.getParent() != null ? dto.getParent() : 0L);
-        
+
         // 设置展开标志（默认展开）
         task.setOpenFlag(1);
-        
+
         // 设置任务详情描述
         task.setDetails(dto.getDetails());
 
@@ -145,9 +144,9 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
 
         // 保存任务到数据库
         this.save(task);
-        
+
         log.info("任务创建成功, id={}", task.getId());
-        
+
         // 转换为VO并返回
         return toTaskVO(task);
     }
@@ -164,10 +163,10 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
     @Transactional(rollbackFor = Exception.class)
     public void updateTask(SysTaskUpdateDTO dto) {
         log.info("更新任务, id={}", dto.getId());
-        
+
         // 根据ID查询任务实体
         SysTask task = this.getById(dto.getId());
-        
+
         // 校验任务是否存在
         if (task == null) {
             log.warn("任务不存在, id={}", dto.getId());
@@ -203,7 +202,7 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
 
         // 更新任务到数据库
         this.updateById(task);
-        
+
         log.info("任务更新成功, id={}", dto.getId());
     }
 
@@ -218,7 +217,7 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
     @Transactional(rollbackFor = Exception.class)
     public void deleteTaskByIds(List<Long> ids) {
         log.info("删除任务, ids={}", ids);
-        
+
         // 空列表直接返回
         if (CollUtil.isEmpty(ids)) {
             return;
@@ -230,7 +229,7 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
 
         // 先删除相关依赖关系
         taskLinkService.deleteLinksByTaskIds(allIds);
-        
+
         // 再删除任务
         this.removeByIds(allIds);
 
@@ -250,7 +249,7 @@ public class SysTaskServiceImpl extends ServiceImpl<SysTaskMapper, SysTask> impl
         LambdaQueryWrapper<SysTask> wrapper = Wrappers.<SysTask>lambdaQuery()
                 .in(SysTask::getParentId, parentIds)
                 .select(SysTask::getId);
-        
+
         // 执行查询并提取子任务ID列表
         List<Long> childIds = this.list(wrapper).stream().map(SysTask::getId).toList();
 

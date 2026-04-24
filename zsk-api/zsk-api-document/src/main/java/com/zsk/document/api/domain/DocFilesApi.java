@@ -10,8 +10,8 @@ import java.io.Serializable;
  * 文件API模型
  *
  * @author wuhuaming
- * @date 2026-04-19
  * @version 1.0
+ * @date 2026-04-19
  */
 @Data
 @Schema(description = "文件API模型")

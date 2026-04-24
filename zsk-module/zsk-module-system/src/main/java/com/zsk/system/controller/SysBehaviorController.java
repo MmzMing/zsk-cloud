@@ -12,7 +12,10 @@ import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
 
@@ -27,8 +30,8 @@ import java.util.List;
  * </ul>
  *
  * @author wuhuaming
- * @date 2026-04-22
  * @version 2.0
+ * @date 2026-04-22
  */
 @Tag(name = "行为审计")
 @RestController
@@ -36,10 +39,15 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SysBehaviorController {
 
+    /** 行为审计服务 */
     private final ISysBehaviorService behaviorService;
 
     /**
      * 获取行为审计用户列表
+     * <p>
+     * 聚合 operName 维度，统计每个用户的行为次数、最近操作时间、IP及风险等级
+     *
+     * @return 用户行为聚合列表
      */
     @Operation(summary = "获取行为审计用户列表")
     @GetMapping("/users")
@@ -49,6 +57,11 @@ public class SysBehaviorController {
 
     /**
      * 分页查询用户行为列表
+     * <p>
+     * 支持按用户/业务类型/标题/IP/状态/时间范围等多条件分页查询
+     *
+     * @param query 查询条件
+     * @return 分页行为事件列表
      */
     @Operation(summary = "分页查询用户行为列表")
     @GetMapping("/events")
@@ -58,6 +71,11 @@ public class SysBehaviorController {
 
     /**
      * 获取行为详情（完整请求/响应）
+     * <p>
+     * 根据行为记录ID返回完整的操作日志详情，包含请求参数和响应结果
+     *
+     * @param id 行为记录ID
+     * @return 行为详情
      */
     @Operation(summary = "获取行为详情")
     @GetMapping("/{id}")

@@ -13,8 +13,8 @@ import java.util.List;
  * 视频审核详情Mapper接口
  *
  * @author wuhuaming
- * @date 2026-02-15
  * @version 1.0
+ * @date 2026-02-15
  */
 @Mapper
 public interface DocVideoAuditMapper extends BaseMapper<DocVideoAudit> {
@@ -23,7 +23,7 @@ public interface DocVideoAuditMapper extends BaseMapper<DocVideoAudit> {
      * 查询审核日志
      *
      * @param offset 偏移量
-     * @param limit 每页条数
+     * @param limit  每页条数
      * @return 审核日志列表
      */
     @Select("SELECT a.id, a.video_id as videoId, d.video_title as videoTitle, " +

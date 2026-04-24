@@ -252,7 +252,7 @@ public class CacheDocViewServiceImpl implements ICacheDocViewService {
             return 0L;
         }
         return docUserInteractionMapper.countByTarget(
-            targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_VIEW);
+                targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_VIEW);
     }
 
     /**
@@ -275,7 +275,7 @@ public class CacheDocViewServiceImpl implements ICacheDocViewService {
 
             // 查询是否已存在浏览汇总记录（userId=0表示系统汇总）
             DocUserInteraction existing = docUserInteractionMapper.selectByUserAndTarget(
-                0L, targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_VIEW);
+                    0L, targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_VIEW);
 
             if (existing != null) {
                 // 更新已有记录的浏览量

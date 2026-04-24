@@ -16,8 +16,8 @@ import java.io.Serializable;
  * </p>
  *
  * @author wuhuaming
- * @date 2026-04-25
  * @version 1.0
+ * @date 2026-04-25
  */
 @Data
 @Schema(description = "笔记首页详情统计信息")
@@ -26,27 +26,39 @@ public class DocNoteHomeDetailStatsInfoVo implements Serializable {
     @Serial
     private static final long serialVersionUID = 1L;
 
-    /** 浏览量 */
+    /**
+     * 浏览量
+     */
     @Schema(description = "浏览量")
     private String views;
 
-    /** 点赞数 */
+    /**
+     * 点赞数
+     */
     @Schema(description = "点赞数")
     private Integer likes;
 
-    /** 收藏数 */
+    /**
+     * 收藏数
+     */
     @Schema(description = "收藏数")
     private Integer favorites;
 
-    /** 评论数 */
+    /**
+     * 评论数
+     */
     @Schema(description = "评论数")
     private Integer comments;
 
-    /** 是否已点赞 */
+    /**
+     * 是否已点赞
+     */
     @Schema(description = "是否已点赞")
     private Boolean isLiked;
 
-    /** 是否已收藏 */
+    /**
+     * 是否已收藏
+     */
     @Schema(description = "是否已收藏")
     private Boolean isFavorited;
 }
