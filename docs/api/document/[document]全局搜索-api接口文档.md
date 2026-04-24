@@ -4,21 +4,21 @@
 
 | API 路径 | HTTP 方法 | 所属文件 | 功能描述 |
 | :--- | :--- | :--- | :--- |
-| `/api/document/content/search/all` | GET | `SearchController.java` | 全站搜索 |
+| `/api/document/search/all` | GET | `SearchController.java` | 全站搜索 |
 
 ---
 
 ## 1. 全站搜索
 
 ### 接口信息
-- **URL**: `GET /api/document/content/search/all`
-- **功能**: 全站搜索，支持搜索视频和文档
+- **URL**: `GET /api/document/search/all`
+- **功能**: 全站搜索，支持搜索视频和笔记。搜索结果中的统计数据（浏览量、点赞数、收藏数、评论数）均通过 Redis 缓存服务获取。
 
 ### 查询参数
 
 | 参数名 | 类型 | 必填 | 默认值 | 说明 |
 | :--- | :--- | :--- | :--- | :--- |
-| `keyword` | `string` | 是 | - | 搜索关键字 |
+| `keyword` | `string` | 否 | - | 搜索关键字 |
 | `type` | `string` | 否 | all | 搜索类型：all（全部）、video（视频）、document（文档） |
 | `sort` | `string` | 否 | - | 排序方式：hot（热门）、like（收藏） |
 | `category` | `string` | 否 | - | 分类筛选 |

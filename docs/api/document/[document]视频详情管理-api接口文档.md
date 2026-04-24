@@ -4,27 +4,29 @@
 
 | API 路径 | HTTP 方法 | 所属文件 | 功能描述 |
 | :--- | :--- | :--- | :--- |
-| `/api/document/video/detail/list` | GET | `DocVideoDetailController.java` | 查询视频详情列表 |
-| `/api/document/video/detail/page` | GET | `DocVideoDetailController.java` | 分页查询视频详情列表 |
-| `/api/document/video/detail/{id}` | GET | `DocVideoDetailController.java` | 获取视频详情详细信息 |
-| `/api/document/video/detail` | POST | `DocVideoDetailController.java` | 新增视频详情 |
-| `/api/document/video/detail/upload` | POST | `DocVideoDetailController.java` | 上传视频文件并保存详情 |
-| `/api/document/video/detail` | PUT | `DocVideoDetailController.java` | 修改视频详情 |
-| `/api/document/video/detail/{ids}` | DELETE | `DocVideoDetailController.java` | 删除视频详情 |
-| `/api/document/video/detail/draft/list` | GET | `DocVideoDetailController.java` | 获取草稿列表 |
-| `/api/document/video/detail/draft` | POST | `DocVideoDetailController.java` | 保存草稿 |
-| `/api/document/video/detail/draft/publish/{id}` | PUT | `DocVideoDetailController.java` | 发布草稿 |
-| `/api/document/video/detail/status/batch` | PUT | `DocVideoDetailController.java` | 批量更新视频状态 |
-| `/api/document/video/detail/{id}/pinned` | PUT | `DocVideoDetailController.java` | 切换视频置顶状态 |
-| `/api/document/video/detail/{id}/recommended` | PUT | `DocVideoDetailController.java` | 切换视频推荐状态 |
+| `/api/document/docVideo/list` | GET | `DocVideoController.java` | 查询视频列表 |
+| `/api/document/docVideo/page` | GET | `DocVideoController.java` | 分页查询视频列表 |
+| `/api/document/docVideo/{id}` | GET | `DocVideoController.java` | 获取视频详细信息 |
+| `/api/document/docVideo/{id}/interaction` | GET | `DocVideoController.java` | 获取视频交互数据 |
+| `/api/document/docVideo/{id}/view` | POST | `DocVideoController.java` | 增加视频浏览量 |
+| `/api/document/docVideo` | POST | `DocVideoController.java` | 新增视频 |
+| `/api/document/docVideo/upload` | POST | `DocVideoController.java` | 上传视频文件并保存 |
+| `/api/document/docVideo` | PUT | `DocVideoController.java` | 修改视频 |
+| `/api/document/docVideo/{ids}` | DELETE | `DocVideoController.java` | 删除视频 |
+| `/api/document/docVideo/draft/list` | GET | `DocVideoController.java` | 获取草稿列表 |
+| `/api/document/docVideo/draft` | POST | `DocVideoController.java` | 保存草稿 |
+| `/api/document/docVideo/draft/publish/{id}` | PUT | `DocVideoController.java` | 发布草稿 |
+| `/api/document/docVideo/status/batch` | PUT | `DocVideoController.java` | 批量更新视频状态 |
+| `/api/document/docVideo/{id}/pinned` | PUT | `DocVideoController.java` | 切换视频置顶状态 |
+| `/api/document/docVideo/{id}/recommended` | PUT | `DocVideoController.java` | 切换视频推荐状态 |
 
 ---
 
-## 1. 查询视频详情列表
+## 1. 查询视频列表
 
 ### 接口信息
-- **URL**: `GET /api/document/video/detail/list`
-- **功能**: 查询视频详情列表
+- **URL**: `GET /api/document/docVideo/list`
+- **功能**: 查询视频列表
 
 ### 查询参数
 
@@ -56,10 +58,6 @@
       "tags": "tag1,tag2",
       "status": 1,
       "auditStatus": 1,
-      "viewCount": 100,
-      "likeCount": 10,
-      "commentCount": 5,
-      "collectCount": 8,
       "isPinned": 0,
       "isRecommended": 1,
       "deleted": 0,
@@ -85,10 +83,6 @@
 | `tags` | `string` | 标签（逗号分隔） |
 | `status` | `number` | 状态（1发布，2下架，3草稿） |
 | `auditStatus` | `number` | 审核状态（0待审核，1已通过，2已拒绝） |
-| `viewCount` | `number` | 播放量 |
-| `likeCount` | `number` | 点赞数 |
-| `commentCount` | `number` | 评论数 |
-| `collectCount` | `number` | 收藏数 |
 | `isPinned` | `number` | 是否置顶（0否，1是） |
 | `isRecommended` | `number` | 是否推荐（0否，1是） |
 | `deleted` | `number` | 删除标记 |
@@ -97,11 +91,11 @@
 
 ---
 
-## 2. 分页查询视频详情列表
+## 2. 分页查询视频列表
 
 ### 接口信息
-- **URL**: `GET /api/document/video/detail/page`
-- **功能**: 分页查询视频详情列表
+- **URL**: `GET /api/document/docVideo/page`
+- **功能**: 分页查询视频列表
 
 ### 查询参数
 
@@ -136,10 +130,6 @@
         "tags": "tag1,tag2",
         "status": 1,
         "auditStatus": 1,
-        "viewCount": 100,
-        "likeCount": 10,
-        "commentCount": 5,
-        "collectCount": 8,
         "isPinned": 0,
         "isRecommended": 1,
         "deleted": 0,
@@ -156,11 +146,11 @@
 
 ---
 
-## 3. 获取视频详情详细信息
+## 3. 获取视频详细信息
 
 ### 接口信息
-- **URL**: `GET /api/document/video/detail/{id}`
-- **功能**: 获取视频详情详细信息
+- **URL**: `GET /api/document/docVideo/{id}`
+- **功能**: 获取视频详细信息，同时关联查询文件信息获取封面图URL和视频播放地址
 
 ### 路径参数
 
@@ -186,10 +176,6 @@
     "tags": "tag1,tag2",
     "status": 1,
     "auditStatus": 1,
-    "viewCount": 100,
-    "likeCount": 10,
-    "commentCount": 5,
-    "collectCount": 8,
     "isPinned": 0,
     "isRecommended": 1,
     "deleted": 0,
@@ -201,11 +187,75 @@
 
 ---
 
-## 4. 新增视频详情
+## 4. 获取视频交互数据
 
 ### 接口信息
-- **URL**: `POST /api/document/video/detail`
-- **功能**: 新增视频详情
+- **URL**: `GET /api/document/docVideo/{id}/interaction`
+- **功能**: 获取视频交互数据（浏览量、点赞量、收藏量、用户交互状态）
+
+### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | `string` | 是 | 视频ID |
+
+### 查询参数
+
+| 参数名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `userId` | `string` | 否 | 当前用户ID（用于判断用户是否已点赞/收藏） |
+
+### 成功响应
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "success": true,
+    "status": true,
+    "count": 11
+  }
+}
+```
+
+---
+
+## 5. 增加视频浏览量
+
+### 接口信息
+- **URL**: `POST /api/document/docVideo/{id}/view`
+- **功能**: 增加视频浏览量
+
+### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | `string` | 是 | 视频ID |
+
+### 查询参数
+
+| 参数名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `userId` | `string` | 否 | 用户ID（用于防止同一用户短时间内重复计数） |
+
+### 成功响应
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": null
+}
+```
+
+---
+
+## 6. 新增视频
+
+### 接口信息
+- **URL**: `POST /api/document/docVideo`
+- **功能**: 新增视频
 
 ### 请求体
 
@@ -247,20 +297,20 @@
 
 ---
 
-## 5. 上传视频文件并保存详情
+## 7. 上传视频文件并保存
 
 ### 接口信息
-- **URL**: `POST /api/document/video/detail/upload`
-- **功能**: 上传视频文件并保存详情
+- **URL**: `POST /api/document/docVideo/upload`
+- **功能**: 上传视频文件并保存视频信息
 
 ### 请求参数
 
 | 参数名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
 | `file` | `MultipartFile` | 是 | 视频文件 |
-| `docVideoDetail` | `object` | 是 | 视频详情对象 |
+| `docVideo` | `object` | 是 | 视频信息对象 |
 
-### 请求体（docVideoDetail）
+### 请求体（docVideo）
 
 ```json
 {
@@ -284,11 +334,11 @@
 
 ---
 
-## 6. 修改视频详情
+## 8. 修改视频
 
 ### 接口信息
-- **URL**: `PUT /api/document/video/detail`
-- **功能**: 修改视频详情
+- **URL**: `PUT /api/document/docVideo`
+- **功能**: 修改视频
 
 ### 请求体
 
@@ -297,7 +347,8 @@
   "id": "1",
   "videoTitle": "修改后的标题",
   "fileContent": "修改后的描述",
-  "broadCode": "life"
+  "broadCode": "life",
+  "tags": "tag3,tag4"
 }
 ```
 
@@ -323,11 +374,11 @@
 
 ---
 
-## 7. 删除视频详情
+## 9. 删除视频
 
 ### 接口信息
-- **URL**: `DELETE /api/document/video/detail/{ids}`
-- **功能**: 批量删除视频详情
+- **URL**: `DELETE /api/document/docVideo/{ids}`
+- **功能**: 批量删除视频
 
 ### 路径参数
 
@@ -347,10 +398,10 @@
 
 ---
 
-## 8. 获取草稿列表
+## 10. 获取草稿列表
 
 ### 接口信息
-- **URL**: `GET /api/document/video/detail/draft/list`
+- **URL**: `GET /api/document/docVideo/draft/list`
 - **功能**: 获取草稿列表
 
 ### 查询参数
@@ -388,10 +439,10 @@
 
 ---
 
-## 9. 保存草稿
+## 11. 保存草稿
 
 ### 接口信息
-- **URL**: `POST /api/document/video/detail/draft`
+- **URL**: `POST /api/document/docVideo/draft`
 - **功能**: 保存视频草稿
 
 ### 请求体
@@ -401,7 +452,8 @@
   "userId": "1",
   "videoTitle": "草稿标题",
   "fileContent": "草稿描述",
-  "broadCode": "tech"
+  "broadCode": "tech",
+  "tags": "tag1,tag2"
 }
 ```
 
@@ -423,10 +475,10 @@
 
 ---
 
-## 10. 发布草稿
+## 12. 发布草稿
 
 ### 接口信息
-- **URL**: `PUT /api/document/video/detail/draft/publish/{id}`
+- **URL**: `PUT /api/document/docVideo/draft/publish/{id}`
 - **功能**: 发布草稿为正式视频
 
 ### 路径参数
@@ -447,10 +499,10 @@
 
 ---
 
-## 11. 批量更新视频状态
+## 13. 批量更新视频状态
 
 ### 接口信息
-- **URL**: `PUT /api/document/video/detail/status/batch`
+- **URL**: `PUT /api/document/docVideo/status/batch`
 - **功能**: 批量更新视频状态
 
 ### 请求体
@@ -481,10 +533,10 @@
 
 ---
 
-## 12. 切换视频置顶状态
+## 14. 切换视频置顶状态
 
 ### 接口信息
-- **URL**: `PUT /api/document/video/detail/{id}/pinned`
+- **URL**: `PUT /api/document/docVideo/{id}/pinned`
 - **功能**: 切换视频置顶状态
 
 ### 路径参数
@@ -497,7 +549,7 @@
 
 | 参数名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `pinned` | `number` | 是 | 是否置顶（0否，1是） |
+| `pinned` | `number` | 是 | 置顶状态（0否，1是） |
 
 ### 成功响应
 
@@ -511,10 +563,10 @@
 
 ---
 
-## 13. 切换视频推荐状态
+## 15. 切换视频推荐状态
 
 ### 接口信息
-- **URL**: `PUT /api/document/video/detail/{id}/recommended`
+- **URL**: `PUT /api/document/docVideo/{id}/recommended`
 - **功能**: 切换视频推荐状态
 
 ### 路径参数
@@ -527,7 +579,7 @@
 
 | 参数名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `recommended` | `number` | 是 | 是否推荐（0否，1是） |
+| `recommended` | `number` | 是 | 推荐状态（0否，1是） |
 
 ### 成功响应
 

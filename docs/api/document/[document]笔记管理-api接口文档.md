@@ -4,24 +4,26 @@
 
 | API 路径 | HTTP 方法 | 所属文件 | 功能描述 |
 | :--- | :--- | :--- | :--- |
-| `/api/document/note/list` | GET | `DocNoteController.java` | 查询笔记列表 |
-| `/api/document/note/page` | GET | `DocNoteController.java` | 分页查询笔记列表 |
-| `/api/document/note/{id}` | GET | `DocNoteController.java` | 获取笔记详细信息 |
-| `/api/document/note` | POST | `DocNoteController.java` | 新增笔记 |
-| `/api/document/note` | PUT | `DocNoteController.java` | 修改笔记 |
-| `/api/document/note/{ids}` | DELETE | `DocNoteController.java` | 删除笔记 |
-| `/api/document/note/draft/list` | GET | `DocNoteController.java` | 获取草稿列表 |
-| `/api/document/note/status/batch` | PUT | `DocNoteController.java` | 批量更新状态 |
-| `/api/document/note/category/batch` | PUT | `DocNoteController.java` | 批量迁移分类 |
-| `/api/document/note/{id}/pinned` | PUT | `DocNoteController.java` | 切换置顶状态 |
-| `/api/document/note/{id}/recommended` | PUT | `DocNoteController.java` | 切换推荐状态 |
+| `/api/document/docNote/list` | GET | `DocNoteController.java` | 查询笔记列表 |
+| `/api/document/docNote/page` | GET | `DocNoteController.java` | 分页查询笔记列表 |
+| `/api/document/docNote/{id}` | GET | `DocNoteController.java` | 获取笔记详细信息 |
+| `/api/document/docNote/{id}/interaction` | GET | `DocNoteController.java` | 获取笔记交互数据 |
+| `/api/document/docNote/{id}/view` | POST | `DocNoteController.java` | 增加笔记浏览量 |
+| `/api/document/docNote` | POST | `DocNoteController.java` | 新增笔记 |
+| `/api/document/docNote` | PUT | `DocNoteController.java` | 修改笔记 |
+| `/api/document/docNote/{ids}` | DELETE | `DocNoteController.java` | 删除笔记 |
+| `/api/document/docNote/draft/list` | GET | `DocNoteController.java` | 获取草稿列表 |
+| `/api/document/docNote/status/batch` | PUT | `DocNoteController.java` | 批量更新状态 |
+| `/api/document/docNote/category/batch` | PUT | `DocNoteController.java` | 批量迁移分类 |
+| `/api/document/docNote/{id}/pinned` | PUT | `DocNoteController.java` | 切换置顶状态 |
+| `/api/document/docNote/{id}/recommended` | PUT | `DocNoteController.java` | 切换推荐状态 |
 
 ---
 
 ## 1. 查询笔记列表
 
 ### 接口信息
-- **URL**: `GET /api/document/note/list`
+- **URL**: `GET /api/document/docNote/list`
 - **功能**: 查询笔记列表
 
 ### 查询参数
@@ -51,10 +53,6 @@
       "broadCode": "tech",
       "status": 1,
       "auditStatus": 1,
-      "viewCount": 100,
-      "likeCount": 10,
-      "commentCount": 5,
-      "collectCount": 8,
       "isPinned": 0,
       "isRecommended": 1,
       "deleted": 0,
@@ -77,10 +75,6 @@
 | `broadCode` | `string` | 分类编码 |
 | `status` | `number` | 状态（1发布，2下架，3草稿） |
 | `auditStatus` | `number` | 审核状态（0待审核，1已通过，2已拒绝） |
-| `viewCount` | `number` | 浏览量 |
-| `likeCount` | `number` | 点赞数 |
-| `commentCount` | `number` | 评论数 |
-| `collectCount` | `number` | 收藏数 |
 | `isPinned` | `number` | 是否置顶（0否，1是） |
 | `isRecommended` | `number` | 是否推荐（0否，1是） |
 | `deleted` | `number` | 删除标记 |
@@ -92,7 +86,7 @@
 ## 2. 分页查询笔记列表
 
 ### 接口信息
-- **URL**: `GET /api/document/note/page`
+- **URL**: `GET /api/document/docNote/page`
 - **功能**: 分页查询笔记列表
 
 ### 查询参数
@@ -125,10 +119,6 @@
         "broadCode": "tech",
         "status": 1,
         "auditStatus": 1,
-        "viewCount": 100,
-        "likeCount": 10,
-        "commentCount": 5,
-        "collectCount": 8,
         "isPinned": 0,
         "isRecommended": 1,
         "deleted": 0,
@@ -148,7 +138,7 @@
 ## 3. 获取笔记详细信息
 
 ### 接口信息
-- **URL**: `GET /api/document/note/{id}`
+- **URL**: `GET /api/document/docNote/{id}`
 - **功能**: 获取笔记详细信息
 
 ### 路径参数
@@ -172,10 +162,6 @@
     "broadCode": "tech",
     "status": 1,
     "auditStatus": 1,
-    "viewCount": 100,
-    "likeCount": 10,
-    "commentCount": 5,
-    "collectCount": 8,
     "isPinned": 0,
     "isRecommended": 1,
     "deleted": 0,
@@ -187,10 +173,74 @@
 
 ---
 
-## 4. 新增笔记
+## 4. 获取笔记交互数据
 
 ### 接口信息
-- **URL**: `POST /api/document/note`
+- **URL**: `GET /api/document/docNote/{id}/interaction`
+- **功能**: 获取笔记交互数据（浏览量、点赞量、收藏量、用户交互状态）
+
+### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | `string` | 是 | 笔记ID |
+
+### 查询参数
+
+| 参数名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `userId` | `string` | 否 | 当前用户ID（用于判断用户是否已点赞/收藏） |
+
+### 成功响应
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "success": true,
+    "status": true,
+    "count": 11
+  }
+}
+```
+
+---
+
+## 5. 增加笔记浏览量
+
+### 接口信息
+- **URL**: `POST /api/document/docNote/{id}/view`
+- **功能**: 增加笔记浏览量
+
+### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | `string` | 是 | 笔记ID |
+
+### 查询参数
+
+| 参数名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `userId` | `string` | 否 | 用户ID（用于防止同一用户短时间内重复计数） |
+
+### 成功响应
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": null
+}
+```
+
+---
+
+## 6. 新增笔记
+
+### 接口信息
+- **URL**: `POST /api/document/docNote`
 - **功能**: 新增笔记
 
 ### 请求体
@@ -231,10 +281,10 @@
 
 ---
 
-## 5. 修改笔记
+## 7. 修改笔记
 
 ### 接口信息
-- **URL**: `PUT /api/document/note`
+- **URL**: `PUT /api/document/docNote`
 - **功能**: 修改笔记
 
 ### 请求体
@@ -271,10 +321,10 @@
 
 ---
 
-## 6. 删除笔记
+## 8. 删除笔记
 
 ### 接口信息
-- **URL**: `DELETE /api/document/note/{ids}`
+- **URL**: `DELETE /api/document/docNote/{ids}`
 - **功能**: 批量删除笔记
 
 ### 路径参数
@@ -295,10 +345,10 @@
 
 ---
 
-## 7. 获取草稿列表
+## 9. 获取草稿列表
 
 ### 接口信息
-- **URL**: `GET /api/document/note/draft/list`
+- **URL**: `GET /api/document/docNote/draft/list`
 - **功能**: 获取草稿列表
 
 ### 查询参数
@@ -336,10 +386,10 @@
 
 ---
 
-## 8. 批量更新状态
+## 10. 批量更新状态
 
 ### 接口信息
-- **URL**: `PUT /api/document/note/status/batch`
+- **URL**: `PUT /api/document/docNote/status/batch`
 - **功能**: 批量更新笔记状态
 
 ### 请求体
@@ -370,10 +420,10 @@
 
 ---
 
-## 9. 批量迁移分类
+## 11. 批量迁移分类
 
 ### 接口信息
-- **URL**: `PUT /api/document/note/category/batch`
+- **URL**: `PUT /api/document/docNote/category/batch`
 - **功能**: 批量迁移笔记分类
 
 ### 请求体
@@ -404,10 +454,10 @@
 
 ---
 
-## 10. 切换置顶状态
+## 12. 切换置顶状态
 
 ### 接口信息
-- **URL**: `PUT /api/document/note/{id}/pinned`
+- **URL**: `PUT /api/document/docNote/{id}/pinned`
 - **功能**: 切换笔记置顶状态
 
 ### 路径参数
@@ -438,10 +488,10 @@
 
 ---
 
-## 11. 切换推荐状态
+## 13. 切换推荐状态
 
 ### 接口信息
-- **URL**: `PUT /api/document/note/{id}/recommended`
+- **URL**: `PUT /api/document/docNote/{id}/recommended`
 - **功能**: 切换笔记推荐状态
 
 ### 路径参数
