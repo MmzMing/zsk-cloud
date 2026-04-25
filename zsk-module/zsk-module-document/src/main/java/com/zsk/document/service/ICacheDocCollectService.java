@@ -89,11 +89,23 @@ public interface ICacheDocCollectService {
     Map<Long, Long> getCollectCountBatch(Integer type, Iterable<Long> targetIds);
 
     /**
-     * 同步收藏数据到数据库
-     * <p>
-     * 将Redis中的收藏数据同步到数据库持久化。
-     * 由定时任务调用。
-     * </p>
-     */
-    void syncCollectDataToDb();
+ * 同步收藏数据到数据库
+ * <p>
+ * 将Redis中的收藏数据同步到数据库持久化。
+ * 由定时任务调用。
+ * </p>
+ */
+void syncCollectDataToDb();
+
+/**
+ * 从数据库预热收藏缓存
+ * <p>
+ * 将数据库中的收藏数据加载到Redis缓存，用于服务重启后的缓存预热。
+ * 加载用户收藏状态到Bitmap，收藏计数到Hash。
+ * </p>
+ *
+ * @param type     收藏类型
+ * @param targetId 目标ID
+ */
+void warmCollectCacheFromDb(Integer type, Long targetId);
 }

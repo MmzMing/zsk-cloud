@@ -7,6 +7,8 @@ import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
+import java.util.List;
+
 /**
  * 用户交互关系Mapper接口
  *
@@ -64,4 +66,17 @@ public interface DocUserInteractionMapper extends BaseMapper<DocUserInteraction>
      */
     @Update("UPDATE doc_user_interaction SET status = 0 WHERE id = #{id}")
     int cancelInteraction(@Param("id") Long id);
+
+    /**
+     * 查询目标的所有交互记录
+     *
+     * @param targetType      目标类型
+     * @param targetId        目标ID
+     * @param interactionType 交互类型
+     * @return 交互记录列表
+     */
+    @Select("SELECT * FROM doc_user_interaction WHERE target_type = #{targetType} AND target_id = #{targetId} AND interaction_type = #{interactionType} AND status = 1")
+    List<DocUserInteraction> selectByTarget(@Param("targetType") Integer targetType,
+                                            @Param("targetId") Long targetId,
+                                            @Param("interactionType") Integer interactionType);
 }

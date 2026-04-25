@@ -1,7 +1,6 @@
 package com.zsk.document.service.impl;
 
 import com.zsk.common.core.constant.CacheConstants;
-import com.zsk.common.redis.service.RedisService;
 import com.zsk.document.domain.DocUserInteraction;
 import com.zsk.document.domain.context.DocUserInteractionContext;
 import com.zsk.document.enums.CacheDocLikeTypeEnum;
@@ -9,26 +8,37 @@ import com.zsk.document.mapper.DocUserInteractionMapper;
 import com.zsk.document.service.ICacheDocLikeService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Range;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
+import java.util.Set;
 
 /**
  * 缓存文档点赞服务实现类
  * <p>
- * 使用三个Redis键实现点赞功能：
- * 1. like:user:{user_id} Hash 存储用户点赞的所有内容 {targetId:type}
- * 2. like:count:{target_id}:{type} String 存储内容的实时点赞数
- * 3. like:lock:{user_id}:{target_id} String 分布式锁（防止重复点赞，过期时间1分钟）
+ * 基于 Redis 双 Key 方案（Bitmap + Hash）实现高性能点赞功能：
+ * <ul>
+ *     <li><b>Bitmap:</b> like:bit:{typeCode}:{targetId} — 使用位图存储用户点赞状态，SETBIT 返回旧值实现原子 toggle</li>
+ *     <li><b>Hash:</b> stat:{targetType}:{targetId} — 使用哈希存储统计计数，HINCRBY 原子增减</li>
+ * </ul>
  * <p>
- * 点赞数据先写入Redis，后由定时任务 {@link com.zsk.document.job.CacheDocSocialSyncJob} 同步到数据库。
+ * <b>核心设计要点：</b>
+ * <ul>
+ *     <li>SETBIT 返回旧值，天然支持原子 toggle，无需分布式锁</li>
+ *     <li>Bitmap 极省内存：1亿用户仅需约 12MB</li>
+ *     <li>先写 Redis，定时任务异步同步到数据库</li>
+ *     <li>查询时先查 Redis，Redis 未命中则查 DB 并回写缓存</li>
+ * </ul>
  *
  * @author wuhuaming
- * @version 2.0
+ * @version 3.0
  * @date 2026-04-25
  */
 @Slf4j
@@ -36,249 +46,191 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
 
-    /**
-     * Redis服务
-     */
-    private final RedisService redisService;
-
-    /**
-     * Redis模板
-     */
     private final RedisTemplate<String, Object> redisTemplate;
-
-    /**
-     * 用户交互Mapper
-     */
     private final DocUserInteractionMapper docUserInteractionMapper;
 
     /**
-     * 分布式锁过期时间（秒），1分钟内防止重复操作
-     */
-    private static final long LOCK_EXPIRE_SECONDS = 60;
-
-    /**
-     * 点赞
+     * 用户点赞内容
      * <p>
-     * 用户对目标内容进行点赞操作。
-     * 操作会先检查分布式锁防止重复操作，然后更新Redis中的用户点赞记录和点赞计数。
-     * </p>
+     * 使用 Redis Bitmap 实现原子点赞操作：
+     * 1. SETBIT 设置用户位为 1，返回旧状态
+     * 2. 若旧状态为 false（未点赞），则增加计数
+     * 3. 若旧状态为 true（已点赞），说明重复操作，直接返回 false
      *
-     * @param type     点赞类型（1-笔记 2-笔记评论 3-视频 4-视频评论）
-     * @param targetId 目标ID
+     * @param type     点赞类型（见 {@link CacheDocLikeTypeEnum}）
+     * @param targetId 目标内容ID（笔记ID/视频ID/评论ID）
      * @param userId   用户ID
-     * @return 是否点赞成功（重复点赞返回false）
+     * @return true-点赞成功，false-已点赞或参数无效
      */
     @Override
     public boolean like(Integer type, Long targetId, Long userId) {
-        // 1. 验证参数并获取点赞类型枚举
+        // 参数校验
         CacheDocLikeTypeEnum likeType = CacheDocLikeTypeEnum.getByCode(type);
         if (likeType == null || targetId == null || userId == null) {
             log.warn("点赞参数无效: type={}, targetId={}, userId={}", type, targetId, userId);
             return false;
         }
 
-        // 2. 构建Redis键
-        String lockKey = buildLockKey(userId, targetId);
-        String userKey = buildUserKey(userId);
-        String countKey = buildCountKey(targetId, likeType);
-        String hashField = targetId + ":" + type;
-
-        // 3. 检查分布式锁，防止重复操作
-        Boolean locked = redisService.getCacheObject(lockKey);
-        if (Boolean.TRUE.equals(locked)) {
-            log.debug("用户 {} 对目标 {} 操作频繁", userId, targetId);
-            return false;
+        // 构建 Bitmap Key：like:bit:{typeCode}:{targetId}
+        String bitmapKey = buildBitmapKey(likeType, targetId);
+        
+        // SETBIT 设置为 true，返回旧状态（原子操作）
+        // 旧状态=false → 未点赞，需要增加计数
+        // 旧状态=true → 已点赞，无需操作
+        Boolean wasLiked = redisTemplate.opsForValue().setBit(bitmapKey, userId, true);
+        if (Boolean.TRUE.equals(wasLiked)) {
+            return false; // 已点赞，无需重复操作
         }
 
-        // 4. 检查是否已点赞
-        Object existingType = redisTemplate.opsForHash().get(userKey, hashField);
-        if (existingType != null) {
-            log.debug("用户 {} 已点赞目标 {}", userId, targetId);
-            return false;
-        }
-
-        // 5. 执行点赞操作：设置锁、记录用户点赞、增加计数
-        redisService.setCacheObject(lockKey, true, LOCK_EXPIRE_SECONDS, TimeUnit.SECONDS);
-        redisTemplate.opsForHash().put(userKey, hashField, type.toString());
-        redisTemplate.opsForValue().increment(countKey, 1);
-
-        log.debug("用户 {} 点赞 {} 类型目标 {}", userId, likeType.getDesc(), targetId);
+        // 更新统计计数：stat:{targetType}:{targetId} 的 like:{typeCode} 字段
+        String statKey = buildStatKey(likeType, targetId);
+        String countField = buildCountField(likeType);
+        redisTemplate.opsForHash().increment(statKey, countField, 1);
+        
+        log.debug("用户 {} 点赞 {} targetId={}", userId, likeType.getDesc(), targetId);
         return true;
     }
 
     /**
-     * 取消点赞
+     * 用户取消点赞
      * <p>
-     * 用户对目标内容取消点赞操作。
-     * 操作会先检查分布式锁防止重复操作，然后更新Redis中的用户点赞记录和点赞计数。
-     * </p>
+     * 使用 Redis Bitmap 实现原子取消点赞操作：
+     * 1. SETBIT 设置用户位为 0，返回旧状态
+     * 2. 若旧状态为 true（已点赞），则减少计数
+     * 3. 若旧状态为 false（未点赞），说明重复操作，直接返回 false
      *
-     * @param type     点赞类型
-     * @param targetId 目标ID
+     * @param type     点赞类型（见 {@link CacheDocLikeTypeEnum}）
+     * @param targetId 目标内容ID（笔记ID/视频ID/评论ID）
      * @param userId   用户ID
-     * @return 是否取消成功（未点赞返回false）
+     * @return true-取消点赞成功，false-未点赞或参数无效
      */
     @Override
     public boolean unlike(Integer type, Long targetId, Long userId) {
-        // 1. 验证参数并获取点赞类型枚举
+        // 参数校验
         CacheDocLikeTypeEnum likeType = CacheDocLikeTypeEnum.getByCode(type);
         if (likeType == null || targetId == null || userId == null) {
             log.warn("取消点赞参数无效: type={}, targetId={}, userId={}", type, targetId, userId);
             return false;
         }
 
-        // 2. 构建Redis键
-        String lockKey = buildLockKey(userId, targetId);
-        String userKey = buildUserKey(userId);
-        String countKey = buildCountKey(targetId, likeType);
-        String hashField = targetId + ":" + type;
-
-        // 3. 检查分布式锁，防止重复操作
-        Boolean locked = redisService.getCacheObject(lockKey);
-        if (Boolean.TRUE.equals(locked)) {
-            log.debug("用户 {} 对目标 {} 操作频繁", userId, targetId);
-            return false;
+        // 构建 Bitmap Key
+        String bitmapKey = buildBitmapKey(likeType, targetId);
+        
+        // SETBIT 设置为 false，返回旧状态（原子操作）
+        // 旧状态=true → 已点赞，需要减少计数
+        // 旧状态=false → 未点赞，无需操作
+        Boolean wasLiked = redisTemplate.opsForValue().setBit(bitmapKey, userId, false);
+        if (Boolean.FALSE.equals(wasLiked)) {
+            return false; // 未点赞，无需操作
         }
 
-        // 4. 检查是否已点赞
-        Object existingType = redisTemplate.opsForHash().get(userKey, hashField);
-        if (existingType == null) {
-            log.debug("用户 {} 未点赞目标 {}", userId, targetId);
-            return false;
-        }
-
-        // 5. 执行取消点赞操作：设置锁、删除用户点赞记录、减少计数
-        redisService.setCacheObject(lockKey, true, LOCK_EXPIRE_SECONDS, TimeUnit.SECONDS);
-        redisTemplate.opsForHash().delete(userKey, hashField);
-        redisTemplate.opsForValue().decrement(countKey, 1);
-
-        log.debug("用户 {} 取消点赞 {} 类型目标 {}", userId, likeType.getDesc(), targetId);
+        // 更新统计计数，减少 1
+        String statKey = buildStatKey(likeType, targetId);
+        String countField = buildCountField(likeType);
+        redisTemplate.opsForHash().increment(statKey, countField, -1);
+        
+        log.debug("用户 {} 取消点赞 {} targetId={}", userId, likeType.getDesc(), targetId);
         return true;
     }
 
     /**
-     * 获取用户点赞数
+     * 获取用户点赞总数
      * <p>
-     * 获取指定用户总共点赞的数量。
-     * 先查询Redis缓存，如未命中则从数据库统计。
-     * </p>
+     * 直接从数据库查询用户的点赞记录数
      *
      * @param userId 用户ID
-     * @return 用户点赞数量
+     * @return 点赞总数
      */
     @Override
     public Long getUserLikeCount(Long userId) {
         if (userId == null) {
             return 0L;
         }
-
-        // 1. 构建用户点赞记录Redis键
-        String userKey = buildUserKey(userId);
-
-        // 2. 从Redis获取用户点赞记录数量
-        Long count = redisTemplate.opsForHash().size(userKey);
-        if (count != null && count > 0) {
-            return count;
-        }
-
-        // 3. 缓存未命中，从数据库统计
         Long dbCount = docUserInteractionMapper.countByUser(userId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
         return dbCount != null ? dbCount : 0L;
     }
 
     /**
-     * 获取来源点赞数
+     * 获取目标内容的点赞数
      * <p>
-     * 获取指定目标内容的总点赞数量。
-     * 先查询Redis缓存，如未命中则从数据库加载并写入缓存。
-     * </p>
+     * 缓存策略：先查 Redis，未命中则查数据库并回写缓存
      *
      * @param type     点赞类型
-     * @param targetId 目标ID
-     * @return 来源点赞数量
+     * @param targetId 目标内容ID
+     * @return 点赞数
      */
     @Override
     public Long getLikeCount(Integer type, Long targetId) {
-        // 1. 验证参数并获取点赞类型枚举
         CacheDocLikeTypeEnum likeType = CacheDocLikeTypeEnum.getByCode(type);
         if (likeType == null || targetId == null) {
             return 0L;
         }
 
-        // 2. 构建点赞计数Redis键
-        String countKey = buildCountKey(targetId, likeType);
-
-        // 3. 尝试从Redis获取点赞数
-        Object count = redisTemplate.opsForValue().get(countKey);
+        // 先查 Redis 缓存
+        String statKey = buildStatKey(likeType, targetId);
+        String countField = buildCountField(likeType);
+        Object count = redisTemplate.opsForHash().get(statKey, countField);
         if (count != null) {
             return Long.parseLong(count.toString());
         }
 
-        // 4. 缓存未命中，从数据库加载
-        Long dbCount = getLikeCountFromDb(likeType, targetId);
+        // Redis 未命中，查数据库
+        Integer targetType = getTargetType(likeType);
+        if (targetType == null) {
+            return 0L;
+        }
+        Long dbCount = docUserInteractionMapper.countByTarget(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
+        
+        // 回写缓存（仅当有数据时）
         if (dbCount != null && dbCount > 0) {
-            // 写入缓存，后续请求可直接从缓存读取
-            redisService.setCacheObject(countKey, dbCount);
+            redisTemplate.opsForHash().put(statKey, countField, dbCount.toString());
         }
         return dbCount != null ? dbCount : 0L;
     }
 
     /**
-     * 查询用户是否点赞
+     * 判断用户是否已点赞目标内容
      * <p>
-     * 判断指定用户是否对目标内容已点赞。
-     * 先检查Redis缓存中的用户点赞记录，如未命中则查询数据库。
-     * </p>
+     * 缓存策略：先查 Redis Bitmap，未命中则查数据库并回写缓存
      *
      * @param type     点赞类型
-     * @param targetId 目标ID
+     * @param targetId 目标内容ID
      * @param userId   用户ID
-     * @return 是否已点赞
+     * @return true-已点赞，false-未点赞
      */
     @Override
     public boolean hasLiked(Integer type, Long targetId, Long userId) {
-        // 1. 验证参数并获取点赞类型枚举
         CacheDocLikeTypeEnum likeType = CacheDocLikeTypeEnum.getByCode(type);
         if (likeType == null || targetId == null || userId == null) {
             return false;
         }
 
-        // 2. 构建用户点赞记录Redis键
-        String userKey = buildUserKey(userId);
-        String hashField = targetId + ":" + type;
-
-        // 3. 尝试从Redis获取点赞状态
-        Object existingType = redisTemplate.opsForHash().get(userKey, hashField);
-        if (existingType != null) {
+        // 先查 Redis Bitmap
+        String bitmapKey = buildBitmapKey(likeType, targetId);
+        Boolean bit = redisTemplate.opsForValue().getBit(bitmapKey, userId);
+        if (Boolean.TRUE.equals(bit)) {
             return true;
         }
 
-        // 4. 缓存未命中，从数据库查询
+        // Redis 未命中，查数据库
         DocUserInteraction interaction = docUserInteractionMapper.selectByUserAndTarget(
                 userId, getTargetType(likeType), targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
         return interaction != null && interaction.getStatus() == 1;
     }
 
     /**
-     * 根据多个来源，批量获取点赞数
-     * <p>
-     * 批量查询多个目标内容的点赞数量。
-     * </p>
+     * 批量获取目标内容的点赞数
      *
      * @param type      点赞类型
-     * @param targetIds 目标ID列表
-     * @return 目标ID与点赞数量的映射
+     * @param targetIds 目标内容ID列表
+     * @return 目标ID到点赞数的映射
      */
     @Override
     public Map<Long, Long> getLikeCountBatch(Integer type, Iterable<Long> targetIds) {
         Map<Long, Long> result = new HashMap<>();
-        // 1. 验证参数
-        CacheDocLikeTypeEnum likeType = CacheDocLikeTypeEnum.getByCode(type);
-        if (likeType == null || targetIds == null) {
+        if (targetIds == null) {
             return result;
         }
-
-        // 2. 逐个查询点赞数
         for (Long targetId : targetIds) {
             result.put(targetId, getLikeCount(type, targetId));
         }
@@ -286,148 +238,204 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
     }
 
     /**
-     * 同步点赞数据到数据库
+     * 同步点赞数据从 Redis 到数据库
      * <p>
-     * 由定时任务调用，将Redis中的用户点赞记录同步到数据库持久化。
-     * 同步完成后，删除已同步的Redis键，但保留计数键继续累加新的点赞。
-     * </p>
+     * 执行流程：
+     * 1. 扫描所有 like:bit:* 键，读取 Bitmap 获取所有点赞用户ID，写入数据库
+     * 2. 扫描所有 stat:* 键，读取 like:* 字段的计数，写入数据库
+     * 3. 同步完成后删除 Bitmap 键（防止重复同步）
      */
     @Override
     public void syncLikeDataToDb() {
         log.info("开始同步点赞数据到数据库...");
-        int syncCount = 0;
+        int userSyncCount = 0;
+        int countSyncCount = 0;
 
-        // 1. 扫描所有用户点赞记录Redis键
-        String pattern = CacheConstants.CACHE_LIKE_USER + "*";
-        Collection<String> keys = redisService.keys(pattern);
+        // 1. 同步用户点赞状态（从 Bitmap）
+        String pattern = CacheConstants.CACHE_LIKE_BIT + "*";
+        Collection<String> keys = redisTemplate.keys(pattern);
+        if (keys != null && !keys.isEmpty()) {
+            for (String bitmapKey : keys) {
+                // 解析 Key 中的 typeCode 和 targetId
+                Integer typeCode = extractTypeCode(bitmapKey);
+                Long targetId = extractTargetId(bitmapKey);
+                if (typeCode == null || targetId == null) {
+                    continue;
+                }
+                CacheDocLikeTypeEnum likeType = CacheDocLikeTypeEnum.getByCode(typeCode);
+                if (likeType == null) {
+                    continue;
+                }
+                Integer targetType = getTargetType(likeType);
+                if (targetType == null) {
+                    continue;
+                }
 
-        if (keys == null || keys.isEmpty()) {
-            log.info("没有需要同步的点赞数据");
-            return;
+                // 获取所有已点赞的用户ID（Bitmap中值为1的位）
+                Set<Long> userIds = getSetBits(bitmapKey);
+                for (Long userId : userIds) {
+                    saveInteractionToDb(userId, targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
+                    userSyncCount++;
+                }
+                // 删除已同步的 Bitmap 键
+                redisTemplate.delete(bitmapKey);
+            }
         }
 
-        // 2. 遍历所有用户点赞键，同步到数据库
-        for (String userKey : keys) {
-            // 跳过锁键
-            if (userKey.contains("lock:")) {
-                continue;
-            }
+        // 2. 同步点赞计数（从 Hash）
+        String statPattern = CacheConstants.CACHE_STAT + "*";
+        Collection<String> statKeys = redisTemplate.keys(statPattern);
+        if (statKeys != null && !statKeys.isEmpty()) {
+            for (String statKey : statKeys) {
+                Long[] parsed = extractStatKey(statKey);
+                if (parsed == null) {
+                    continue;
+                }
+                int targetType = parsed[0].intValue();
+                long targetId = parsed[1];
 
-            // 从Redis键中提取用户ID
-            Long userId = extractUserIdFromKey(userKey);
-            if (userId == null) {
-                continue;
-            }
-
-            // 获取用户的所有点赞记录
-            Map<Object, Object> likeMap = redisTemplate.opsForHash().entries(userKey);
-            for (Map.Entry<Object, Object> entry : likeMap.entrySet()) {
-                String field = entry.getKey().toString();
-                String[] parts = field.split(":");
-                if (parts.length >= 2) {
-                    Long targetId = Long.parseLong(parts[0]);
-                    Integer type = Integer.parseInt(parts[1]);
-                    CacheDocLikeTypeEnum likeType = CacheDocLikeTypeEnum.getByCode(type);
-                    if (likeType != null) {
-                        // 保存交互记录到数据库
-                        saveInteractionToDb(userId, getTargetType(likeType), targetId,
-                                DocUserInteractionContext.INTERACTION_TYPE_LIKE);
-                        syncCount++;
+                Map<Object, Object> entries = redisTemplate.opsForHash().entries(statKey);
+                for (Map.Entry<Object, Object> entry : entries.entrySet()) {
+                    String field = entry.getKey().toString();
+                    // 只处理点赞相关字段
+                    if (!field.startsWith("like:")) {
+                        continue;
+                    }
+                    try {
+                        long count = Long.parseLong(entry.getValue().toString());
+                        saveCountToDb(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE, count);
+                        countSyncCount++;
+                    } catch (Exception e) {
+                        log.warn("解析计数字段失败: key={}, field={}", statKey, field, e);
                     }
                 }
             }
-            // 删除已同步的Redis键
-            redisService.deleteObject(userKey);
         }
 
-        log.info("点赞数据同步完成，共同步 {} 条记录", syncCount);
+        log.info("点赞数据同步完成，用户记录 {} 条，计数 {} 条", userSyncCount, countSyncCount);
     }
 
     /**
-     * 构建用户点赞记录键
-     * <p>
-     * Redis键格式: zsk:like:user:{userId}
-     * </p>
+     * 构建点赞状态 Bitmap Key
      *
-     * @param userId 用户ID
-     * @return Redis键
+     * @param type     点赞类型
+     * @param targetId 目标内容ID
+     * @return Key 格式: like:bit:{typeCode}:{targetId}
      */
-    private String buildUserKey(Long userId) {
-        return CacheConstants.CACHE_LIKE_USER + userId;
+    private String buildBitmapKey(CacheDocLikeTypeEnum type, Long targetId) {
+        return CacheConstants.CACHE_LIKE_BIT + type.getCode() + ":" + targetId;
     }
 
     /**
-     * 构建点赞计数键
-     * <p>
-     * Redis键格式: zsk:like:count:{targetId}:{typeCode}
-     * </p>
+     * 构建统计 Hash Key
      *
-     * @param targetId 目标ID
-     * @param type     点赞类型枚举
-     * @return Redis键
+     * @param type     点赞类型
+     * @param targetId 目标内容ID
+     * @return Key 格式: stat:{targetType}:{targetId}
      */
-    private String buildCountKey(Long targetId, CacheDocLikeTypeEnum type) {
-        return CacheConstants.CACHE_LIKE_COUNT + targetId + ":" + type.getCode();
+    private String buildStatKey(CacheDocLikeTypeEnum type, Long targetId) {
+        return CacheConstants.CACHE_STAT + getTargetType(type) + ":" + targetId;
     }
 
     /**
-     * 构建分布式锁键
-     * <p>
-     * Redis键格式: zsk:like:user:lock:{userId}:{targetId}
-     * </p>
+     * 构建计数字段名
      *
-     * @param userId   用户ID
-     * @param targetId 目标ID
-     * @return Redis键
+     * @param type 点赞类型
+     * @return 字段名格式: like:{typeCode}
      */
-    private String buildLockKey(Long userId, Long targetId) {
-        return CacheConstants.CACHE_LIKE_USER + "lock:" + userId + ":" + targetId;
+    private String buildCountField(CacheDocLikeTypeEnum type) {
+        return "like:" + type.getCode();
     }
 
     /**
-     * 从Redis键中提取用户ID
-     * <p>
-     * 从形如 "zsk:like:user:123" 的键中提取用户ID "123"。
-     * </p>
+     * 从 Bitmap Key 中解析 typeCode
      *
-     * @param key Redis键
-     * @return 用户ID
+     * @param key Redis Key
+     * @return typeCode
      */
-    private Long extractUserIdFromKey(String key) {
+    private Integer extractTypeCode(String key) {
         try {
             String[] parts = key.split(":");
             if (parts.length >= 4) {
-                return Long.parseLong(parts[3]);
+                return Integer.parseInt(parts[3]);
             }
         } catch (Exception e) {
-            log.warn("解析用户ID失败: {}", key, e);
+            log.warn("解析 typeCode 失败: {}", key, e);
         }
         return null;
     }
 
     /**
-     * 从数据库获取点赞数量
-     * <p>
-     * 通过统计 doc_user_interaction 表中交互类型为点赞的记录数。
-     * </p>
+     * 从 Bitmap Key 中解析 targetId
      *
-     * @param type     点赞类型枚举
-     * @param targetId 目标ID
-     * @return 点赞数量
+     * @param key Redis Key
+     * @return targetId
      */
-    private Long getLikeCountFromDb(CacheDocLikeTypeEnum type, Long targetId) {
-        return docUserInteractionMapper.countByTarget(
-                getTargetType(type), targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
+    private Long extractTargetId(String key) {
+        try {
+            String[] parts = key.split(":");
+            if (parts.length >= 5) {
+                return Long.parseLong(parts[4]);
+            }
+        } catch (Exception e) {
+            log.warn("解析 targetId 失败: {}", key, e);
+        }
+        return null;
     }
 
     /**
-     * 获取目标类型
-     * <p>
-     * 将点赞类型枚举转换为交互表中的目标类型编码。
-     * </p>
+     * 从 Stat Key 中解析 targetType 和 targetId
      *
-     * @param likeType 点赞类型枚举
-     * @return 目标类型编码（1-笔记 2-评论 3-视频）
+     * @param key Redis Key
+     * @return [targetType, targetId]
+     */
+    private Long[] extractStatKey(String key) {
+        try {
+            String[] parts = key.split(":");
+            if (parts.length >= 4) {
+                return new Long[]{Long.parseLong(parts[2]), Long.parseLong(parts[3])};
+            }
+        } catch (Exception e) {
+            log.warn("解析 stat 键失败: {}", key, e);
+        }
+        return null;
+    }
+
+    /**
+     * 获取 Bitmap 中所有值为 1 的位（即所有已点赞的用户ID）
+     *
+     * @param bitmapKey Bitmap Key
+     * @return 用户ID集合
+     */
+    private Set<Long> getSetBits(String bitmapKey) {
+        Set<Long> result = new HashSet<>();
+        try {
+            redisTemplate.execute((RedisCallback<Void>) connection -> {
+                long pos = 0;
+                byte[] keyBytes = bitmapKey.getBytes();
+                while (true) {
+                    // BITPOS 查找下一个值为 1 的位，从 pos 位置开始查找
+                    Range<Long> range = Range.from(Range.Bound.inclusive(pos)).to(Range.Bound.unbounded());
+                    Long idx = connection.bitPos(keyBytes, true, range);
+                    if (idx == null || idx < 0) {
+                        break;
+                    }
+                    result.add(idx);
+                    pos = idx + 1;
+                }
+                return null;
+            });
+        } catch (Exception e) {
+            log.warn("读取 Bitmap 位失败: {}", bitmapKey, e);
+        }
+        return result;
+    }
+
+    /**
+     * 将点赞类型转换为目标类型
+     *
+     * @param likeType 点赞类型
+     * @return 目标类型
      */
     private Integer getTargetType(CacheDocLikeTypeEnum likeType) {
         switch (likeType) {
@@ -444,11 +452,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
     }
 
     /**
-     * 保存交互记录到数据库
-     * <p>
-     * 将用户点赞记录持久化到 doc_user_interaction 表。
-     * 如果记录已存在则更新状态，否则创建新记录。
-     * </p>
+     * 保存用户交互记录到数据库
      *
      * @param userId          用户ID
      * @param targetType      目标类型
@@ -456,15 +460,14 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
      * @param interactionType 交互类型
      */
     private void saveInteractionToDb(Long userId, Integer targetType, Long targetId, Integer interactionType) {
-        // 检查是否已存在交互记录
         DocUserInteraction existing = docUserInteractionMapper.selectByUserAndTarget(
                 userId, targetType, targetId, interactionType);
         if (existing != null) {
-            // 更新状态为已点赞
+            // 更新现有记录状态为已点赞
             existing.setStatus(1);
             docUserInteractionMapper.updateById(existing);
         } else {
-            // 创建新的交互记录
+            // 插入新记录
             DocUserInteraction interaction = new DocUserInteraction();
             interaction.setUserId(userId);
             interaction.setTargetType(targetType);
@@ -473,5 +476,112 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
             interaction.setStatus(1);
             docUserInteractionMapper.insert(interaction);
         }
+    }
+
+    /**
+     * 保存统计计数到数据库
+     *
+     * @param targetType      目标类型
+     * @param targetId        目标ID
+     * @param interactionType 交互类型
+     * @param count           计数值
+     */
+    private void saveCountToDb(Integer targetType, Long targetId, Integer interactionType, Long count) {
+        // userId=0 表示这是一条统计记录，而非用户级记录
+        DocUserInteraction existing = docUserInteractionMapper.selectByUserAndTarget(
+                0L, targetType, targetId, interactionType);
+        if (existing != null) {
+            existing.setStatus(count.intValue());
+            docUserInteractionMapper.updateById(existing);
+        } else {
+            DocUserInteraction interaction = new DocUserInteraction();
+            interaction.setUserId(0L);
+            interaction.setTargetType(targetType);
+            interaction.setTargetId(targetId);
+            interaction.setInteractionType(interactionType);
+            interaction.setStatus(count.intValue());
+            docUserInteractionMapper.insert(interaction);
+        }
+    }
+
+    /**
+     * 从数据库预热点赞缓存
+     * <p>
+     * <b>预热目的：</b>服务重启后，将数据库中的点赞数据加载到Redis缓存，恢复缓存状态。
+     * <p>
+     * <b>数据模型说明：</b>
+     * <ul>
+     *     <li>用户级记录（userId > 0）：存储单个用户的点赞状态，用于构建Bitmap</li>
+     *     <li>统计记录（userId = 0）：status字段存储计数，用于快速查询总数</li>
+     * </ul>
+     * <p>
+     * <b>预热流程：</b>
+     * <ol>
+     *     <li>预热用户点赞状态到Bitmap：必须查询用户级记录，因为需要知道具体哪些用户点赞了该内容</li>
+     *     <li>预热点赞计数到Hash：通过countByTarget重新统计，保证数据准确性（避免统计记录与实际不一致）</li>
+     * </ol>
+     * <p>
+     * <b>为什么不直接读取userId=0的统计记录？</b>
+     * <ul>
+     *     <li>Bitmap预热必须用用户级记录（需要具体用户ID来设置bit位）</li>
+     *     <li>Hash计数重新统计可保证数据一致性（异常场景下统计记录可能不准确）</li>
+     * </ul>
+     *
+     * @param type     点赞类型
+     * @param targetId 目标ID
+     */
+    @Override
+    public void warmLikeCacheFromDb(Integer type, Long targetId) {
+        // 参数校验
+        CacheDocLikeTypeEnum likeType = CacheDocLikeTypeEnum.getByCode(type);
+        if (likeType == null || targetId == null) {
+            log.warn("预热缓存参数无效: type={}, targetId={}", type, targetId);
+            return;
+        }
+
+        // 获取目标类型映射
+        Integer targetType = getTargetType(likeType);
+        if (targetType == null) {
+            return;
+        }
+
+        // ========== 步骤1：预热用户点赞状态到Bitmap ==========
+        // Bitmap Key: like:bit:{typeCode}:{targetId}
+        // 每个bit位代表一个用户ID，值为1表示该用户已点赞
+        String bitmapKey = buildBitmapKey(likeType, targetId);
+        // 先清除旧的Bitmap缓存，避免脏数据（服务重启后可能有残留的过期数据）
+        redisTemplate.delete(bitmapKey);
+
+        // 查询数据库中该目标的所有有效点赞记录（status=1）
+        // 必须查询用户级记录（userId > 0），因为需要具体的用户ID来设置Bitmap的bit位
+        List<DocUserInteraction> interactions = docUserInteractionMapper.selectByTarget(
+                targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
+
+        if (interactions != null && !interactions.isEmpty()) {
+            for (DocUserInteraction interaction : interactions) {
+                // 过滤无效用户ID（userId > 0）
+                if (interaction.getUserId() != null && interaction.getUserId() > 0) {
+                    // 将用户ID对应的bit位设置为1，表示已点赞
+                    redisTemplate.opsForValue().setBit(bitmapKey, interaction.getUserId(), true);
+                }
+            }
+            log.debug("点赞Bitmap预热完成: targetId={}, 记录数={}", targetId, interactions.size());
+        }
+
+        // ========== 步骤2：预热点赞计数到Hash ==========
+        // Hash Key: stat:{targetType}:{targetId}
+        // Field: like:{typeCode} -> 点赞计数值
+        String statKey = buildStatKey(likeType, targetId);
+        String countField = buildCountField(likeType);
+        
+        // 通过countByTarget重新统计用户级记录，而不是读取userId=0的统计记录
+        // 这样可以保证数据一致性，避免因异常导致统计记录与实际用户记录不一致
+        Long dbCount = docUserInteractionMapper.countByTarget(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
+        if (dbCount != null && dbCount > 0) {
+            redisTemplate.opsForHash().put(statKey, countField, dbCount.toString());
+            log.debug("点赞计数预热完成: targetId={}, count={}", targetId, dbCount);
+        }
+
+        log.info("点赞缓存预热完成: type={}, targetId={}", type, targetId);
     }
 }

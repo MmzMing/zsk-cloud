@@ -54,40 +54,152 @@ public class DocNoteServiceImpl extends ServiceImpl<DocNoteMapper, DocNote> impl
 
 
     /**
-     * 查询笔记列表（带文件URL）
+     * 查询笔记列表（带文件URL、作者信息和统计信息）
      * <p>
-     * 根据查询条件获取笔记列表，并关联查询封面文件信息，返回包含文件URL的视图对象列表。
+     * 根据查询条件获取笔记列表，并关联查询封面文件信息、作者信息和统计数据。
      * 采用批量查询策略优化性能，避免N+1查询问题。
      * </p>
      *
      * @param docNote 查询条件对象（支持noteName、broadCode、narrowCode等字段过滤）
-     * @return 笔记列表视图对象（包含封面文件信息）
+     * @return 笔记列表视图对象（包含封面文件信息、作者信息和统计信息）
      */
     @Override
     public List<DocNoteListVo> listWithFileUrl(DocNote docNote) {
-        log.info("查询笔记列表（带文件URL）");
+        log.info("查询笔记列表（带文件URL、作者信息和统计信息）");
         List<DocNote> noteList = this.list(new LambdaQueryWrapper<>(docNote));
-        return convertToVoList(noteList);
+        List<DocNoteListVo> voList = convertToVoList(noteList);
+        fillAdditionalInfo(voList);
+        return voList;
     }
 
     /**
-     * 分页查询笔记列表（带文件URL）
+     * 分页查询笔记列表（带文件URL、作者信息和统计信息）
      * <p>
-     * 根据查询条件和分页参数获取笔记分页数据，并关联查询封面文件信息。
+     * 根据查询条件和分页参数获取笔记分页数据，并关联查询封面文件信息、作者信息和统计数据。
      * 采用批量查询策略优化性能。
      * </p>
      *
      * @param docNote   查询条件对象
      * @param pageQuery 分页参数（包含pageNum、pageSize）
-     * @return 分页结果（包含封面文件信息）
+     * @return 分页结果（包含封面文件信息、作者信息和统计信息）
      */
     @Override
     public PageResult<DocNoteListVo> pageWithFileUrl(DocNote docNote, PageQuery pageQuery) {
-        log.info("分页查询笔记列表（带文件URL）, pageNum={}, pageSize={}", pageQuery.getPageNum(), pageQuery.getPageSize());
+        log.info("分页查询笔记列表（带文件URL、作者信息和统计信息）, pageNum={}, pageSize={}", pageQuery.getPageNum(), pageQuery.getPageSize());
         Page<DocNote> page = pageQuery.build();
         Page<DocNote> resultPage = this.page(page, new LambdaQueryWrapper<>(docNote));
         List<DocNoteListVo> voList = convertToVoList(resultPage.getRecords());
+        fillAdditionalInfo(voList);
         return PageResult.of(voList, resultPage.getTotal(), resultPage.getCurrent(), resultPage.getSize());
+    }
+
+    /**
+     * 填充笔记列表的附加信息（作者信息和统计信息）
+     * <p>
+     * 批量查询用户信息和统计数据并填充到笔记列表中，避免N+1查询问题。
+     * </p>
+     *
+     * @param noteList 笔记列表视图对象
+     */
+    private void fillAdditionalInfo(List<DocNoteListVo> noteList) {
+        fillAuthorInfo(noteList);
+        fillStatsInfo(noteList);
+    }
+
+    /**
+     * 填充笔记列表的统计信息
+     * <p>
+     * 批量查询缓存中的统计数据（浏览量、点赞数、收藏数）并填充到笔记列表中。
+     * </p>
+     *
+     * @param noteList 笔记列表视图对象
+     */
+    private void fillStatsInfo(List<DocNoteListVo> noteList) {
+        log.info("开始填充笔记统计信息");
+
+        if (noteList == null || noteList.isEmpty()) {
+            log.info("笔记列表为空，跳过统计信息填充");
+            return;
+        }
+
+        List<Long> noteIds = noteList.stream()
+                .map(DocNoteListVo::getId)
+                .filter(id -> id != null)
+                .collect(Collectors.toList());
+
+        if (noteIds.isEmpty()) {
+            log.info("无笔记ID需要查询，跳过统计信息填充");
+            return;
+        }
+
+        Map<Long, DocStatsInfoVo> statsMap = batchGetNoteStats(noteIds);
+
+        for (DocNoteListVo note : noteList) {
+            if (note.getId() != null && statsMap.containsKey(note.getId())) {
+                note.setStats(statsMap.get(note.getId()));
+            }
+        }
+
+        log.info("笔记统计信息填充完成");
+    }
+
+    /**
+     * 根据笔记ID查询笔记详情（带文件URL、作者信息和统计信息）
+     * <p>
+     * 根据笔记ID获取笔记详细信息，并关联查询封面文件信息、作者信息和统计数据。
+     * 数据来源于数据库和Redis缓存服务。
+     * </p>
+     *
+     * @param noteId 笔记ID
+     * @return 笔记详情视图对象（包含封面文件信息、作者信息和统计信息）
+     */
+    @Override
+    public DocNoteListVo getNoteDetail(Long noteId) {
+        log.info("查询笔记详情, noteId={}", noteId);
+
+        // 查询笔记实体
+        DocNote note = this.getById(noteId);
+        if (note == null) {
+            log.warn("查询笔记详情失败, 笔记不存在, noteId={}", noteId);
+            return null;
+        }
+
+        // 转换为视图对象
+        DocNoteListVo vo = convertToVo(note);
+
+        // 填充作者信息
+        if (vo.getUserId() != null) {
+            fillAuthorInfo(List.of(vo));
+        }
+
+        // 填充统计信息
+        DocStatsInfoVo stats = getNoteStats(noteId);
+        vo.setStats(stats);
+
+        log.info("查询笔记详情成功, noteId={}", noteId);
+        return vo;
+    }
+
+    /**
+     * 将单个笔记实体转换为视图对象（带文件URL）
+     *
+     * @param note 笔记实体
+     * @return 笔记视图对象（包含封面文件信息）
+     */
+    private DocNoteListVo convertToVo(DocNote note) {
+        DocNoteListVo vo = new DocNoteListVo();
+        BeanUtils.copyProperties(note, vo);
+
+        // 填充封面文件信息
+        if (note.getCoverFileId() != null) {
+            DocFiles file = docFilesMapper.selectById(note.getCoverFileId());
+            vo.setCoverFile(DocFileInfoVo.builder()
+                    .fileId(note.getCoverFileId())
+                    .fileUrl(file != null ? file.getUrl() : null)
+                    .build());
+        }
+
+        return vo;
     }
 
     /**

@@ -89,11 +89,23 @@ public interface ICacheDocLikeService {
     Map<Long, Long> getLikeCountBatch(Integer type, Iterable<Long> targetIds);
 
     /**
-     * 同步点赞数据到数据库
-     * <p>
-     * 将Redis中的点赞数据同步到数据库持久化。
-     * 由定时任务调用。
-     * </p>
-     */
-    void syncLikeDataToDb();
+ * 同步点赞数据到数据库
+ * <p>
+ * 将Redis中的点赞数据同步到数据库持久化。
+ * 由定时任务调用。
+ * </p>
+ */
+void syncLikeDataToDb();
+
+/**
+ * 从数据库预热点赞缓存
+ * <p>
+ * 将数据库中的点赞数据加载到Redis缓存，用于服务重启后的缓存预热。
+ * 加载用户点赞状态到Bitmap，点赞计数到Hash。
+ * </p>
+ *
+ * @param type     点赞类型
+ * @param targetId 目标ID
+ */
+void warmLikeCacheFromDb(Integer type, Long targetId);
 }

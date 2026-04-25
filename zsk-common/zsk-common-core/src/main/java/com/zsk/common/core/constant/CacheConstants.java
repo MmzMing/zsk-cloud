@@ -133,39 +133,29 @@ public class CacheConstants {
     public static final String CACHE_GATEWAY_BLACKLIST = CACHE_PREFIX + "gateway:blacklist:";
 
     /**
-     * 点赞计数缓存键前缀（用于存储点赞数量）
+     * 点赞 Bitmap 缓存键前缀（记录用户是否点赞，SETBIT/GETBIT 操作）
      */
-    public static final String CACHE_LIKE_COUNT = CACHE_PREFIX + "like:count:";
+    public static final String CACHE_LIKE_BIT = CACHE_PREFIX + "like:bit:";
 
     /**
-     * 点赞用户记录缓存键前缀（用于记录用户是否已点赞）
+     * 收藏 Bitmap 缓存键前缀（记录用户是否收藏，SETBIT/GETBIT 操作）
      */
-    public static final String CACHE_LIKE_USER = CACHE_PREFIX + "like:user:";
+    public static final String CACHE_COLLECT_BIT = CACHE_PREFIX + "collect:bit:";
 
     /**
-     * 收藏计数缓存键前缀（用于存储收藏数量）
+     * 关注 Bitmap 缓存键前缀（记录用户关注关系，SETBIT/GETBIT 操作）
      */
-    public static final String CACHE_COLLECT_COUNT = CACHE_PREFIX + "collect:count:";
+    public static final String CACHE_FOLLOW_BIT = CACHE_PREFIX + "follow:bit:";
 
     /**
-     * 收藏用户记录缓存键前缀（用于记录用户是否已收藏）
+     * 互动统计 Hash 缓存键前缀（存储点赞/收藏/关注/浏览计数，HINCRBY 操作）
      */
-    public static final String CACHE_COLLECT_USER = CACHE_PREFIX + "collect:user:";
+    public static final String CACHE_STAT = CACHE_PREFIX + "stat:";
 
     /**
-     * 关注计数缓存键前缀（用于存储关注数量）
+     * 浏览去重锁缓存键前缀（防止短时间重复计数，SETNX 操作）
      */
-    public static final String CACHE_FOLLOW_COUNT = CACHE_PREFIX + "follow:count:";
-
-    /**
-     * 关注用户记录缓存键前缀（用于记录用户是否已关注）
-     */
-    public static final String CACHE_FOLLOW_USER = CACHE_PREFIX + "follow:user:";
-
-    /**
-     * 浏览计数缓存键前缀（用于存储浏览数量）
-     */
-    public static final String CACHE_VIEW_COUNT = CACHE_PREFIX + "view:count:";
+    public static final String CACHE_VIEW_LOCK = CACHE_PREFIX + "view:lock:";
 
     /**
      * 密码重置验证令牌缓存键前缀

@@ -50,15 +50,13 @@ public class DocNoteController {
      * 查询笔记列表
      *
      * @param docNote 查询条件（可选：noteName、broadCode、narrowCode等）
-     * @return 笔记列表（包含封面文件信息和作者信息）
+     * @return 笔记列表（包含封面文件信息、作者信息和统计信息）
      */
     @Log(title = "笔记管理", businessType = BusinessType.QUERY)
     @Operation(summary = "查询笔记列表")
     @GetMapping("/list")
     public R<List<DocNoteListVo>> list(DocNote docNote) {
-        List<DocNoteListVo> noteList = docNoteService.listWithFileUrl(docNote);
-        docNoteService.fillAuthorInfo(noteList);
-        return R.ok(noteList);
+        return R.ok(docNoteService.listWithFileUrl(docNote));
     }
 
     /**
@@ -66,28 +64,34 @@ public class DocNoteController {
      *
      * @param docNote   查询条件（可选）
      * @param pageQuery 分页参数（pageNum、pageSize）
-     * @return 分页结果（包含封面文件信息和作者信息）
+     * @return 分页结果（包含封面文件信息、作者信息和统计信息）
      */
     @Log(title = "笔记管理", businessType = BusinessType.QUERY)
     @Operation(summary = "分页查询笔记列表")
     @GetMapping("/page")
     public R<PageResult<DocNoteListVo>> page(DocNote docNote, PageQuery pageQuery) {
-        PageResult<DocNoteListVo> pageResult = docNoteService.pageWithFileUrl(docNote, pageQuery);
-        docNoteService.fillAuthorInfo(pageResult.getList());
-        return R.ok(pageResult);
+        return R.ok(docNoteService.pageWithFileUrl(docNote, pageQuery));
     }
 
     /**
      * 获取笔记详细信息
+     * <p>
+     * 根据笔记ID获取笔记详细信息，包含封面文件信息、作者信息和统计数据（浏览量、点赞数、收藏数）。
+     * 统计数据来源于Redis缓存服务，确保数据的实时性。
+     * </p>
      *
      * @param id 笔记ID
-     * @return 笔记详情
+     * @return 笔记详情（包含封面文件信息、作者信息和统计信息）
      */
     @Log(title = "笔记管理", businessType = BusinessType.QUERY)
     @Operation(summary = "获取笔记详细信息")
     @GetMapping(value = "/{id}")
-    public R<DocNote> getInfo(@PathVariable("id") Long id) {
-        return R.ok(docNoteService.getById(id));
+    public R<DocNoteListVo> getInfo(@PathVariable("id") Long id) {
+        DocNoteListVo noteDetail = docNoteService.getNoteDetail(id);
+        if (noteDetail == null) {
+            return R.fail("笔记不存在");
+        }
+        return R.ok(noteDetail);
     }
 
     /**

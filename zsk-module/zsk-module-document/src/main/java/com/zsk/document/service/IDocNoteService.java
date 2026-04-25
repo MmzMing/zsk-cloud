@@ -62,21 +62,41 @@ public interface IDocNoteService extends IService<DocNote> {
     boolean toggleRecommended(Long id);
 
     /**
-     * 查询笔记列表（带文件URL）
+     * 查询笔记列表（带文件URL、作者信息和统计信息）
+     * <p>
+     * 根据查询条件获取笔记列表，并关联查询封面文件信息、作者信息和统计数据。
+     * 采用批量查询策略优化性能，避免N+1查询问题。
+     * </p>
      *
      * @param docNote 查询条件
-     * @return 笔记列表
+     * @return 笔记列表（包含封面文件信息、作者信息和统计信息）
      */
     List<DocNoteListVo> listWithFileUrl(DocNote docNote);
 
     /**
-     * 分页查询笔记列表（带文件URL）
+     * 分页查询笔记列表（带文件URL、作者信息和统计信息）
+     * <p>
+     * 根据查询条件和分页参数获取笔记分页数据，并关联查询封面文件信息、作者信息和统计数据。
+     * 采用批量查询策略优化性能。
+     * </p>
      *
      * @param docNote   查询条件
      * @param pageQuery 分页参数
-     * @return 分页结果
+     * @return 分页结果（包含封面文件信息、作者信息和统计信息）
      */
     PageResult<DocNoteListVo> pageWithFileUrl(DocNote docNote, PageQuery pageQuery);
+
+    /**
+     * 根据笔记ID查询笔记详情（带文件URL、作者信息和统计信息）
+     * <p>
+     * 根据笔记ID获取笔记详细信息，并关联查询封面文件信息、作者信息和统计数据。
+     * 数据来源于数据库和Redis缓存服务。
+     * </p>
+     *
+     * @param noteId 笔记ID
+     * @return 笔记详情视图对象（包含封面文件信息、作者信息和统计信息）
+     */
+    DocNoteListVo getNoteDetail(Long noteId);
 
     /**
      * 填充笔记列表的作者信息

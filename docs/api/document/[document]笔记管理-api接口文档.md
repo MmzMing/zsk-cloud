@@ -46,6 +46,11 @@
     {
       "id": "1",
       "userId": "1",
+      "author": {
+        "id": "1",
+        "name": "作者昵称",
+        "avatar": "https://example.com/avatar.jpg"
+      },
       "noteName": "笔记标题",
       "noteTags": "tag1,tag2",
       "content": "笔记内容",
@@ -61,6 +66,13 @@
       "suitableUsers": "初学者",
       "auditStatus": 1,
       "status": 1,
+      "stats": {
+        "views": 1234,
+        "likes": 56,
+        "favorites": 32,
+        "isLiked": false,
+        "isFavorited": false
+      },
       "publishTime": "2026-02-15 10:30:00",
       "isPinned": 0,
       "isRecommended": 1,
@@ -81,6 +93,10 @@
 | :--- | :--- | :--- |
 | `id` | `string` | 笔记ID（Long类型自动转为string） |
 | `userId` | `string` | 用户ID（Long类型自动转为string） |
+| `author` | `object` | 作者信息 |
+| `author.id` | `string` | 作者ID |
+| `author.name` | `string` | 作者名称（优先使用昵称，若无则使用用户名） |
+| `author.avatar` | `string` | 作者头像URL |
 | `noteName` | `string` | 笔记名称 |
 | `noteTags` | `string` | 笔记标签（逗号分隔） |
 | `content` | `string` | 文档内容 |
@@ -95,6 +111,12 @@
 | `suitableUsers` | `string` | 适合人群 |
 | `auditStatus` | `number` | 审核状态（0待审核，1已通过，2已拒绝） |
 | `status` | `number` | 笔记状态（1发布，2下架，3草稿） |
+| `stats` | `object` | 统计信息（从Redis缓存获取） |
+| `stats.views` | `number` | 浏览量 |
+| `stats.likes` | `number` | 点赞数 |
+| `stats.favorites` | `number` | 收藏数 |
+| `stats.isLiked` | `boolean` | 是否已点赞 |
+| `stats.isFavorited` | `boolean` | 是否已收藏 |
 | `publishTime` | `string` | 笔记发布时间 |
 | `isPinned` | `number` | 是否置顶（0否，1是） |
 | `isRecommended` | `number` | 是否推荐（0否，1是） |
@@ -137,6 +159,11 @@
       {
         "id": "1",
         "userId": "1",
+        "author": {
+          "id": "1",
+          "name": "作者昵称",
+          "avatar": "https://example.com/avatar.jpg"
+        },
         "noteName": "笔记标题",
         "noteTags": "tag1,tag2",
         "content": "笔记内容",
@@ -152,6 +179,13 @@
         "suitableUsers": "初学者",
         "auditStatus": 1,
         "status": 1,
+        "stats": {
+          "views": 1234,
+          "likes": 56,
+          "favorites": 32,
+          "isLiked": false,
+          "isFavorited": false
+        },
         "publishTime": "2026-02-15 10:30:00",
         "isPinned": 0,
         "isRecommended": 1,
@@ -176,7 +210,7 @@
 
 ### 接口信息
 - **URL**: `GET /api/document/docNote/{id}`
-- **功能**: 获取笔记详细信息
+- **功能**: 获取笔记详细信息（包含封面文件信息、作者信息和统计信息）
 
 ### 路径参数
 
@@ -193,11 +227,19 @@
   "data": {
     "id": "1",
     "userId": "1",
+    "author": {
+      "id": "1",
+      "name": "作者昵称",
+      "avatar": "https://example.com/avatar.jpg"
+    },
     "noteName": "笔记标题",
     "noteTags": "tag1,tag2",
     "content": "笔记内容",
     "description": "笔记简介",
-    "coverFileId": "1",
+    "coverFile": {
+      "fileId": "file-abc123",
+      "fileUrl": "https://example.com/cover.jpg"
+    },
     "broadCode": "tech",
     "narrowCode": "java",
     "noteGrade": 1,
@@ -205,18 +247,73 @@
     "suitableUsers": "初学者",
     "auditStatus": 1,
     "status": 1,
+    "stats": {
+      "views": 1234,
+      "likes": 56,
+      "favorites": 32,
+      "isLiked": false,
+      "isFavorited": false
+    },
     "publishTime": "2026-02-15 10:30:00",
-    "cover": "https://example.com/cover.jpg",
     "isPinned": 0,
     "isRecommended": 1,
     "seoTitle": "SEO标题",
     "seoDescription": "SEO描述",
     "seoKeywords": "keyword1,keyword2",
-    "version": 1,
     "deleted": 0,
     "createTime": "2026-02-15 10:30:00",
     "updateTime": "2026-02-15 10:30:00"
   }
+}
+```
+
+### 响应字段说明
+
+| 字段 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `id` | `string` | 笔记ID（Long类型自动转为string） |
+| `userId` | `string` | 用户ID（Long类型自动转为string） |
+| `author` | `object` | 作者信息 |
+| `author.id` | `string` | 作者ID |
+| `author.name` | `string` | 作者名称（优先使用昵称，若无则使用用户名） |
+| `author.avatar` | `string` | 作者头像URL |
+| `noteName` | `string` | 笔记名称 |
+| `noteTags` | `string` | 笔记标签（逗号分隔） |
+| `content` | `string` | 文档内容 |
+| `description` | `string` | 笔记简介/描述 |
+| `coverFile` | `object` | 封面文件信息 |
+| `coverFile.fileId` | `string` | 封面图片文件ID |
+| `coverFile.fileUrl` | `string` | 封面图片文件URL |
+| `broadCode` | `string` | 大类编码 |
+| `narrowCode` | `string` | 小类编码 |
+| `noteGrade` | `number` | 笔记等级 |
+| `noteMode` | `number` | 笔记模式 |
+| `suitableUsers` | `string` | 适合人群 |
+| `auditStatus` | `number` | 审核状态（0待审核，1已通过，2已拒绝） |
+| `status` | `number` | 笔记状态（1发布，2下架，3草稿） |
+| `stats` | `object` | 统计信息（从Redis缓存获取） |
+| `stats.views` | `number` | 浏览量 |
+| `stats.likes` | `number` | 点赞数 |
+| `stats.favorites` | `number` | 收藏数 |
+| `stats.isLiked` | `boolean` | 是否已点赞 |
+| `stats.isFavorited` | `boolean` | 是否已收藏 |
+| `publishTime` | `string` | 笔记发布时间 |
+| `isPinned` | `number` | 是否置顶（0否，1是） |
+| `isRecommended` | `number` | 是否推荐（0否，1是） |
+| `seoTitle` | `string` | SEO标题 |
+| `seoDescription` | `string` | SEO描述 |
+| `seoKeywords` | `string` | SEO关键词（逗号分隔） |
+| `deleted` | `number` | 删除标记（0未删除，1已删除） |
+| `createTime` | `string` | 创建时间 |
+| `updateTime` | `string` | 更新时间 |
+
+### 失败响应（笔记不存在）
+
+```json
+{
+  "code": 500,
+  "msg": "笔记不存在",
+  "data": null
 }
 ```
 

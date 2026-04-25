@@ -59,6 +59,9 @@ public class DocNoteListVo implements Serializable {
     @Schema(description = "笔记状态")
     private Integer status;
 
+    @Schema(description = "统计数据")
+    private DocStatsInfoVo stats;
+
     @Schema(description = "笔记发布时间")
     private LocalDateTime publishTime;
 

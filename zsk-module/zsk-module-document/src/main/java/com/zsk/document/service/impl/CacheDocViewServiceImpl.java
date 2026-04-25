@@ -1,7 +1,6 @@
 package com.zsk.document.service.impl;
 
 import com.zsk.common.core.constant.CacheConstants;
-import com.zsk.common.redis.service.RedisService;
 import com.zsk.document.domain.DocUserInteraction;
 import com.zsk.document.domain.context.DocUserInteractionContext;
 import com.zsk.document.enums.CacheDocViewTypeEnum;
@@ -20,14 +19,23 @@ import java.util.concurrent.TimeUnit;
 /**
  * 缓存文档浏览服务实现类
  * <p>
- * 使用Redis键实现浏览量统计功能：
- * 1. view:count:{target_id}:{type} String 存储内容的实时浏览数
- * 2. view:lock:{user_id}:{target_id} String 分布式锁（防止重复浏览，过期时间5分钟）
+ * 基于 Redis Hash 实现高性能浏览量统计：
+ * <ul>
+ *     <li><b>Hash:</b> stat:{targetType}:{targetId} — 使用哈希存储浏览量计数，HINCRBY 原子自增</li>
+ *     <li><b>Lock:</b> view:lock:{userId}:{targetId}:{typeCode} — SETNX 实现防短时间重复浏览</li>
+ * </ul>
  * <p>
- * 浏览量数据先写入Redis，后由定时任务 {@link com.zsk.document.job.CacheDocSocialSyncJob} 同步到数据库。
+ * <b>核心设计要点：</b>
+ * <ul>
+ *     <li>浏览量无需记录用户级别状态，直接 HINCRBY 自增，性能最优</li>
+ *     <li>登录用户使用 SETNX 锁防重复（默认 5 分钟内同一内容只计一次）</li>
+ *     <li>匿名用户不做去重限制</li>
+ *     <li>先写 Redis，定时任务异步同步到数据库</li>
+ *     <li>查询时先查 Redis，Redis 未命中则查 DB 并回写缓存</li>
+ * </ul>
  *
  * @author wuhuaming
- * @version 1.0
+ * @version 3.0
  * @date 2026-04-25
  */
 @Slf4j
@@ -35,124 +43,104 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class CacheDocViewServiceImpl implements ICacheDocViewService {
 
-    /**
-     * Redis服务
-     */
-    private final RedisService redisService;
-
-    /**
-     * Redis模板
-     */
     private final RedisTemplate<String, Object> redisTemplate;
-
-    /**
-     * 用户交互Mapper
-     */
     private final DocUserInteractionMapper docUserInteractionMapper;
 
-    /**
-     * 分布式锁过期时间（秒），5分钟内同一用户重复浏览只计一次
-     */
     private static final long LOCK_EXPIRE_SECONDS = 300;
 
     /**
-     * 增加浏览量
+     * 记录内容浏览
      * <p>
-     * 用户浏览内容时调用，增加对应目标的浏览计数。
-     * 如果用户已登录，会检查5分钟内的重复浏览；未登录用户直接增加计数。
-     * </p>
+     * 使用 Redis Hash 实现原子浏览量统计：
+     * 1. 登录用户使用 SETNX 锁防短时间重复浏览（默认 5 分钟）
+     * 2. 匿名用户直接计数
+     * 3. HINCRBY 原子自增浏览量
      *
-     * @param type     浏览类型（1-笔记 2-视频）
-     * @param targetId 目标ID（笔记ID或视频ID）
-     * @param userId   用户ID（可选，为空时表示匿名浏览）
-     * @return 是否成功（重复浏览返回false）
+     * @param type     浏览类型（见 {@link CacheDocViewTypeEnum}）
+     * @param targetId 目标内容ID（笔记ID/视频ID）
+     * @param userId   用户ID（可为 null，表示匿名用户）
+     * @return true-计数成功，false-重复浏览或参数无效
      */
     @Override
     public boolean view(Integer type, Long targetId, Long userId) {
-        // 1. 验证参数并获取浏览类型枚举
+        // 参数校验
         CacheDocViewTypeEnum viewType = CacheDocViewTypeEnum.getByCode(type);
         if (viewType == null || targetId == null) {
             log.warn("浏览参数无效: type={}, targetId={}", type, targetId);
             return false;
         }
 
-        // 2. 构建浏览计数Redis键
-        String countKey = buildCountKey(targetId, viewType);
-
-        // 3. 如果用户已登录，检查是否短时间内重复浏览
+        // 登录用户使用 SETNX 防重复浏览（5分钟内同一内容只计一次）
         if (userId != null) {
-            String lockKey = buildLockKey(userId, targetId);
-            Boolean locked = redisService.getCacheObject(lockKey);
-            if (Boolean.TRUE.equals(locked)) {
-                log.debug("用户 {} 短时间内重复浏览目标 {}", userId, targetId);
+            String lockKey = buildLockKey(userId, targetId, viewType);
+            // SETNX：只有当 key 不存在时才设置成功，返回 true
+            Boolean locked = redisTemplate.opsForValue().setIfAbsent(lockKey, true, LOCK_EXPIRE_SECONDS, TimeUnit.SECONDS);
+            if (Boolean.FALSE.equals(locked)) {
+                // 已存在锁，说明短时间内已浏览过
                 return false;
             }
-            // 设置浏览锁，防止短时间内重复计数
-            redisService.setCacheObject(lockKey, true, LOCK_EXPIRE_SECONDS, TimeUnit.SECONDS);
         }
 
-        // 4. 增加浏览计数
-        redisTemplate.opsForValue().increment(countKey, 1);
-        log.debug("浏览 {} 类型目标 {}, 用户={}", viewType.getDesc(), targetId, userId);
+        // 更新浏览量计数：stat:{targetType}:{targetId} 的 view:{typeCode} 字段
+        String statKey = buildStatKey(viewType, targetId);
+        String countField = buildCountField(viewType);
+        redisTemplate.opsForHash().increment(statKey, countField, 1);
+        
+        log.debug("浏览 {} targetId={}, userId={}", viewType.getDesc(), targetId, userId);
         return true;
     }
 
     /**
-     * 获取浏览数量
+     * 获取目标内容的浏览量
      * <p>
-     * 从Redis获取实时浏览量，如缓存未命中则从数据库加载并写入缓存。
-     * </p>
+     * 缓存策略：先查 Redis，未命中则查数据库并回写缓存
      *
-     * @param type     浏览类型（1-笔记 2-视频）
-     * @param targetId 目标ID
-     * @return 浏览数量
+     * @param type     浏览类型
+     * @param targetId 目标内容ID
+     * @return 浏览量
      */
     @Override
     public Long getViewCount(Integer type, Long targetId) {
-        // 1. 验证参数并获取浏览类型枚举
         CacheDocViewTypeEnum viewType = CacheDocViewTypeEnum.getByCode(type);
         if (viewType == null || targetId == null) {
             return 0L;
         }
 
-        // 2. 构建浏览计数Redis键
-        String countKey = buildCountKey(targetId, viewType);
-
-        // 3. 尝试从Redis获取浏览量
-        Object count = redisTemplate.opsForValue().get(countKey);
+        // 先查 Redis 缓存
+        String statKey = buildStatKey(viewType, targetId);
+        String countField = buildCountField(viewType);
+        Object count = redisTemplate.opsForHash().get(statKey, countField);
         if (count != null) {
             return Long.parseLong(count.toString());
         }
 
-        // 4. 缓存未命中，从数据库加载
-        Long dbCount = getViewCountFromDb(viewType, targetId);
+        // Redis 未命中，查数据库
+        Integer targetType = getTargetType(viewType);
+        if (targetType == null) {
+            return 0L;
+        }
+        Long dbCount = docUserInteractionMapper.countByTarget(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_VIEW);
+        
+        // 回写缓存（仅当有数据时）
         if (dbCount != null && dbCount > 0) {
-            // 写入缓存，后续请求可直接从缓存读取
-            redisService.setCacheObject(countKey, dbCount);
+            redisTemplate.opsForHash().put(statKey, countField, dbCount.toString());
         }
         return dbCount != null ? dbCount : 0L;
     }
 
     /**
-     * 批量获取浏览数量
-     * <p>
-     * 批量查询多个目标的浏览量。
-     * </p>
+     * 批量获取目标内容的浏览量
      *
      * @param type      浏览类型
-     * @param targetIds 目标ID列表
-     * @return 目标ID与浏览数量的映射
+     * @param targetIds 目标内容ID列表
+     * @return 目标ID到浏览量的映射
      */
     @Override
     public Map<Long, Long> getViewCountBatch(Integer type, Iterable<Long> targetIds) {
         Map<Long, Long> result = new HashMap<>();
-        // 1. 验证参数
-        CacheDocViewTypeEnum viewType = CacheDocViewTypeEnum.getByCode(type);
-        if (viewType == null || targetIds == null) {
+        if (targetIds == null) {
             return result;
         }
-
-        // 2. 逐个查询浏览量
         for (Long targetId : targetIds) {
             result.put(targetId, getViewCount(type, targetId));
         }
@@ -160,48 +148,49 @@ public class CacheDocViewServiceImpl implements ICacheDocViewService {
     }
 
     /**
-     * 同步浏览数据到数据库
+     * 同步浏览数据从 Redis 到数据库
      * <p>
-     * 由定时任务调用，将Redis中的浏览量数据同步到数据库持久化。
-     * 同步完成后，Redis中的计数会保留，继续累加新的浏览量。
-     * </p>
+     * 执行流程：
+     * 1. 扫描所有 stat:* 键
+     * 2. 读取 view:* 字段的浏览量计数
+     * 3. 将计数写入数据库
      */
     @Override
     public void syncViewDataToDb() {
         log.info("开始同步浏览数据到数据库...");
         int syncCount = 0;
 
-        // 1. 扫描所有浏览计数Redis键
-        String pattern = CacheConstants.CACHE_VIEW_COUNT + "*";
-        Collection<String> keys = redisService.keys(pattern);
-
+        String pattern = CacheConstants.CACHE_STAT + "*";
+        Collection<String> keys = redisTemplate.keys(pattern);
         if (keys == null || keys.isEmpty()) {
             log.info("没有需要同步的浏览数据");
             return;
         }
 
-        // 2. 遍历所有浏览计数键，同步到数据库
-        for (String countKey : keys) {
+        for (String statKey : keys) {
             try {
-                // 解析Redis键获取targetId和type
-                String[] parts = countKey.split(":");
-                if (parts.length >= 5) {
-                    Long targetId = Long.parseLong(parts[3]);
-                    Integer type = Integer.parseInt(parts[4]);
-                    CacheDocViewTypeEnum viewType = CacheDocViewTypeEnum.getByCode(type);
+                // 解析 Stat Key 获取 targetType 和 targetId
+                Long[] parsed = extractStatKey(statKey);
+                if (parsed == null) {
+                    continue;
+                }
+                int targetType = parsed[0].intValue();
+                long targetId = parsed[1];
 
-                    if (viewType != null) {
-                        // 获取当前浏览量并同步到数据库
-                        Object count = redisTemplate.opsForValue().get(countKey);
-                        if (count != null) {
-                            Long viewCount = Long.parseLong(count.toString());
-                            saveViewCountToDb(viewType, targetId, viewCount);
-                            syncCount++;
-                        }
+                // 遍历 Hash 的所有字段，只处理浏览量字段
+                Map<Object, Object> entries = redisTemplate.opsForHash().entries(statKey);
+                for (Map.Entry<Object, Object> entry : entries.entrySet()) {
+                    String field = entry.getKey().toString();
+                    // 只处理浏览量相关字段
+                    if (!field.startsWith("view:")) {
+                        continue;
                     }
+                    long viewCount = Long.parseLong(entry.getValue().toString());
+                    saveViewCountToDb(targetType, targetId, viewCount);
+                    syncCount++;
                 }
             } catch (Exception e) {
-                log.warn("同步浏览数据失败: key={}", countKey, e);
+                log.warn("同步浏览数据失败: key={}", statKey, e);
             }
         }
 
@@ -209,102 +198,61 @@ public class CacheDocViewServiceImpl implements ICacheDocViewService {
     }
 
     /**
-     * 构建浏览计数键
-     * <p>
-     * Redis键格式: zsk:view:count:{targetId}:{typeCode}
-     * </p>
+     * 构建统计 Hash Key
      *
-     * @param targetId 目标ID
-     * @param type     浏览类型枚举
-     * @return Redis键
+     * @param type     浏览类型
+     * @param targetId 目标内容ID
+     * @return Key 格式: stat:{targetType}:{targetId}
      */
-    private String buildCountKey(Long targetId, CacheDocViewTypeEnum type) {
-        return CacheConstants.CACHE_VIEW_COUNT + targetId + ":" + type.getCode();
+    private String buildStatKey(CacheDocViewTypeEnum type, Long targetId) {
+        return CacheConstants.CACHE_STAT + getTargetType(type) + ":" + targetId;
     }
 
     /**
-     * 构建分布式锁键
-     * <p>
-     * Redis键格式: zsk:view:count:lock:{userId}:{targetId}
-     * </p>
+     * 构建计数字段名
+     *
+     * @param type 浏览类型
+     * @return 字段名格式: view:{typeCode}
+     */
+    private String buildCountField(CacheDocViewTypeEnum type) {
+        return "view:" + type.getCode();
+    }
+
+    /**
+     * 构建防重复浏览锁 Key
      *
      * @param userId   用户ID
-     * @param targetId 目标ID
-     * @return Redis键
+     * @param targetId 目标内容ID
+     * @param type     浏览类型
+     * @return Key 格式: view:lock:{userId}:{targetId}:{typeCode}
      */
-    private String buildLockKey(Long userId, Long targetId) {
-        return CacheConstants.CACHE_VIEW_COUNT + "lock:" + userId + ":" + targetId;
+    private String buildLockKey(Long userId, Long targetId, CacheDocViewTypeEnum type) {
+        return CacheConstants.CACHE_VIEW_LOCK + userId + ":" + targetId + ":" + type.getCode();
     }
 
     /**
-     * 从数据库获取浏览数量
-     * <p>
-     * 通过统计 doc_user_interaction 表中交互类型为浏览的记录数。
-     * </p>
+     * 从 Stat Key 中解析 targetType 和 targetId
      *
-     * @param type     浏览类型枚举
-     * @param targetId 目标ID
-     * @return 浏览数量
+     * @param key Redis Key
+     * @return [targetType, targetId]
      */
-    private Long getViewCountFromDb(CacheDocViewTypeEnum type, Long targetId) {
-        Integer targetType = getTargetType(type);
-        if (targetType == null) {
-            return 0L;
-        }
-        return docUserInteractionMapper.countByTarget(
-                targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_VIEW);
-    }
-
-    /**
-     * 保存浏览数量到数据库
-     * <p>
-     * 将Redis中的浏览量同步到 doc_user_interaction 表。
-     * 使用userId=0作为系统汇总记录。
-     * </p>
-     *
-     * @param type      浏览类型枚举
-     * @param targetId  目标ID
-     * @param viewCount 浏览数量
-     */
-    private void saveViewCountToDb(CacheDocViewTypeEnum type, Long targetId, Long viewCount) {
+    private Long[] extractStatKey(String key) {
         try {
-            Integer targetType = getTargetType(type);
-            if (targetType == null) {
-                return;
+            String[] parts = key.split(":");
+            if (parts.length >= 4) {
+                return new Long[]{Long.parseLong(parts[2]), Long.parseLong(parts[3])};
             }
-
-            // 查询是否已存在浏览汇总记录（userId=0表示系统汇总）
-            DocUserInteraction existing = docUserInteractionMapper.selectByUserAndTarget(
-                    0L, targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_VIEW);
-
-            if (existing != null) {
-                // 更新已有记录的浏览量
-                existing.setStatus(viewCount.intValue());
-                docUserInteractionMapper.updateById(existing);
-            } else {
-                // 创建新的浏览汇总记录
-                DocUserInteraction interaction = new DocUserInteraction();
-                interaction.setUserId(0L);
-                interaction.setTargetType(targetType);
-                interaction.setTargetId(targetId);
-                interaction.setInteractionType(DocUserInteractionContext.INTERACTION_TYPE_VIEW);
-                interaction.setStatus(viewCount.intValue());
-                docUserInteractionMapper.insert(interaction);
-            }
-            log.debug("同步浏览数据到数据库: type={}, targetId={}, count={}", type.getDesc(), targetId, viewCount);
         } catch (Exception e) {
-            log.error("保存浏览数据失败: type={}, targetId={}", type, targetId, e);
+            log.warn("解析 stat 键失败: {}", key, e);
         }
+        return null;
     }
 
     /**
-     * 获取目标类型
-     * <p>
-     * 将浏览类型枚举转换为交互表中的目标类型编码。
-     * </p>
+     * 将浏览类型转换为目标类型
      *
-     * @param viewType 浏览类型枚举
-     * @return 目标类型编码（1-笔记 2-视频）
+     * @param viewType 浏览类型
+     * @return 目标类型
      */
     private Integer getTargetType(CacheDocViewTypeEnum viewType) {
         switch (viewType) {
@@ -315,5 +263,90 @@ public class CacheDocViewServiceImpl implements ICacheDocViewService {
             default:
                 return null;
         }
+    }
+
+    /**
+     * 保存浏览量计数到数据库
+     *
+     * @param targetType 目标类型
+     * @param targetId   目标ID
+     * @param viewCount  浏览量
+     */
+    private void saveViewCountToDb(Integer targetType, Long targetId, Long viewCount) {
+        // userId=0 表示这是一条统计记录，而非用户级记录
+        DocUserInteraction existing = docUserInteractionMapper.selectByUserAndTarget(
+                0L, targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_VIEW);
+        if (existing != null) {
+            existing.setStatus(viewCount.intValue());
+            docUserInteractionMapper.updateById(existing);
+        } else {
+            DocUserInteraction interaction = new DocUserInteraction();
+            interaction.setUserId(0L);
+            interaction.setTargetType(targetType);
+            interaction.setTargetId(targetId);
+            interaction.setInteractionType(DocUserInteractionContext.INTERACTION_TYPE_VIEW);
+            interaction.setStatus(viewCount.intValue());
+            docUserInteractionMapper.insert(interaction);
+        }
+    }
+
+    /**
+     * 从数据库预热浏览量缓存
+     * <p>
+     * <b>预热目的：</b>服务重启后，将数据库中的浏览量数据加载到Redis缓存，恢复缓存状态。
+     * <p>
+     * <b>浏览量设计特殊说明：</b>
+     * <ul>
+     *     <li>浏览量无需记录用户级别状态，直接使用Hash存储计数，性能最优</li>
+     *     <li>登录用户使用SETNX锁防短时间重复浏览（默认5分钟内同一内容只计一次）</li>
+     *     <li>匿名用户不做去重限制</li>
+     * </ul>
+     * <p>
+     * <b>数据模型说明：</b>
+     * <ul>
+     *     <li>数据库中使用userId=0的记录存储浏览量统计值（status字段）</li>
+     *     <li>预热时通过countByTarget重新统计，而非直接读取userId=0的记录</li>
+     * </ul>
+     * <p>
+     * <b>预热流程：</b>
+     * <ol>
+     *     <li>预热浏览量计数到Hash：通过countByTarget重新统计，保证数据准确性</li>
+     * </ol>
+     *
+     * @param type     浏览类型
+     * @param targetId 目标ID
+     */
+    @Override
+    public void warmViewCacheFromDb(Integer type, Long targetId) {
+        // 参数校验
+        CacheDocViewTypeEnum viewType = CacheDocViewTypeEnum.getByCode(type);
+        if (viewType == null || targetId == null) {
+            log.warn("预热缓存参数无效: type={}, targetId={}", type, targetId);
+            return;
+        }
+
+        // 获取目标类型映射
+        Integer targetType = getTargetType(viewType);
+        if (targetType == null) {
+            return;
+        }
+
+        // ========== 预热浏览量计数到Hash ==========
+        // Hash Key: stat:{targetType}:{targetId}
+        // Field: view:{typeCode} -> 浏览量计数值
+        // 
+        // 浏览量无需用户级状态记录，只需存储统计值，因此只有Hash预热，没有Bitmap预热
+        String statKey = buildStatKey(viewType, targetId);
+        String countField = buildCountField(viewType);
+        
+        // 通过countByTarget重新统计，而不是读取userId=0的统计记录
+        // 这样可以保证数据一致性，避免因异常导致统计记录与实际不一致
+        Long dbCount = docUserInteractionMapper.countByTarget(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_VIEW);
+        if (dbCount != null && dbCount > 0) {
+            redisTemplate.opsForHash().put(statKey, countField, dbCount.toString());
+            log.debug("浏览量计数预热完成: targetId={}, count={}", targetId, dbCount);
+        }
+
+        log.info("浏览量缓存预热完成: type={}, targetId={}", type, targetId);
     }
 }
