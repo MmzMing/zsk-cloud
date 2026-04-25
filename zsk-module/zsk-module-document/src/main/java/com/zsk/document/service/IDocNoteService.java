@@ -4,6 +4,7 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.document.domain.DocNote;
+import com.zsk.document.domain.vo.DocNoteListVo;
 
 import java.util.List;
 
@@ -57,4 +58,21 @@ public interface IDocNoteService extends IService<DocNote> {
      * @return 是否成功
      */
     boolean toggleRecommended(Long id);
+
+    /**
+     * 查询笔记列表（带文件URL）
+     *
+     * @param docNote 查询条件
+     * @return 笔记列表
+     */
+    List<DocNoteListVo> listWithFileUrl(DocNote docNote);
+
+    /**
+     * 分页查询笔记列表（带文件URL）
+     *
+     * @param docNote   查询条件
+     * @param pageQuery 分页参数
+     * @return 分页结果
+     */
+    PageResult<DocNoteListVo> pageWithFileUrl(DocNote docNote, PageQuery pageQuery);
 }

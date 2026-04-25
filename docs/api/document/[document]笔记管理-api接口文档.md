@@ -50,6 +50,10 @@
       "noteName": "笔记标题",
       "content": "笔记内容",
       "cover": "https://example.com/cover.jpg",
+      "coverFile": {
+        "fileId": "file-abc123",
+        "fileUrl": "https://example.com/cover.jpg"
+      },
       "broadCode": "tech",
       "status": 1,
       "auditStatus": 1,
@@ -72,6 +76,9 @@
 | `noteName` | `string` | 笔记名称 |
 | `content` | `string` | 笔记内容 |
 | `cover` | `string` | 封面图片URL |
+| `coverFile` | `object` | 封面文件信息 |
+| `coverFile.fileId` | `string` | 封面图片文件ID（关联document_files.file_id） |
+| `coverFile.fileUrl` | `string` | 封面图片文件URL |
 | `broadCode` | `string` | 分类编码 |
 | `status` | `number` | 状态（1发布，2下架，3草稿） |
 | `auditStatus` | `number` | 审核状态（0待审核，1已通过，2已拒绝） |

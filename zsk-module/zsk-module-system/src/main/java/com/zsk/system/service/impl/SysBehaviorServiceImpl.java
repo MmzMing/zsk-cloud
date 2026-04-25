@@ -52,7 +52,9 @@ public class SysBehaviorServiceImpl implements ISysBehaviorService {
      */
     private static final int LIST_PREVIEW_MAX_LEN = 200;
 
-    /** MongoDB 操作模板 */
+    /**
+     * MongoDB 操作模板
+     */
     private final MongoTemplate mongoTemplate;
 
     /**

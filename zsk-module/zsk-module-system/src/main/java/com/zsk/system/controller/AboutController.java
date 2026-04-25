@@ -28,7 +28,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AboutController {
 
-    /** About页面服务 */
+    /**
+     * About页面服务
+     */
     private final IAboutService aboutService;
 
     /**

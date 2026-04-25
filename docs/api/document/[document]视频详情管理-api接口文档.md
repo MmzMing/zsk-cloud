@@ -51,9 +51,16 @@
       "userId": "1",
       "videoTitle": "视频标题",
       "fileContent": "视频描述",
-      "fileId": "file-abc123",
-      "videoUrl": "https://example.com/video.mp4",
-      "coverUrl": "https://example.com/cover.jpg",
+      "videoFile": {
+        "thumbnail": {
+          "fileId": "file-cover123",
+          "fileUrl": "https://example.com/cover.jpg"
+        },
+        "video": {
+          "fileId": "file-video123",
+          "fileUrl": "https://example.com/video.mp4"
+        }
+      },
       "broadCode": "tech",
       "tags": "tag1,tag2",
       "status": 1,
@@ -76,9 +83,13 @@
 | `userId` | `string` | 用户ID |
 | `videoTitle` | `string` | 视频标题 |
 | `fileContent` | `string` | 视频描述 |
-| `fileId` | `string` | 文件ID |
-| `videoUrl` | `string` | 视频URL |
-| `coverUrl` | `string` | 封面URL |
+| `videoFile` | `object` | 视频文件信息（一对一绑定） |
+| `videoFile.thumbnail` | `object` | 缩略图文件信息 |
+| `videoFile.thumbnail.fileId` | `string` | 缩略图文件ID（关联document_files.file_id） |
+| `videoFile.thumbnail.fileUrl` | `string` | 缩略图文件URL |
+| `videoFile.video` | `object` | 视频文件信息 |
+| `videoFile.video.fileId` | `string` | 视频文件ID（关联document_files.file_id） |
+| `videoFile.video.fileUrl` | `string` | 视频文件URL |
 | `broadCode` | `string` | 分类编码 |
 | `tags` | `string` | 标签（逗号分隔） |
 | `status` | `number` | 状态（1发布，2下架，3草稿） |

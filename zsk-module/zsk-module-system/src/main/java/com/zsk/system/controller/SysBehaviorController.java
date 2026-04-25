@@ -39,7 +39,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class SysBehaviorController {
 
-    /** 行为审计服务 */
+    /**
+     * 行为审计服务
+     */
     private final ISysBehaviorService behaviorService;
 
     /**

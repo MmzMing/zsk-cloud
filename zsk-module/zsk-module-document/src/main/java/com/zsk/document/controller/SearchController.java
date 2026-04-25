@@ -7,6 +7,8 @@ import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.document.domain.DocNote;
 import com.zsk.document.domain.DocVideo;
 import com.zsk.document.domain.dto.SearchRequestDto;
+import com.zsk.document.domain.vo.DocVideoFileVo;
+import com.zsk.document.domain.vo.DocVideoListVo;
 import com.zsk.document.domain.vo.SearchResultVo;
 import com.zsk.document.enums.CacheDocCollectTypeEnum;
 import com.zsk.document.enums.CacheDocLikeTypeEnum;
@@ -148,31 +150,32 @@ public class SearchController {
      * @return 视频搜索结果列表
      */
     private List<SearchResultVo> searchVideos(String keyword, String category) {
-        // 1. 构建查询条件：查询未删除且状态正常的视频
-        LambdaQueryWrapper<DocVideo> wrapper = new LambdaQueryWrapper<DocVideo>()
-                .eq(DocVideo::getDeleted, 0)
-                .eq(DocVideo::getStatus, 1);
-
-        // 2. 添加关键字模糊查询条件
+        // 1. 构建查询条件对象
+        DocVideo query = new DocVideo();
+        query.setDeleted(0);
+        query.setStatus(1);
         if (StringUtils.hasText(keyword)) {
-            wrapper.and(w -> w
-                    .like(DocVideo::getVideoTitle, keyword)
-                    .or()
-                    .like(DocVideo::getFileContent, keyword)
-            );
+            query.setVideoTitle(keyword);
+            query.setFileContent(keyword);
         }
-
-        // 3. 添加分类筛选条件
         if (StringUtils.hasText(category)) {
-            wrapper.eq(DocVideo::getBroadCode, category);
+            query.setBroadCode(category);
         }
 
-        // 4. 执行查询
-        List<DocVideo> videos = videoService.list(wrapper);
+        // 2. 执行查询（带文件URL）
+        List<DocVideoListVo> videos = videoService.listWithFileUrl(query);
 
-        // 5. 构建搜索结果VO列表
+        // 3. 构建搜索结果VO列表
         List<SearchResultVo> results = new ArrayList<>();
-        for (DocVideo video : videos) {
+        for (DocVideoListVo video : videos) {
+            // 过滤关键字匹配（因为listWithFileUrl不支持模糊查询）
+            if (StringUtils.hasText(keyword)) {
+                boolean matches = (video.getVideoTitle() != null && video.getVideoTitle().contains(keyword))
+                        || (video.getFileContent() != null && video.getFileContent().contains(keyword));
+                if (!matches) {
+                    continue;
+                }
+            }
             SearchResultVo vo = buildVideoSearchResult(video);
             results.add(vo);
         }
@@ -226,20 +229,26 @@ public class SearchController {
     /**
      * 构建视频搜索结果VO
      * <p>
-     * 将视频实体转换为搜索结果VO，从 Redis 缓存获取浏览量、点赞数、收藏数、评论数。
+     * 将视频列表VO转换为搜索结果VO，从 Redis 缓存获取浏览量、点赞数、收藏数、评论数。
      * </p>
      *
-     * @param video 视频实体
+     * @param video 视频列表VO（包含文件信息）
      * @return 搜索结果VO
      */
-    private SearchResultVo buildVideoSearchResult(DocVideo video) {
+    private SearchResultVo buildVideoSearchResult(DocVideoListVo video) {
         SearchResultVo vo = new SearchResultVo();
         vo.setId(String.valueOf(video.getId()));
         vo.setType("video");
         vo.setTitle(video.getVideoTitle());
         vo.setDescription(video.getFileContent() != null ? video.getFileContent() : "");
         vo.setCategory(video.getBroadCode());
-        vo.setThumbnail(video.getCoverUrl());
+
+        // 获取封面URL（从文件信息中获取）
+        DocVideoFileVo videoFile = video.getVideoFile();
+        if (videoFile != null && videoFile.getThumbnail() != null) {
+            vo.setThumbnail(videoFile.getThumbnail().getFileUrl());
+        }
+
         vo.setAuthorId(String.valueOf(video.getUserId()));
         vo.setAuthor("作者" + video.getUserId());
 

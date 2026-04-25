@@ -25,7 +25,7 @@ public class DocVideoCommentVo implements Serializable {
      * 评论ID
      */
     @Schema(description = "评论ID")
-    private String id;
+    private Long id;
 
     /**
      * 评论内容
@@ -82,7 +82,7 @@ public class DocVideoCommentVo implements Serializable {
          * 作者ID
          */
         @Schema(description = "作者ID")
-        private String id;
+        private Long id;
 
         /**
          * 作者名称
@@ -110,7 +110,7 @@ public class DocVideoCommentVo implements Serializable {
          * 被回复人ID
          */
         @Schema(description = "被回复人ID")
-        private String id;
+        private Long id;
 
         /**
          * 被回复人名称

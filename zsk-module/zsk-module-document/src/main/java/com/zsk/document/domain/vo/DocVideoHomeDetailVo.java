@@ -30,7 +30,7 @@ public class DocVideoHomeDetailVo implements Serializable {
      * 视频ID
      */
     @Schema(description = "视频ID")
-    private String id;
+    private Long id;
 
     /**
      * 视频标题

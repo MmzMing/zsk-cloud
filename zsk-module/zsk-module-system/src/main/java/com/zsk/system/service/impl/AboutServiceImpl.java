@@ -26,7 +26,9 @@ import java.util.List;
 @RequiredArgsConstructor
 public class AboutServiceImpl implements IAboutService {
 
-    /** About页面配置属性 */
+    /**
+     * About页面配置属性
+     */
     private final AboutProperties aboutProperties;
 
     /**

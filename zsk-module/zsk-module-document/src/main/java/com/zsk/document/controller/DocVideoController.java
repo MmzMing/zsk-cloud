@@ -1,12 +1,11 @@
 package com.zsk.document.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.zsk.common.core.domain.R;
 import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.document.domain.DocFiles;
 import com.zsk.document.domain.DocVideo;
+import com.zsk.document.domain.vo.DocVideoListVo;
 import com.zsk.document.domain.vo.InteractionResultVo;
 import com.zsk.document.service.IDocFilesService;
 import com.zsk.document.service.IDocVideoInteractionService;
@@ -56,63 +55,49 @@ public class DocVideoController {
      * 查询视频列表
      * <p>
      * 根据查询条件获取视频列表，支持按标题、分类等条件筛选。
+     * 返回结果包含视频文件和缩略图文件信息（一对一绑定关系）。
      * </p>
      *
      * @param docVideo 查询条件（可选：videoTitle、broadCode、narrowCode等）
-     * @return 视频列表
+     * @return 视频列表（包含文件信息）
      */
     @Operation(summary = "查询视频列表")
     @GetMapping("/list")
-    public R<List<DocVideo>> list(DocVideo docVideo) {
-        LambdaQueryWrapper<DocVideo> lqw = new LambdaQueryWrapper<>(docVideo);
-        return R.ok(docVideoService.list(lqw));
+    public R<List<DocVideoListVo>> list(DocVideo docVideo) {
+        return R.ok(docVideoService.listWithFileUrl(docVideo));
     }
 
     /**
      * 分页查询视频列表
      * <p>
      * 分页获取视频列表，默认按创建时间倒序排列。
+     * 返回结果包含视频文件和缩略图文件信息（一对一绑定关系）。
      * </p>
      *
      * @param docVideo  查询条件（可选）
      * @param pageQuery 分页参数（pageNum、pageSize）
-     * @return 分页结果
+     * @return 分页结果（包含文件信息）
      */
     @Operation(summary = "分页查询视频列表")
     @GetMapping("/page")
-    public R<PageResult<DocVideo>> page(DocVideo docVideo, PageQuery pageQuery) {
-        Page<DocVideo> page = pageQuery.build();
-        LambdaQueryWrapper<DocVideo> lqw = new LambdaQueryWrapper<>(docVideo);
-        lqw.orderByDesc(DocVideo::getCreateTime);
-        return R.ok(PageResult.build(docVideoService.page(page, lqw)));
+    public R<PageResult<DocVideoListVo>> page(DocVideo docVideo, PageQuery pageQuery) {
+        return R.ok(docVideoService.pageWithFileUrl(docVideo, pageQuery));
     }
 
     /**
      * 获取视频详细信息
      * <p>
-     * 根据视频ID获取详情，同时关联查询文件信息获取封面图URL和视频播放地址。
+     * 根据视频ID获取详情，同时关联查询视频文件和缩略图文件信息（一对一绑定关系）。
      * 交互数据（浏览量、点赞量等）需通过 {@link #getInteraction(Long, Long)} 接口单独获取。
      * </p>
      *
      * @param id 视频ID
-     * @return 视频详情（包含封面图URL和视频播放地址）
+     * @return 视频详情（包含文件信息）
      */
     @Operation(summary = "获取视频详细信息")
     @GetMapping(value = "/{id}")
-    public R<DocVideo> getInfo(@PathVariable("id") Long id) {
-        DocVideo detail = docVideoService.getById(id);
-        if (detail != null && detail.getFileId() != null) {
-            DocFiles file = docFilesService.getByFileId(detail.getFileId());
-            if (file != null) {
-                String fileType = file.getFileType();
-                if (isImageFile(fileType)) {
-                    detail.setCoverUrl(file.getUrl());
-                } else if (isVideoFile(fileType)) {
-                    detail.setVideoUrl(file.getUrl());
-                }
-            }
-        }
-        return R.ok(detail);
+    public R<DocVideoListVo> getInfo(@PathVariable("id") Long id) {
+        return R.ok(docVideoService.getByIdWithFileUrl(id));
     }
 
     /**
@@ -153,33 +138,6 @@ public class DocVideoController {
     }
 
     /**
-     * 判断是否为图片文件
-     *
-     * @param fileType 文件类型（如jpg、png、mp4等）
-     * @return true-是图片文件，false-不是图片文件
-     */
-    private boolean isImageFile(String fileType) {
-        if (fileType == null) return false;
-        String type = fileType.toLowerCase();
-        return type.equals("jpg") || type.equals("jpeg") || type.equals("png")
-                || type.equals("gif") || type.equals("bmp") || type.equals("webp");
-    }
-
-    /**
-     * 判断是否为视频文件
-     *
-     * @param fileType 文件类型（如mp4、avi、mov等）
-     * @return true-是视频文件，false-不是视频文件
-     */
-    private boolean isVideoFile(String fileType) {
-        if (fileType == null) return false;
-        String type = fileType.toLowerCase();
-        return type.equals("mp4") || type.equals("avi") || type.equals("mov")
-                || type.equals("wmv") || type.equals("flv") || type.equals("mkv")
-                || type.equals("webm") || type.equals("m3u8");
-    }
-
-    /**
      * 新增视频
      *
      * @param docVideo 视频信息
@@ -202,7 +160,7 @@ public class DocVideoController {
     @PostMapping("/upload")
     public R<Boolean> upload(@RequestPart("file") MultipartFile file, DocVideo docVideo) {
         DocFiles docFile = docFilesService.uploadFile(file);
-        docVideo.setFileId(docFile.getFileId());
+        docVideo.setFileId(docFile.getId());
         return R.ok(docVideoService.save(docVideo));
     }
 
@@ -234,18 +192,18 @@ public class DocVideoController {
 
     /**
      * 获取草稿列表
+     * <p>
+     * 获取状态为草稿（status=3）的视频列表，默认按更新时间倒序排列。
+     * 返回结果包含视频文件和缩略图文件信息（一对一绑定关系）。
+     * </p>
      *
      * @param pageQuery 分页参数
-     * @return 草稿列表
+     * @return 草稿列表（包含文件信息）
      */
     @Operation(summary = "获取草稿列表")
     @GetMapping("/draft/list")
-    public R<PageResult<DocVideo>> draftList(PageQuery pageQuery) {
-        Page<DocVideo> page = pageQuery.build();
-        LambdaQueryWrapper<DocVideo> lqw = new LambdaQueryWrapper<>();
-        lqw.eq(DocVideo::getStatus, 3);
-        lqw.orderByDesc(DocVideo::getUpdateTime);
-        return R.ok(PageResult.build(docVideoService.page(page, lqw)));
+    public R<PageResult<DocVideoListVo>> draftList(PageQuery pageQuery) {
+        return R.ok(docVideoService.draftListWithFileUrl(pageQuery));
     }
 
     /**

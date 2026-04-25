@@ -23,16 +23,16 @@ public class DocVideoComment extends TenantEntity {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 关联视频文件ID（关联document_files.file_id）
+     * 关联视频ID（关联document_video.id）
      */
-    @Schema(description = "关联视频文件ID")
-    private String videoId;
+    @Schema(description = "关联视频ID")
+    private Long videoId;
 
     /**
      * 评论人ID
      */
     @Schema(description = "评论人ID")
-    private String commentUserId;
+    private Long commentUserId;
 
     /**
      * 评论内容

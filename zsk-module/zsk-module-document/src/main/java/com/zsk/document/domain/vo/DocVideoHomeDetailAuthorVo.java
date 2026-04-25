@@ -24,7 +24,7 @@ public class DocVideoHomeDetailAuthorVo implements Serializable {
      * 作者ID
      */
     @Schema(description = "作者ID")
-    private String id;
+    private Long id;
 
     /**
      * 作者名称

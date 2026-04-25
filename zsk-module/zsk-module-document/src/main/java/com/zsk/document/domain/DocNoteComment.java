@@ -31,7 +31,7 @@ public class DocNoteComment extends TenantEntity {
      * 评论人ID
      */
     @Schema(description = "评论人ID")
-    private String commentUserId;
+    private Long commentUserId;
 
     /**
      * 评论内容

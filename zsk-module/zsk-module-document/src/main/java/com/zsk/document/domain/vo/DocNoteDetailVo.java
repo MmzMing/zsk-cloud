@@ -127,7 +127,7 @@ public class DocNoteDetailVo implements Serializable {
          * 阅读数
          */
         @Schema(description = "阅读数")
-        private String views;
+        private Integer views;
 
         /**
          * 点赞数
@@ -179,6 +179,6 @@ public class DocNoteDetailVo implements Serializable {
          * 阅读数
          */
         @Schema(description = "阅读数")
-        private String views;
+        private Integer views;
     }
 }

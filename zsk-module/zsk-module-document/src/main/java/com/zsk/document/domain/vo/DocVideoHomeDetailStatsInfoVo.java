@@ -30,7 +30,7 @@ public class DocVideoHomeDetailStatsInfoVo implements Serializable {
      * 浏览量
      */
     @Schema(description = "浏览量")
-    private String views;
+    private Integer views;
 
     /**
      * 点赞数

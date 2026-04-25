@@ -56,6 +56,12 @@ public class DocNote extends TenantEntity {
     private String description;
 
     /**
+     * 封面图片文件ID（关联document_files.id）
+     */
+    @Schema(description = "封面图片文件ID")
+    private Long coverFileId;
+
+    /**
      * 大类
      */
     @Schema(description = "大类")

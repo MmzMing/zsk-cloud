@@ -29,7 +29,7 @@ public class DocNoteHomeDetailVo implements Serializable {
      * 笔记ID
      */
     @Schema(description = "笔记ID")
-    private String id;
+    private Long id;
 
     /**
      * 标题

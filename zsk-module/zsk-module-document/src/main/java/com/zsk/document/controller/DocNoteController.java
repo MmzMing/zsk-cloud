@@ -1,12 +1,12 @@
 package com.zsk.document.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.zsk.common.core.domain.R;
 import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.common.log.annotation.Log;
 import com.zsk.common.log.enums.BusinessType;
 import com.zsk.document.domain.DocNote;
+import com.zsk.document.domain.vo.DocNoteListVo;
 import com.zsk.document.domain.vo.InteractionResultVo;
 import com.zsk.document.service.IDocNoteInteractionService;
 import com.zsk.document.service.IDocNoteService;
@@ -49,13 +49,13 @@ public class DocNoteController {
      * 查询笔记列表
      *
      * @param docNote 查询条件（可选：noteName、broadCode、narrowCode等）
-     * @return 笔记列表
+     * @return 笔记列表（包含封面文件信息）
      */
     @Log(title = "笔记管理", businessType = BusinessType.QUERY)
     @Operation(summary = "查询笔记列表")
     @GetMapping("/list")
-    public R<List<DocNote>> list(DocNote docNote) {
-        return R.ok(docNoteService.list(new LambdaQueryWrapper<>(docNote)));
+    public R<List<DocNoteListVo>> list(DocNote docNote) {
+        return R.ok(docNoteService.listWithFileUrl(docNote));
     }
 
     /**
@@ -63,13 +63,13 @@ public class DocNoteController {
      *
      * @param docNote   查询条件（可选）
      * @param pageQuery 分页参数（pageNum、pageSize）
-     * @return 分页结果
+     * @return 分页结果（包含封面文件信息）
      */
     @Log(title = "笔记管理", businessType = BusinessType.QUERY)
     @Operation(summary = "分页查询笔记列表")
     @GetMapping("/page")
-    public R<PageResult<DocNote>> page(DocNote docNote, PageQuery pageQuery) {
-        return R.ok(PageResult.build(docNoteService.page(pageQuery.build(), new LambdaQueryWrapper<>(docNote))));
+    public R<PageResult<DocNoteListVo>> page(DocNote docNote, PageQuery pageQuery) {
+        return R.ok(docNoteService.pageWithFileUrl(docNote, pageQuery));
     }
 
     /**

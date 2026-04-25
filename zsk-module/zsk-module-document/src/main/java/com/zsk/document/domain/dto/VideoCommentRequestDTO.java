@@ -1,10 +1,10 @@
-package com.zsk.document.domain.vo;
+package com.zsk.document.domain.dto;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
 /**
- * 视频评论请求参数
+ * 视频评论请求参数DTO
  *
  * @author wuhuaming
  * @version 1.0
@@ -12,7 +12,7 @@ import lombok.Data;
  */
 @Data
 @Schema(description = "视频评论请求参数")
-public class VideoCommentRequestVo {
+public class VideoCommentRequestDTO {
 
     /**
      * 视频ID

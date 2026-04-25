@@ -25,7 +25,7 @@ public class DocVideoDetailVo implements Serializable {
      * 视频ID
      */
     @Schema(description = "视频ID")
-    private String id;
+    private Long id;
 
     /**
      * 视频标题
@@ -94,7 +94,7 @@ public class DocVideoDetailVo implements Serializable {
          * 作者ID
          */
         @Schema(description = "作者ID")
-        private String id;
+        private Long id;
 
         /**
          * 作者名称
@@ -180,7 +180,7 @@ public class DocVideoDetailVo implements Serializable {
          * 视频ID
          */
         @Schema(description = "视频ID")
-        private String id;
+        private Long id;
 
         /**
          * 视频标题
@@ -238,7 +238,7 @@ public class DocVideoDetailVo implements Serializable {
          * 分集ID
          */
         @Schema(description = "分集ID")
-        private String id;
+        private Long id;
 
         /**
          * 分集标题

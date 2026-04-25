@@ -1,6 +1,5 @@
 package com.zsk.document.domain;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import com.zsk.common.datasource.domain.entity.TenantEntity;
 import io.swagger.v3.oas.annotations.media.Schema;
@@ -25,10 +24,10 @@ public class DocVideo extends TenantEntity {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 文件ID（关联document_files.file_id）
+     * 文件ID（关联document_files.id）
      */
     @Schema(description = "文件ID")
-    private String fileId;
+    private Long fileId;
 
     /**
      * 所属用户ID
@@ -65,6 +64,12 @@ public class DocVideo extends TenantEntity {
      */
     @Schema(description = "视频描述")
     private String fileContent;
+
+    /**
+     * 封面图片文件ID（关联document_files.id）
+     */
+    @Schema(description = "封面图片文件ID")
+    private Long coverFileId;
 
     /**
      * 元数据（JSON格式，如分辨率、时长、编码等）
@@ -108,19 +113,5 @@ public class DocVideo extends TenantEntity {
     @Schema(description = "是否推荐（0否 1是）")
     private Integer isRecommended;
 
-    // ===== 关联查询字段（非数据库字段） =====
 
-    /**
-     * 封面图URL（关联查询）
-     */
-    @TableField(exist = false)
-    @Schema(description = "封面图URL")
-    private String coverUrl;
-
-    /**
-     * 视频播放地址（关联查询）
-     */
-    @TableField(exist = false)
-    @Schema(description = "视频播放地址")
-    private String videoUrl;
 }
