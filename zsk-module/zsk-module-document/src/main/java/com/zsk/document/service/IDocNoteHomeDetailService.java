@@ -41,7 +41,7 @@ public interface IDocNoteHomeDetailService {
      * @param userId 当前用户ID（可为null，未登录时传null）
      * @return 笔记交互详情VO，如果笔记不存在返回null
      */
-    DocNoteHomeDetailStatsInfoVo getNoteInteraction(Long noteId, Long userId);
+    DocStatsInfoVo getNoteInteraction(Long noteId, Long userId);
 
     /**
      * 切换笔记点赞状态
@@ -141,7 +141,7 @@ public interface IDocNoteHomeDetailService {
      * @param userId 当前用户ID（可为null）
      * @return 笔记统计信息VO
      */
-    DocNoteHomeDetailStatsInfoVo buildNoteStatsInfo(Long noteId, Long userId);
+    DocStatsInfoVo buildNoteStatsInfo(Long noteId, Long userId);
 
     /**
      * 构建笔记作者信息VO
@@ -153,7 +153,7 @@ public interface IDocNoteHomeDetailService {
      * @param userId 当前用户ID（可为null）
      * @return 笔记作者信息VO，如果笔记不存在返回null
      */
-    DocNoteHomeDetailAuthorVo buildNoteAuthorInfo(Long noteId, Long userId);
+    DocUserVo buildNoteAuthorInfo(Long noteId, Long userId);
 
     /**
      * 构建评论VO

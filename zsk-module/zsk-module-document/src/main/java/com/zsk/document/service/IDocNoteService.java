@@ -5,8 +5,10 @@ import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.document.domain.DocNote;
 import com.zsk.document.domain.vo.DocNoteListVo;
+import com.zsk.document.domain.vo.DocStatsInfoVo;
 
 import java.util.List;
+import java.util.Map;
 
 /**
  * 笔记Service接口
@@ -75,4 +77,39 @@ public interface IDocNoteService extends IService<DocNote> {
      * @return 分页结果
      */
     PageResult<DocNoteListVo> pageWithFileUrl(DocNote docNote, PageQuery pageQuery);
+
+    /**
+     * 填充笔记列表的作者信息
+     * <p>
+     * 批量查询用户信息并填充到笔记列表中，避免N+1查询问题。
+     * 作者信息包括用户ID、名称（优先使用昵称，若无则使用用户名）和头像URL。
+     * </p>
+     *
+     * @param noteList 笔记列表视图对象
+     */
+    void fillAuthorInfo(List<DocNoteListVo> noteList);
+
+    /**
+     * 根据单个笔记ID查询统计信息
+     * <p>
+     * 查询指定笔记的点赞数、收藏数和浏览量。
+     * 数据来源于 Redis 缓存服务，确保数据的实时性。
+     * </p>
+     *
+     * @param noteId 笔记ID
+     * @return 笔记统计信息VO（包含浏览量、点赞数、收藏数）
+     */
+    DocStatsInfoVo getNoteStats(Long noteId);
+
+    /**
+     * 批量查询笔记统计信息
+     * <p>
+     * 批量查询多个笔记的点赞数、收藏数和浏览量，采用批量查询策略优化性能。
+     * 数据来源于 Redis 缓存服务。
+     * </p>
+     *
+     * @param noteIds 笔记ID列表
+     * @return 笔记ID到统计信息的映射
+     */
+    Map<Long, DocStatsInfoVo> batchGetNoteStats(List<Long> noteIds);
 }

@@ -11,8 +11,8 @@ import java.util.List;
  * 视频首页详情视图对象
  * <p>
  * 用于前台视频详情页展示，包含视频基本信息、作者信息、统计信息等。
- * 统计信息通过独立的 {@link DocVideoHomeDetailStatsInfoVo} 封装，
- * 作者信息通过独立的 {@link DocVideoHomeDetailAuthorVo} 封装。
+ * 统计信息通过独立的 {@link DocStatsInfoVo} 封装，
+ * 作者信息通过独立的 {@link DocUserVo} 封装。
  * </p>
  *
  * @author wuhuaming
@@ -60,13 +60,13 @@ public class DocVideoHomeDetailVo implements Serializable {
      * 作者信息
      */
     @Schema(description = "作者信息")
-    private DocVideoHomeDetailAuthorVo author;
+    private DocUserVo author;
 
     /**
      * 统计信息
      */
     @Schema(description = "统计信息")
-    private DocVideoHomeDetailStatsInfoVo stats;
+    private DocStatsInfoVo stats;
 
     /**
      * 标签列表

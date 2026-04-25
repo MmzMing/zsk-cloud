@@ -203,6 +203,18 @@ public class SysUserController {
     }
 
     /**
+     * 根据用户ID列表查询用户列表
+     *
+     * @param ids 用户ID列表
+     * @return 用户列表
+     */
+    @Operation(summary = "根据用户ID列表查询用户列表")
+    @GetMapping("/list/ids")
+    public R<List<SysUser>> listByIds(@RequestParam List<Long> ids) {
+        return R.ok(userService.listByIds(ids));
+    }
+
+    /**
      * 新增用户
      *
      * @param user 用户信息

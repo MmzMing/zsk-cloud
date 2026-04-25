@@ -90,13 +90,13 @@ public class DocVideoHomeDetailController {
      */
     @Operation(summary = "获取视频交互详情")
     @GetMapping("/interaction/{id}")
-    public R<DocVideoHomeDetailStatsInfoVo> getInteraction(@PathVariable("id") Long id) {
+    public R<DocStatsInfoVo> getInteraction(@PathVariable("id") Long id) {
         if (videoService.getById(id) == null) {
             return R.fail("视频不存在");
         }
 
         Long userId = getCurrentUserId();
-        DocVideoHomeDetailStatsInfoVo stats = videoHomeDetailService.getVideoInteraction(id, userId);
+        DocStatsInfoVo stats = videoHomeDetailService.getVideoInteraction(id, userId);
         return R.ok(stats);
     }
 

@@ -7,6 +7,8 @@ import com.zsk.system.api.domain.SysUserApi;
 import com.zsk.system.api.factory.RemoteUserFallbackFactory;
 import com.zsk.system.api.model.LoginUser;
 import org.springframework.cloud.openfeign.FeignClient;
+
+import java.util.List;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -16,6 +18,24 @@ import org.springframework.web.bind.annotation.*;
  */
 @FeignClient(contextId = "remoteUserService", value = ServiceNameConstants.SYSTEM_SERVICE, fallbackFactory = RemoteUserFallbackFactory.class, url = "http://127.0.0.1:20010")
 public interface RemoteUserService {
+    /**
+     * 通过用户ID查询用户信息
+     *
+     * @param id 用户ID
+     * @return 结果
+     */
+    @GetMapping("/system/user/{id}")
+    public R<SysUserApi> getUserById(@PathVariable Long id);
+
+    /**
+     * 根据用户ID列表查询用户列表
+     *
+     * @param ids 用户ID列表
+     * @return 结果
+     */
+    @GetMapping("/system/user/list/ids")
+    public R<List<SysUserApi>> listByIds(@RequestParam List<Long> ids);
+
     /**
      * 通过用户名查询用户信息
      *

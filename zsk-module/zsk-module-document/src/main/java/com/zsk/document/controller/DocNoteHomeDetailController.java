@@ -6,8 +6,8 @@ import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.common.security.utils.SecurityUtils;
 import com.zsk.document.domain.dto.CommentRequestDTO;
 import com.zsk.document.domain.vo.DocCommentVo;
-import com.zsk.document.domain.vo.DocNoteHomeDetailStatsInfoVo;
 import com.zsk.document.domain.vo.DocNoteHomeDetailVo;
+import com.zsk.document.domain.vo.DocStatsInfoVo;
 import com.zsk.document.domain.vo.InteractionResultVo;
 import com.zsk.document.service.IDocNoteHomeDetailService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -79,14 +79,14 @@ public class DocNoteHomeDetailController {
      */
     @Operation(summary = "获取笔记交互详情")
     @GetMapping("/interaction/{id}")
-    public R<DocNoteHomeDetailStatsInfoVo> getInteraction(@PathVariable("id") Long id) {
+    public R<DocStatsInfoVo> getInteraction(@PathVariable("id") Long id) {
         log.info("获取笔记交互详情请求, id={}", id);
 
         // 获取当前登录用户ID
         Long userId = getCurrentUserId();
 
         // 调用Service层获取交互详情
-        DocNoteHomeDetailStatsInfoVo stats = noteHomeDetailService.getNoteInteraction(id, userId);
+        DocStatsInfoVo stats = noteHomeDetailService.getNoteInteraction(id, userId);
         if (stats == null) {
             return R.fail("笔记不存在");
         }

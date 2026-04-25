@@ -67,4 +67,23 @@ public class DocVideoListVo implements Serializable {
 
     @Schema(description = "更新时间")
     private LocalDateTime updateTime;
+
+    @Data
+    @Schema(description = "分集信息")
+    public static class DocVideoDtlVo implements Serializable {
+        @Serial
+        private static final long serialVersionUID = 1L;
+
+        @Schema(description = "分集ID")
+        private Long id;
+
+        @Schema(description = "分集标题")
+        private String title;
+
+        @Schema(description = "分集视频地址")
+        private String videoUrl;
+
+        @Schema(description = "分集时长")
+        private String duration;
+    }
 }

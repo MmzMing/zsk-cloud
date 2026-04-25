@@ -2,8 +2,8 @@ package com.zsk.document.service;
 
 import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
+import com.zsk.document.domain.vo.DocStatsInfoVo;
 import com.zsk.document.domain.vo.DocVideoCommentVo;
-import com.zsk.document.domain.vo.DocVideoHomeDetailStatsInfoVo;
 import com.zsk.document.domain.vo.DocVideoHomeDetailVo;
 import com.zsk.document.domain.vo.InteractionResultVo;
 
@@ -36,7 +36,7 @@ public interface IDocVideoHomeDetailService {
      * @param userId 当前用户ID（可为null）
      * @return 视频交互详情
      */
-    DocVideoHomeDetailStatsInfoVo getVideoInteraction(Long id, Long userId);
+    DocStatsInfoVo getVideoInteraction(Long id, Long userId);
 
     /**
      * 切换视频点赞状态

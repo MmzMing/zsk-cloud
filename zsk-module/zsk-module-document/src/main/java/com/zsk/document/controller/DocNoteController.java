@@ -7,6 +7,7 @@ import com.zsk.common.log.annotation.Log;
 import com.zsk.common.log.enums.BusinessType;
 import com.zsk.document.domain.DocNote;
 import com.zsk.document.domain.vo.DocNoteListVo;
+import com.zsk.document.domain.vo.DocStatsInfoVo;
 import com.zsk.document.domain.vo.InteractionResultVo;
 import com.zsk.document.service.IDocNoteInteractionService;
 import com.zsk.document.service.IDocNoteService;
@@ -49,13 +50,15 @@ public class DocNoteController {
      * 查询笔记列表
      *
      * @param docNote 查询条件（可选：noteName、broadCode、narrowCode等）
-     * @return 笔记列表（包含封面文件信息）
+     * @return 笔记列表（包含封面文件信息和作者信息）
      */
     @Log(title = "笔记管理", businessType = BusinessType.QUERY)
     @Operation(summary = "查询笔记列表")
     @GetMapping("/list")
     public R<List<DocNoteListVo>> list(DocNote docNote) {
-        return R.ok(docNoteService.listWithFileUrl(docNote));
+        List<DocNoteListVo> noteList = docNoteService.listWithFileUrl(docNote);
+        docNoteService.fillAuthorInfo(noteList);
+        return R.ok(noteList);
     }
 
     /**
@@ -63,13 +66,15 @@ public class DocNoteController {
      *
      * @param docNote   查询条件（可选）
      * @param pageQuery 分页参数（pageNum、pageSize）
-     * @return 分页结果（包含封面文件信息）
+     * @return 分页结果（包含封面文件信息和作者信息）
      */
     @Log(title = "笔记管理", businessType = BusinessType.QUERY)
     @Operation(summary = "分页查询笔记列表")
     @GetMapping("/page")
     public R<PageResult<DocNoteListVo>> page(DocNote docNote, PageQuery pageQuery) {
-        return R.ok(docNoteService.pageWithFileUrl(docNote, pageQuery));
+        PageResult<DocNoteListVo> pageResult = docNoteService.pageWithFileUrl(docNote, pageQuery);
+        docNoteService.fillAuthorInfo(pageResult.getList());
+        return R.ok(pageResult);
     }
 
     /**
@@ -98,22 +103,6 @@ public class DocNoteController {
     public R<InteractionResultVo> getInteraction(@PathVariable("id") Long id,
                                                  @RequestParam(required = false) Long userId) {
         return R.ok(docNoteInteractionService.getNoteInteraction(id, userId));
-    }
-
-    /**
-     * 增加笔记浏览量
-     *
-     * @param id     笔记ID
-     * @param userId 用户ID（可选，用于防止同一用户短时间内重复计数）
-     * @return 操作结果
-     */
-    @Log(title = "笔记管理", businessType = BusinessType.UPDATE)
-    @Operation(summary = "增加笔记浏览量")
-    @PostMapping("/{id}/view")
-    public R<Void> incrementView(@PathVariable("id") Long id,
-                                 @RequestParam(required = false) Long userId) {
-        docNoteInteractionService.incrementViewCount(id, userId);
-        return R.ok();
     }
 
     /**
@@ -224,5 +213,39 @@ public class DocNoteController {
     @PutMapping("/{id}/recommended")
     public R<Void> toggleRecommended(@PathVariable Long id) {
         return docNoteService.toggleRecommended(id) ? R.ok() : R.fail("笔记不存在");
+    }
+
+    /**
+     * 获取笔记统计信息
+     * <p>
+     * 查询指定笔记的点赞数、收藏数和浏览量。
+     * 数据来源于 Redis 缓存服务，确保数据的实时性。
+     * </p>
+     *
+     * @param id 笔记ID
+     * @return 笔记统计信息（浏览量、点赞数、收藏数）
+     */
+    @Log(title = "笔记管理", businessType = BusinessType.QUERY)
+    @Operation(summary = "获取笔记统计信息")
+    @GetMapping("/{id}/stats")
+    public R<DocStatsInfoVo> getStats(@PathVariable("id") Long id) {
+        return R.ok(docNoteService.getNoteStats(id));
+    }
+
+    /**
+     * 批量获取笔记统计信息
+     * <p>
+     * 批量查询多个笔记的点赞数、收藏数和浏览量。
+     * 数据来源于 Redis 缓存服务。
+     * </p>
+     *
+     * @param ids 笔记ID列表（逗号分隔）
+     * @return 笔记ID到统计信息的映射
+     */
+    @Log(title = "笔记管理", businessType = BusinessType.QUERY)
+    @Operation(summary = "批量获取笔记统计信息")
+    @GetMapping("/stats/batch")
+    public R<Map<Long, DocStatsInfoVo>> batchGetStats(@RequestParam("ids") List<Long> ids) {
+        return R.ok(docNoteService.batchGetNoteStats(ids));
     }
 }

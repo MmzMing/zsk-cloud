@@ -9,6 +9,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.cloud.openfeign.FallbackFactory;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
+
 /**
  * 用户服务降级处理
  *
@@ -22,6 +24,16 @@ public class RemoteUserFallbackFactory implements FallbackFactory<RemoteUserServ
     public RemoteUserService create(Throwable throwable) {
         log.error("用户服务调用失败:{}", throwable.getMessage());
         return new RemoteUserService() {
+            @Override
+            public R<SysUserApi> getUserById(Long id) {
+                return R.fail("获取用户失败:" + throwable.getMessage());
+            }
+
+            @Override
+            public R<List<SysUserApi>> listByIds(List<Long> ids) {
+                return R.fail("获取用户列表失败:" + throwable.getMessage());
+            }
+
             @Override
             public R<SysUserApi> getUserInfo(String username) {
                 return R.fail("获取用户失败:" + throwable.getMessage());

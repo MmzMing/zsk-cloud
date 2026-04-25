@@ -10,8 +10,8 @@ import java.io.Serializable;
  * 笔记首页详情视图对象
  * <p>
  * 用于前台笔记详情页展示，包含笔记基本信息、作者信息、统计信息等。
- * 统计信息通过独立的 {@link DocNoteHomeDetailStatsInfoVo} 封装，
- * 作者信息通过独立的 {@link DocNoteHomeDetailAuthorVo} 封装。
+ * 统计信息通过独立的 {@link DocStatsInfoVo} 封装，
+ * 作者信息通过独立的 {@link DocUserVo} 封装。
  * </p>
  *
  * @author wuhuaming
@@ -65,11 +65,11 @@ public class DocNoteHomeDetailVo implements Serializable {
      * 作者信息
      */
     @Schema(description = "作者信息")
-    private DocNoteHomeDetailAuthorVo author;
+    private DocUserVo author;
 
     /**
      * 统计信息
      */
     @Schema(description = "统计信息")
-    private DocNoteHomeDetailStatsInfoVo stats;
+    private DocStatsInfoVo stats;
 }

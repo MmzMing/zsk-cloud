@@ -105,11 +105,11 @@ public class DocNoteHomeDetailServiceImpl implements IDocNoteHomeDetailService {
         DocNoteHomeDetailVo vo = buildNoteHomeDetailVo(noteId);
 
         // 4. 查询并设置统计数据
-        DocNoteHomeDetailStatsInfoVo stats = buildNoteStatsInfo(noteId, userId);
+        DocStatsInfoVo stats = buildNoteStatsInfo(noteId, userId);
         vo.setStats(stats);
 
         // 5. 查询并设置作者信息（包含关注状态）
-        DocNoteHomeDetailAuthorVo author = buildNoteAuthorInfo(noteId, userId);
+        DocUserVo author = buildNoteAuthorInfo(noteId, userId);
         vo.setAuthor(author);
 
         log.info("获取笔记详情成功, noteId={}", noteId);
@@ -127,7 +127,7 @@ public class DocNoteHomeDetailServiceImpl implements IDocNoteHomeDetailService {
      * @return 笔记交互详情VO，如果笔记不存在返回null
      */
     @Override
-    public DocNoteHomeDetailStatsInfoVo getNoteInteraction(Long noteId, Long userId) {
+    public DocStatsInfoVo getNoteInteraction(Long noteId, Long userId) {
         log.info("获取笔记交互详情, noteId={}, userId={}", noteId, userId);
 
         // 验证笔记是否存在
@@ -451,10 +451,10 @@ public class DocNoteHomeDetailServiceImpl implements IDocNoteHomeDetailService {
      * @return 笔记统计信息VO
      */
     @Override
-    public DocNoteHomeDetailStatsInfoVo buildNoteStatsInfo(Long noteId, Long userId) {
+    public DocStatsInfoVo buildNoteStatsInfo(Long noteId, Long userId) {
         log.debug("构建笔记统计信息VO, noteId={}, userId={}", noteId, userId);
 
-        DocNoteHomeDetailStatsInfoVo stats = new DocNoteHomeDetailStatsInfoVo();
+        DocStatsInfoVo stats = new DocStatsInfoVo();
 
         // 1. 获取浏览量
         Long viewCount = cacheDocViewService.getViewCount(CacheDocViewTypeEnum.NOTE.getCode(), noteId);
@@ -468,15 +468,7 @@ public class DocNoteHomeDetailServiceImpl implements IDocNoteHomeDetailService {
         Long collectCount = cacheDocCollectService.getCollectCount(CacheDocCollectTypeEnum.NOTE.getCode(), noteId);
         stats.setFavorites(collectCount.intValue());
 
-        // 4. 获取评论数
-        Long commentCount = commentMapper.selectCount(
-                Wrappers.<DocNoteComment>lambdaQuery()
-                        .eq(DocNoteComment::getDeleted, 0)
-                        .eq(DocNoteComment::getNoteId, noteId)
-        );
-        stats.setComments(commentCount.intValue());
-
-        // 5. 查询当前用户的交互状态
+        // 4. 查询当前用户的交互状态
         if (userId != null) {
             boolean isLiked = cacheDocLikeService.hasLiked(CacheDocLikeTypeEnum.NOTE.getCode(), noteId, userId);
             stats.setIsLiked(isLiked);
@@ -502,7 +494,7 @@ public class DocNoteHomeDetailServiceImpl implements IDocNoteHomeDetailService {
      * @return 笔记作者信息VO，如果笔记不存在返回null
      */
     @Override
-    public DocNoteHomeDetailAuthorVo buildNoteAuthorInfo(Long noteId, Long userId) {
+    public DocUserVo buildNoteAuthorInfo(Long noteId, Long userId) {
         log.debug("构建笔记作者信息VO, noteId={}, userId={}", noteId, userId);
 
         DocNote note = noteMapper.selectById(noteId);
@@ -511,7 +503,7 @@ public class DocNoteHomeDetailServiceImpl implements IDocNoteHomeDetailService {
             return null;
         }
 
-        DocNoteHomeDetailAuthorVo author = new DocNoteHomeDetailAuthorVo();
+        DocUserVo author = new DocUserVo();
         author.setId(note.getUserId());
         author.setName("作者" + note.getUserId());
         author.setAvatar("");
@@ -519,7 +511,7 @@ public class DocNoteHomeDetailServiceImpl implements IDocNoteHomeDetailService {
         // 获取作者粉丝数
         Long fansCount = cacheDocFollowService.getFollowCount(
                 CacheDocFollowTypeEnum.NOTE_AUTHOR.getCode(), note.getUserId());
-        author.setFans(String.valueOf(fansCount));
+        author.setFans(fansCount.intValue());
 
         // 查询当前用户是否关注作者
         if (userId != null) {
@@ -563,7 +555,7 @@ public class DocNoteHomeDetailServiceImpl implements IDocNoteHomeDetailService {
         vo.setLikes(likeCount.intValue());
 
         // 构建评论作者信息
-        DocCommentVo.AuthorInfo author = new DocCommentVo.AuthorInfo();
+        DocUserVo author = new DocUserVo();
         author.setId(comment.getCommentUserId());
         author.setName("用户" + comment.getCommentUserId());
         author.setAvatar("");
@@ -573,7 +565,7 @@ public class DocNoteHomeDetailServiceImpl implements IDocNoteHomeDetailService {
         if (comment.getParentCommentId() != null) {
             DocNoteComment parentComment = commentMapper.selectById(comment.getParentCommentId());
             if (parentComment != null) {
-                DocCommentVo.ReplyToInfo replyTo = new DocCommentVo.ReplyToInfo();
+                DocUserVo replyTo = new DocUserVo();
                 replyTo.setId(parentComment.getCommentUserId());
                 replyTo.setName("用户" + parentComment.getCommentUserId());
                 vo.setReplyTo(replyTo);

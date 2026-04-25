@@ -6,13 +6,24 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
+import com.zsk.common.core.domain.R;
 import com.zsk.document.domain.DocFiles;
 import com.zsk.document.domain.DocNote;
 import com.zsk.document.domain.vo.DocFileInfoVo;
 import com.zsk.document.domain.vo.DocNoteListVo;
+import com.zsk.document.domain.vo.DocStatsInfoVo;
+import com.zsk.document.domain.vo.DocUserVo;
+import com.zsk.document.enums.CacheDocCollectTypeEnum;
+import com.zsk.document.enums.CacheDocLikeTypeEnum;
+import com.zsk.document.enums.CacheDocViewTypeEnum;
 import com.zsk.document.mapper.DocFilesMapper;
 import com.zsk.document.mapper.DocNoteMapper;
+import com.zsk.document.service.ICacheDocCollectService;
+import com.zsk.document.service.ICacheDocLikeService;
+import com.zsk.document.service.ICacheDocViewService;
 import com.zsk.document.service.IDocNoteService;
+import com.zsk.system.api.RemoteUserService;
+import com.zsk.system.api.domain.SysUserApi;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -36,6 +47,10 @@ import java.util.stream.Collectors;
 public class DocNoteServiceImpl extends ServiceImpl<DocNoteMapper, DocNote> implements IDocNoteService {
 
     private final DocFilesMapper docFilesMapper;
+    private final RemoteUserService remoteUserService;
+    private final ICacheDocViewService cacheDocViewService;
+    private final ICacheDocLikeService cacheDocLikeService;
+    private final ICacheDocCollectService cacheDocCollectService;
 
 
     /**
@@ -249,5 +264,151 @@ public class DocNoteServiceImpl extends ServiceImpl<DocNoteMapper, DocNote> impl
         boolean result = this.update(updateWrapper);
         log.info("切换笔记推荐状态完成, id={}, 新状态={}", id, newRecommended);
         return result;
+    }
+
+    /**
+     * 填充笔记列表的作者信息
+     * <p>
+     * 批量查询用户信息并填充到笔记列表中，避免N+1查询问题。
+     * 处理流程：
+     * 1. 收集笔记列表中所有非空的用户ID
+     * 2. 调用远程用户服务批量查询用户信息
+     * 3. 构建用户ID到用户信息的映射
+     * 4. 遍历笔记列表，根据用户ID填充作者信息
+     * </p>
+     *
+     * @param noteList 笔记列表视图对象
+     */
+    @Override
+    public void fillAuthorInfo(List<DocNoteListVo> noteList) {
+        log.info("开始填充笔记作者信息");
+
+        // 空列表直接返回
+        if (noteList == null || noteList.isEmpty()) {
+            log.info("笔记列表为空，跳过作者信息填充");
+            return;
+        }
+
+        // 收集所有非空的用户ID，用于批量查询
+        List<Long> userIds = noteList.stream()
+                .map(DocNoteListVo::getUserId)
+                .filter(userId -> userId != null)
+                .distinct()
+                .collect(Collectors.toList());
+
+        // 无用户ID时直接返回
+        if (userIds.isEmpty()) {
+            log.info("无用户ID需要查询，跳过作者信息填充");
+            return;
+        }
+
+        log.info("批量查询用户信息，用户ID数量: {}", userIds.size());
+
+        // 调用远程用户服务批量查询用户信息
+        R<List<SysUserApi>> userResult = remoteUserService.listByIds(userIds);
+        if (userResult == null || userResult.getData() == null) {
+            log.warn("远程用户服务查询失败，跳过作者信息填充");
+            return;
+        }
+
+        // 构建用户ID到用户信息的映射，便于快速查找
+        Map<Long, SysUserApi> userMap = userResult.getData().stream()
+                .collect(Collectors.toMap(SysUserApi::getId, user -> user));
+
+        log.info("用户信息查询成功，查询到{}个用户", userMap.size());
+
+        // 遍历笔记列表，填充作者信息
+        for (DocNoteListVo note : noteList) {
+            if (note.getUserId() != null && userMap.containsKey(note.getUserId())) {
+                SysUserApi user = userMap.get(note.getUserId());
+                DocUserVo author = new DocUserVo();
+                author.setId(user.getId());
+                // 优先使用昵称，若无则使用用户名
+                author.setName(user.getNickName() != null ? user.getNickName() : user.getUserName());
+                author.setAvatar(user.getAvatar());
+                note.setAuthor(author);
+            }
+        }
+
+        log.info("笔记作者信息填充完成");
+    }
+
+    /**
+     * 根据单个笔记ID查询统计信息
+     * <p>
+     * 查询指定笔记的点赞数、收藏数和浏览量。
+     * 数据来源于 Redis 缓存服务，确保数据的实时性。
+     * </p>
+     *
+     * @param noteId 笔记ID
+     * @return 笔记统计信息VO（包含浏览量、点赞数、收藏数）
+     */
+    @Override
+    public DocStatsInfoVo getNoteStats(Long noteId) {
+        log.info("查询笔记统计信息, noteId={}", noteId);
+
+        DocStatsInfoVo stats = new DocStatsInfoVo();
+
+        // 查询浏览量
+        Long viewCount = cacheDocViewService.getViewCount(CacheDocViewTypeEnum.NOTE.getCode(), noteId);
+        stats.setViews(viewCount != null ? viewCount.intValue() : 0);
+
+        // 查询点赞数
+        Long likeCount = cacheDocLikeService.getLikeCount(CacheDocLikeTypeEnum.NOTE.getCode(), noteId);
+        stats.setLikes(likeCount != null ? likeCount.intValue() : 0);
+
+        // 查询收藏数
+        Long collectCount = cacheDocCollectService.getCollectCount(CacheDocCollectTypeEnum.NOTE.getCode(), noteId);
+        stats.setFavorites(collectCount != null ? collectCount.intValue() : 0);
+
+        log.info("查询笔记统计信息成功, noteId={}, views={}, likes={}, favorites={}", 
+                noteId, stats.getViews(), stats.getLikes(), stats.getFavorites());
+
+        return stats;
+    }
+
+    /**
+     * 批量查询笔记统计信息
+     * <p>
+     * 批量查询多个笔记的点赞数、收藏数和浏览量。
+     * 数据来源于 Redis 缓存服务。
+     * </p>
+     *
+     * @param noteIds 笔记ID列表
+     * @return 笔记ID到统计信息的映射
+     */
+    @Override
+    public Map<Long, DocStatsInfoVo> batchGetNoteStats(List<Long> noteIds) {
+        log.info("批量查询笔记统计信息, noteIds数量={}", noteIds != null ? noteIds.size() : 0);
+
+        Map<Long, DocStatsInfoVo> statsMap = new HashMap<>();
+
+        // 空列表直接返回空结果
+        if (noteIds == null || noteIds.isEmpty()) {
+            return statsMap;
+        }
+
+        // 遍历查询每个笔记的统计信息
+        for (Long noteId : noteIds) {
+            DocStatsInfoVo stats = new DocStatsInfoVo();
+
+            // 查询浏览量
+            Long viewCount = cacheDocViewService.getViewCount(CacheDocViewTypeEnum.NOTE.getCode(), noteId);
+            stats.setViews(viewCount != null ? viewCount.intValue() : 0);
+
+            // 查询点赞数
+            Long likeCount = cacheDocLikeService.getLikeCount(CacheDocLikeTypeEnum.NOTE.getCode(), noteId);
+            stats.setLikes(likeCount != null ? likeCount.intValue() : 0);
+
+            // 查询收藏数
+            Long collectCount = cacheDocCollectService.getCollectCount(CacheDocCollectTypeEnum.NOTE.getCode(), noteId);
+            stats.setFavorites(collectCount != null ? collectCount.intValue() : 0);
+
+            statsMap.put(noteId, stats);
+        }
+
+        log.info("批量查询笔记统计信息完成, 成功查询{}条笔记", statsMap.size());
+
+        return statsMap;
     }
 }

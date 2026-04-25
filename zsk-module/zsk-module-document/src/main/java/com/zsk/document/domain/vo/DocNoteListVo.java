@@ -20,6 +20,9 @@ public class DocNoteListVo implements Serializable {
     @Schema(description = "用户ID")
     private Long userId;
 
+    @Schema(description = "作者信息")
+    private DocUserVo author;
+
     @Schema(description = "笔记名称")
     private String noteName;
 

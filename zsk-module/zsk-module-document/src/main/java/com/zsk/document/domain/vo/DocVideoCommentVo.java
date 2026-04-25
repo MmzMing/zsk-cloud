@@ -37,7 +37,7 @@ public class DocVideoCommentVo implements Serializable {
      * 作者信息
      */
     @Schema(description = "作者信息")
-    private AuthorInfo author;
+    private DocUserVo author;
 
     /**
      * 创建时间
@@ -67,55 +67,5 @@ public class DocVideoCommentVo implements Serializable {
      * 回复对象信息
      */
     @Schema(description = "回复对象信息")
-    private ReplyToInfo replyTo;
-
-    /**
-     * 作者信息
-     */
-    @Data
-    @Schema(description = "作者信息")
-    public static class AuthorInfo implements Serializable {
-        @Serial
-        private static final long serialVersionUID = 1L;
-
-        /**
-         * 作者ID
-         */
-        @Schema(description = "作者ID")
-        private Long id;
-
-        /**
-         * 作者名称
-         */
-        @Schema(description = "作者名称")
-        private String name;
-
-        /**
-         * 作者头像URL
-         */
-        @Schema(description = "作者头像URL")
-        private String avatar;
-    }
-
-    /**
-     * 回复对象信息
-     */
-    @Data
-    @Schema(description = "回复对象信息")
-    public static class ReplyToInfo implements Serializable {
-        @Serial
-        private static final long serialVersionUID = 1L;
-
-        /**
-         * 被回复人ID
-         */
-        @Schema(description = "被回复人ID")
-        private Long id;
-
-        /**
-         * 被回复人名称
-         */
-        @Schema(description = "被回复人名称")
-        private String name;
-    }
+    private DocUserVo replyTo;
 }
