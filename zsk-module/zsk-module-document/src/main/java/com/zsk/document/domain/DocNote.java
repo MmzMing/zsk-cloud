@@ -44,12 +44,6 @@ public class DocNote extends TenantEntity {
     private String noteTags;
 
     /**
-     * 文档内容
-     */
-    @Schema(description = "文档内容")
-    private String content;
-
-    /**
      * 笔记简介/描述
      */
     @Schema(description = "笔记简介/描述")
@@ -109,12 +103,6 @@ public class DocNote extends TenantEntity {
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
     @Schema(description = "笔记发布时间")
     private LocalDateTime publishTime;
-
-    /**
-     * 封面图
-     */
-    @Schema(description = "封面图")
-    private String cover;
 
     /**
      * 是否置顶（0否 1是）

@@ -37,6 +37,46 @@ public class DocVideoServiceImpl extends ServiceImpl<DocVideoMapper, DocVideo> i
 
     private final DocFilesMapper docFilesMapper;
 
+
+    /**
+     * 查询视频列表（带文件URL）
+     * <p>
+     * 根据查询条件获取视频列表，并关联查询视频文件和缩略图文件信息，返回包含文件URL的视图对象列表。
+     * 采用批量查询策略优化性能，避免N+1查询问题。
+     * </p>
+     *
+     * @param docVideo 查询条件对象（支持videoTitle、broadCode、narrowCode等字段过滤）
+     * @return 视频列表视图对象（包含文件信息）
+     */
+    @Override
+    public List<DocVideoListVo> listWithFileUrl(DocVideo docVideo) {
+        log.info("查询视频列表（带文件URL）");
+        List<DocVideo> videoList = this.list(new LambdaQueryWrapper<>(docVideo));
+        return convertToVoList(videoList);
+    }
+
+    /**
+     * 分页查询视频列表（带文件URL）
+     * <p>
+     * 根据查询条件和分页参数获取视频分页数据，并关联查询视频文件和缩略图文件信息。
+     * 采用批量查询策略优化性能。
+     * </p>
+     *
+     * @param docVideo  查询条件对象
+     * @param pageQuery 分页参数（包含pageNum、pageSize）
+     * @return 分页结果（包含文件信息）
+     */
+    @Override
+    public PageResult<DocVideoListVo> pageWithFileUrl(DocVideo docVideo, PageQuery pageQuery) {
+        log.info("分页查询视频列表（带文件URL）, pageNum={}, pageSize={}", pageQuery.getPageNum(), pageQuery.getPageSize());
+        Page<DocVideo> page = pageQuery.build();
+        LambdaQueryWrapper<DocVideo> lqw = new LambdaQueryWrapper<>(docVideo);
+        lqw.orderByDesc(DocVideo::getCreateTime);
+        Page<DocVideo> resultPage = this.page(page, lqw);
+        List<DocVideoListVo> voList = convertToVoList(resultPage.getRecords());
+        return PageResult.of(voList, resultPage.getTotal(), resultPage.getCurrent(), resultPage.getSize());
+    }
+
     /**
      * 发布草稿
      * <p>
@@ -135,45 +175,6 @@ public class DocVideoServiceImpl extends ServiceImpl<DocVideoMapper, DocVideo> i
         boolean result = this.update(updateWrapper);
         log.info("切换视频推荐状态完成, id={}, result={}", id, result);
         return result;
-    }
-
-    /**
-     * 查询视频列表（带文件URL）
-     * <p>
-     * 根据查询条件获取视频列表，并关联查询视频文件和缩略图文件信息，返回包含文件URL的视图对象列表。
-     * 采用批量查询策略优化性能，避免N+1查询问题。
-     * </p>
-     *
-     * @param docVideo 查询条件对象（支持videoTitle、broadCode、narrowCode等字段过滤）
-     * @return 视频列表视图对象（包含文件信息）
-     */
-    @Override
-    public List<DocVideoListVo> listWithFileUrl(DocVideo docVideo) {
-        log.info("查询视频列表（带文件URL）");
-        List<DocVideo> videoList = this.list(new LambdaQueryWrapper<>(docVideo));
-        return convertToVoList(videoList);
-    }
-
-    /**
-     * 分页查询视频列表（带文件URL）
-     * <p>
-     * 根据查询条件和分页参数获取视频分页数据，并关联查询视频文件和缩略图文件信息。
-     * 采用批量查询策略优化性能。
-     * </p>
-     *
-     * @param docVideo  查询条件对象
-     * @param pageQuery 分页参数（包含pageNum、pageSize）
-     * @return 分页结果（包含文件信息）
-     */
-    @Override
-    public PageResult<DocVideoListVo> pageWithFileUrl(DocVideo docVideo, PageQuery pageQuery) {
-        log.info("分页查询视频列表（带文件URL）, pageNum={}, pageSize={}", pageQuery.getPageNum(), pageQuery.getPageSize());
-        Page<DocVideo> page = pageQuery.build();
-        LambdaQueryWrapper<DocVideo> lqw = new LambdaQueryWrapper<>(docVideo);
-        lqw.orderByDesc(DocVideo::getCreateTime);
-        Page<DocVideo> resultPage = this.page(page, lqw);
-        List<DocVideoListVo> voList = convertToVoList(resultPage.getRecords());
-        return PageResult.of(voList, resultPage.getTotal(), resultPage.getCurrent(), resultPage.getSize());
     }
 
     /**

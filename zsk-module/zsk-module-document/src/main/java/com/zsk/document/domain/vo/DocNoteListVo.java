@@ -20,23 +20,14 @@ public class DocNoteListVo implements Serializable {
     @Schema(description = "用户ID")
     private Long userId;
 
-    @Schema(description = "作者信息")
-    private DocUserVo author;
-
     @Schema(description = "笔记名称")
     private String noteName;
 
     @Schema(description = "笔记标签")
     private String noteTags;
 
-    @Schema(description = "文档内容")
-    private String content;
-
     @Schema(description = "笔记简介/描述")
     private String description;
-
-    @Schema(description = "封面文件信息")
-    private DocFileInfoVo coverFile;
 
     @Schema(description = "大类")
     private String broadCode;
@@ -58,9 +49,6 @@ public class DocNoteListVo implements Serializable {
 
     @Schema(description = "笔记状态")
     private Integer status;
-
-    @Schema(description = "统计数据")
-    private DocStatsInfoVo stats;
 
     @Schema(description = "笔记发布时间")
     private LocalDateTime publishTime;
@@ -88,4 +76,13 @@ public class DocNoteListVo implements Serializable {
 
     @Schema(description = "更新时间")
     private LocalDateTime updateTime;
+
+    @Schema(description = "作者信息")
+    private DocUserVo author;
+
+    @Schema(description = "封面文件信息")
+    private DocFileInfoVo coverFile;
+
+    @Schema(description = "统计数据")
+    private DocStatsInfoVo stats;
 }

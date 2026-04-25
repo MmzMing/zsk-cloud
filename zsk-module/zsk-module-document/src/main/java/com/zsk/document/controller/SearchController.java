@@ -65,6 +65,11 @@ public class SearchController {
     private final IDocNoteCommentService noteCommentService;
 
     /**
+     * 笔记详情服务（用于获取笔记内容）
+     */
+    private final IDocNoteDtlService noteDtlService;
+
+    /**
      * 缓存浏览服务
      */
     private final ICacheDocViewService cacheDocViewService;
@@ -199,12 +204,12 @@ public class SearchController {
                 .eq(DocNote::getDeleted, 0)
                 .eq(DocNote::getStatus, 1);
 
-        // 2. 添加关键字模糊查询条件
+        // 2. 添加关键字模糊查询条件（只搜索标题和描述）
         if (StringUtils.hasText(keyword)) {
             wrapper.and(w -> w
                     .like(DocNote::getNoteName, keyword)
                     .or()
-                    .like(DocNote::getContent, keyword)
+                    .like(DocNote::getDescription, keyword)
             );
         }
 
@@ -298,9 +303,18 @@ public class SearchController {
         vo.setId(String.valueOf(note.getId()));
         vo.setType("document");
         vo.setTitle(note.getNoteName());
-        vo.setDescription(note.getContent() != null ? note.getContent() : "");
+        
+        // 从笔记详情表获取内容
+        String content = "";
+        if (note.getId() != null) {
+            com.zsk.document.domain.DocNoteDtl dtl = noteDtlService.getByNoteId(note.getId());
+            if (dtl != null && dtl.getContent() != null) {
+                content = dtl.getContent();
+            }
+        }
+        vo.setDescription(content);
+        
         vo.setCategory(note.getBroadCode());
-        vo.setThumbnail(note.getCover());
         vo.setAuthorId(String.valueOf(note.getUserId()));
         vo.setAuthor("作者" + note.getUserId());
         vo.setTags(new ArrayList<>());

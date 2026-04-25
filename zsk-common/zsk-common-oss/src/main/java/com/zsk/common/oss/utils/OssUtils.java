@@ -33,6 +33,29 @@ public class OssUtils {
     }
 
     /**
+     * 清理文件名，去除URL查询参数等杂质
+     *
+     * @param fileName 原始文件名
+     * @return 纯净的文件名
+     */
+    public static String cleanFileName(String fileName) {
+        if (StrUtil.isBlank(fileName)) {
+            return fileName;
+        }
+        // 去除URL查询参数 (如 ?X-Amz-Algorithm=...)
+        int queryIndex = fileName.indexOf("?");
+        if (queryIndex > 0) {
+            fileName = fileName.substring(0, queryIndex);
+        }
+        // 去除URL片段标识 (如 #fragment)
+        int fragmentIndex = fileName.indexOf("#");
+        if (fragmentIndex > 0) {
+            fileName = fileName.substring(0, fragmentIndex);
+        }
+        return fileName;
+    }
+
+    /**
      * 获取文件存储路径
      * 规则：类型名称/MD5首字符/MD5第二字符/年/月/日/MD5完整值.扩展名
      *
@@ -41,8 +64,10 @@ public class OssUtils {
      * @return 文件路径
      */
     public static String getPath(String fileName, String md5) {
+        // 0. 清理文件名，去除查询参数等杂质
+        String cleanName = cleanFileName(fileName);
         // 1. 获取扩展名
-        String extension = FileNameUtil.extName(fileName);
+        String extension = FileNameUtil.extName(cleanName);
         // 2. 获取类型名称
         FileType fileType = FileType.getByExtension(extension);
         String typeName = fileType.getName();
@@ -95,7 +120,7 @@ public class OssUtils {
      * @return 后缀名
      */
     public static String getExtension(String fileName) {
-        return FileNameUtil.extName(fileName);
+        return FileNameUtil.extName(cleanFileName(fileName));
     }
 
     /**
@@ -105,7 +130,7 @@ public class OssUtils {
      * @return 类型名称
      */
     public static String getTypeName(String fileName) {
-        return FileType.getByExtension(FileNameUtil.extName(fileName)).getName();
+        return FileType.getByExtension(FileNameUtil.extName(cleanFileName(fileName))).getName();
     }
 
     /**
@@ -115,6 +140,6 @@ public class OssUtils {
      * @return MIME类型
      */
     public static String getContentType(String fileName) {
-        return FileUtil.getMimeType(fileName);
+        return FileUtil.getMimeType(cleanFileName(fileName));
     }
 }

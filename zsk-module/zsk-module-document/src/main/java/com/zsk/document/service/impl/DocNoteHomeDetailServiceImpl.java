@@ -6,6 +6,7 @@ import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.document.domain.DocNote;
 import com.zsk.document.domain.DocNoteComment;
+import com.zsk.document.domain.DocNoteDtl;
 import com.zsk.document.domain.vo.*;
 import com.zsk.document.enums.CacheDocCollectTypeEnum;
 import com.zsk.document.enums.CacheDocFollowTypeEnum;
@@ -68,6 +69,11 @@ public class DocNoteHomeDetailServiceImpl implements IDocNoteHomeDetailService {
      * 缓存关注服务
      */
     private final ICacheDocFollowService cacheDocFollowService;
+
+    /**
+     * 笔记详情服务（用于获取笔记内容）
+     */
+    private final IDocNoteDtlService noteDtlService;
 
     /**
      * 日期格式化器
@@ -431,10 +437,19 @@ public class DocNoteHomeDetailServiceImpl implements IDocNoteHomeDetailService {
         DocNoteHomeDetailVo vo = new DocNoteHomeDetailVo();
         vo.setId(note.getId());
         vo.setTitle(note.getNoteName());
-        vo.setContent(note.getContent());
+        
+        // 从笔记详情表获取内容
+        String content = "";
+        if (note.getId() != null) {
+            DocNoteDtl dtl = noteDtlService.getByNoteId(note.getId());
+            if (dtl != null && dtl.getContent() != null) {
+                content = dtl.getContent();
+            }
+        }
+        vo.setContent(content);
+        
         vo.setCategory(note.getBroadCode());
         vo.setDate(note.getCreateTime() != null ? note.getCreateTime().format(DATE_FORMATTER) : "");
-        vo.setCoverUrl(note.getCover());
 
         return vo;
     }

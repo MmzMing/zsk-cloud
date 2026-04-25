@@ -48,7 +48,7 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
     @Override
     @SneakyThrows
     public DocFiles uploadFile(MultipartFile file) {
-        String originalFilename = file.getOriginalFilename();
+        String originalFilename = OssUtils.cleanFileName(file.getOriginalFilename());
         log.info("开始上传文件, fileName={}", originalFilename);
         // 计算MD5
         String md5;
@@ -86,7 +86,7 @@ public class DocFilesServiceImpl extends ServiceImpl<DocFilesMapper, DocFiles> i
             log.warn("初始化分片上传失败, 参数为空");
             throw new BusinessException("参数不能为空");
         }
-        String fileName = request.getFileName();
+        String fileName = OssUtils.cleanFileName(request.getFileName());
         String contentType = request.getContentType();
         String md5 = request.getMd5();
         log.info("初始化分片上传, fileName={}, md5={}", fileName, md5);
