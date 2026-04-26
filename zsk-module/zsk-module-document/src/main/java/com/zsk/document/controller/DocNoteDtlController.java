@@ -89,25 +89,6 @@ public class DocNoteDtlController {
     }
 
     /**
-     * 修改笔记详情
-     * <p>
-     * 根据笔记ID更新笔记内容。
-     * 使用 @Valid 注解触发参数校验。
-     * 若笔记详情不存在，返回失败响应。
-     * </p>
-     *
-     * @param dto 笔记详情DTO（包含 noteId 和 content）
-     * @return 是否成功
-     */
-    @Log(title = "笔记详情管理", businessType = BusinessType.UPDATE)
-    @Operation(summary = "修改笔记详情")
-    @PutMapping
-    public R<Boolean> edit(@RequestBody @Valid DocNoteDtlDTO dto) {
-        // 调用 Service 层保存或更新笔记详情（存在则更新，不存在则新增）
-        return R.ok(docNoteDtlService.saveOrUpdateByNoteId(dto));
-    }
-
-    /**
      * 删除笔记详情
      * <p>
      * 根据笔记ID删除对应的笔记内容详情。

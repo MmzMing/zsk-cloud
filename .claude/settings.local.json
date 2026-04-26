@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn -pl zsk-module/zsk-module-document -am clean compile -DskipTests)"
+    ]
+  }
+}
