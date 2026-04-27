@@ -16,6 +16,8 @@ import com.zsk.document.enums.CacheDocLikeTypeEnum;
 import com.zsk.document.mapper.DocNoteCommentMapper;
 import com.zsk.document.service.ICacheDocLikeService;
 import com.zsk.document.service.IDocNoteCommentService;
+import com.zsk.system.api.RemoteUserService;
+import com.zsk.system.api.domain.SysUserApi;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -23,9 +25,11 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -55,6 +59,11 @@ public class DocNoteCommentServiceImpl extends ServiceImpl<DocNoteCommentMapper,
      * 缓存点赞服务
      */
     private final ICacheDocLikeService cacheDocLikeService;
+
+    /**
+     * 远程用户服务
+     */
+    private final RemoteUserService remoteUserService;
 
     /**
      * 获取笔记评论列表（支持热门/最新排序）
@@ -163,8 +172,13 @@ public class DocNoteCommentServiceImpl extends ServiceImpl<DocNoteCommentMapper,
         this.save(comment);
         log.info("评论发表成功, commentId={}", comment.getId());
 
-        // 4. 构建并返回评论VO
-        return buildCommentVo(comment, userId);
+        // 4. 构建并返回评论VO（单条评论查询用户信息）
+        Map<Long, SysUserApi> userMap = fetchUserMap(Collections.singletonList(comment.getCommentUserId()));
+        if (comment.getReplyUserId() != null) {
+            Map<Long, SysUserApi> replyUserMap = fetchUserMap(Collections.singletonList(comment.getReplyUserId()));
+            userMap.putAll(replyUserMap);
+        }
+        return buildCommentVo(comment, userId, userMap);
     }
 
     /**
@@ -215,10 +229,10 @@ public class DocNoteCommentServiceImpl extends ServiceImpl<DocNoteCommentMapper,
      *
      * @param comment       评论实体
      * @param currentUserId 当前登录用户ID（可为null）
+     * @param userMap       用户信息缓存Map（key: userId, value: SysUserApi）
      * @return 评论VO
      */
-    @Override
-    public DocCommentVo buildCommentVo(DocNoteComment comment, Long currentUserId) {
+    private DocCommentVo buildCommentVo(DocNoteComment comment, Long currentUserId, Map<Long, SysUserApi> userMap) {
         log.debug("构建评论VO, commentId={}, currentUserId={}", comment.getId(), currentUserId);
 
         // 1. 创建评论VO对象
@@ -238,29 +252,82 @@ public class DocNoteCommentServiceImpl extends ServiceImpl<DocNoteCommentMapper,
             vo.setIsLiked(false);
         }
 
-        // 4. 构建评论作者信息
+        // 4. 构建评论作者信息（从远程用户服务获取）
+        SysUserApi authorUser = userMap.get(comment.getCommentUserId());
         DocUserVo author = new DocUserVo();
         author.setId(comment.getCommentUserId());
-        author.setName("用户" + comment.getCommentUserId());
-        author.setAvatar("");
+        if (authorUser != null) {
+            author.setName(authorUser.getNickName() != null ? authorUser.getNickName() : authorUser.getUserName());
+            author.setAvatar(authorUser.getAvatar());
+        } else {
+            author.setName("用户" + comment.getCommentUserId());
+            author.setAvatar("");
+        }
         vo.setAuthor(author);
 
         // 5. 设置回复对象信息（如果有replyUserId）
         if (comment.getReplyUserId() != null) {
+            SysUserApi replyUser = userMap.get(comment.getReplyUserId());
             DocUserVo replyTo = new DocUserVo();
             replyTo.setId(comment.getReplyUserId());
-            replyTo.setName("用户" + comment.getReplyUserId());
-            replyTo.setAvatar("");
+            if (replyUser != null) {
+                replyTo.setName(replyUser.getNickName() != null ? replyUser.getNickName() : replyUser.getUserName());
+                replyTo.setAvatar(replyUser.getAvatar());
+            } else {
+                replyTo.setName("用户" + comment.getReplyUserId());
+                replyTo.setAvatar("");
+            }
             vo.setReplyTo(replyTo);
         }
 
+        // 6. 设置评论状态
+        vo.setStatus(comment.getStatus());
+
         return vo;
+    }
+
+    /**
+     * 批量获取用户信息
+     * <p>
+     * 通过远程用户服务批量查询用户信息，避免循环调用RPC。
+     * </p>
+     *
+     * @param userIds 用户ID列表
+     * @return 用户信息Map（key: userId, value: SysUserApi）
+     */
+    private Map<Long, SysUserApi> fetchUserMap(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        // 去重并过滤null
+        List<Long> distinctIds = userIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (distinctIds.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        try {
+            var result = remoteUserService.listByIds(distinctIds);
+            if (result != null && result.getData() != null) {
+                return result.getData().stream()
+                        .collect(Collectors.toMap(SysUserApi::getId, user -> user, (a, b) -> a));
+            }
+        } catch (Exception e) {
+            log.error("批量获取用户信息失败, userIds={}", distinctIds, e);
+        }
+
+        return new HashMap<>();
     }
 
     /**
      * 批量构建评论VO
      * <p>
      * 将评论实体列表转换为评论VO列表，用于批量查询场景。
+     * 会批量查询所有相关用户信息，避免循环RPC调用。
      * </p>
      *
      * @param comments      评论实体列表
@@ -275,8 +342,23 @@ public class DocNoteCommentServiceImpl extends ServiceImpl<DocNoteCommentMapper,
             return new ArrayList<>();
         }
 
+        // 1. 收集所有需要查询的用户ID（评论作者 + 回复对象）
+        List<Long> allUserIds = new ArrayList<>();
+        for (DocNoteComment comment : comments) {
+            if (comment.getCommentUserId() != null) {
+                allUserIds.add(comment.getCommentUserId());
+            }
+            if (comment.getReplyUserId() != null) {
+                allUserIds.add(comment.getReplyUserId());
+            }
+        }
+
+        // 2. 批量获取用户信息
+        Map<Long, SysUserApi> userMap = fetchUserMap(allUserIds);
+
+        // 3. 构建VO列表
         return comments.stream()
-                .map(comment -> buildCommentVo(comment, currentUserId))
+                .map(comment -> buildCommentVo(comment, currentUserId, userMap))
                 .collect(Collectors.toList());
     }
 
@@ -355,14 +437,38 @@ public class DocNoteCommentServiceImpl extends ServiceImpl<DocNoteCommentMapper,
             replyMap.computeIfAbsent(reply.getParentCommentId(), k -> new ArrayList<>()).add(reply);
         }
 
-        // 5. 构建根评论VO列表，并为每个根评论设置回复列表
+        // 5. 收集所有需要查询的用户ID（根评论作者 + 回复作者 + 回复对象）
+        List<Long> allUserIds = new ArrayList<>();
+        for (DocNoteComment rootComment : rootComments) {
+            if (rootComment.getCommentUserId() != null) {
+                allUserIds.add(rootComment.getCommentUserId());
+            }
+            if (rootComment.getReplyUserId() != null) {
+                allUserIds.add(rootComment.getReplyUserId());
+            }
+        }
+        for (DocNoteComment reply : allReplies) {
+            if (reply.getCommentUserId() != null) {
+                allUserIds.add(reply.getCommentUserId());
+            }
+            if (reply.getReplyUserId() != null) {
+                allUserIds.add(reply.getReplyUserId());
+            }
+        }
+
+        // 6. 批量获取所有用户信息
+        Map<Long, SysUserApi> userMap = fetchUserMap(allUserIds);
+
+        // 7. 构建根评论VO列表，并为每个根评论设置回复列表
         List<DocCommentVo> result = new ArrayList<>();
         for (DocNoteComment rootComment : rootComments) {
-            DocCommentVo rootVo = buildCommentVo(rootComment, userId);
+            DocCommentVo rootVo = buildCommentVo(rootComment, userId, userMap);
 
             // 构建该根评论下的回复VO列表
             List<DocNoteComment> replies = replyMap.getOrDefault(rootComment.getId(), new ArrayList<>());
-            List<DocCommentVo> replyVos = buildCommentVoList(replies, userId);
+            List<DocCommentVo> replyVos = replies.stream()
+                    .map(reply -> buildCommentVo(reply, userId, userMap))
+                    .collect(Collectors.toList());
             rootVo.setReplies(replyVos);
 
             result.add(rootVo);

@@ -68,4 +68,10 @@ public class DocCommentVo implements Serializable {
      */
     @Schema(description = "回复对象")
     private DocUserVo replyTo;
+
+    /**
+     * 评论状态（1-正常 2-隐藏 3-删除）
+     */
+    @Schema(description = "评论状态（1-正常 2-隐藏 3-删除）")
+    private Integer status;
 }

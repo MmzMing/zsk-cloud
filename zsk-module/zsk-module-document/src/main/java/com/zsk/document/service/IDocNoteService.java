@@ -132,4 +132,16 @@ public interface IDocNoteService extends IService<DocNote> {
      * @return 笔记ID到统计信息的映射
      */
     Map<Long, DocStatsInfoVo> batchGetNoteStats(List<Long> noteIds);
+
+    /**
+     * 根据笔记ID查询笔记元信息（仅包含基础信息和封面文件URL）
+     * <p>
+     * 获取笔记的轻量级元信息，仅包含基础字段和封面文件地址。
+     * 不包含作者信息和交互统计数据，适用于分享、SEO等场景。
+     * </p>
+     *
+     * @param noteId 笔记ID
+     * @return 笔记元信息视图对象（包含封面文件信息，不含作者和统计信息）
+     */
+    DocNoteListVo getNoteMeta(Long noteId);
 }

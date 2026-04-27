@@ -252,4 +252,25 @@ public class DocNoteController {
     public R<Map<Long, DocStatsInfoVo>> batchGetStats(@RequestParam("ids") List<Long> ids) {
         return R.ok(docNoteService.batchGetNoteStats(ids));
     }
+
+    /**
+     * 获取笔记元信息
+     * <p>
+     * 查询笔记的基础信息，仅包含图片地址等元数据，不包含作者信息和交互数据。
+     * 适用于需要轻量级笔记信息的场景（如分享、SEO等）。
+     * </p>
+     *
+     * @param id 笔记ID
+     * @return 笔记元信息（包含封面文件信息，不含作者和统计信息）
+     */
+    @Log(title = "笔记管理", businessType = BusinessType.QUERY)
+    @Operation(summary = "获取笔记元信息")
+    @GetMapping("/{id}/meta")
+    public R<DocNoteListVo> getNoteMeta(@PathVariable("id") Long id) {
+        DocNoteListVo noteMeta = docNoteService.getNoteMeta(id);
+        if (noteMeta == null) {
+            return R.fail("笔记不存在");
+        }
+        return R.ok(noteMeta);
+    }
 }

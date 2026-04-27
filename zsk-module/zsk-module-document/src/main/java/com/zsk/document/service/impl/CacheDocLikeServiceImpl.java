@@ -6,6 +6,7 @@ import com.zsk.document.domain.context.DocUserInteractionContext;
 import com.zsk.document.enums.CacheDocLikeTypeEnum;
 import com.zsk.document.mapper.DocUserInteractionMapper;
 import com.zsk.document.service.ICacheDocLikeService;
+import com.zsk.document.util.BitmapOffsetUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Range;
@@ -77,7 +78,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
         // SETBIT 设置为 true，返回旧状态（原子操作）
         // 旧状态=false → 未点赞，需要增加计数
         // 旧状态=true → 已点赞，无需操作
-        Boolean wasLiked = redisTemplate.opsForValue().setBit(bitmapKey, userId, true);
+        Boolean wasLiked = redisTemplate.opsForValue().setBit(bitmapKey, BitmapOffsetUtil.toOffset(userId), true);
         if (Boolean.TRUE.equals(wasLiked)) {
             return false; // 已点赞，无需重复操作
         }
@@ -119,7 +120,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
         // SETBIT 设置为 false，返回旧状态（原子操作）
         // 旧状态=true → 已点赞，需要减少计数
         // 旧状态=false → 未点赞，无需操作
-        Boolean wasLiked = redisTemplate.opsForValue().setBit(bitmapKey, userId, false);
+        Boolean wasLiked = redisTemplate.opsForValue().setBit(bitmapKey, BitmapOffsetUtil.toOffset(userId), false);
         if (Boolean.FALSE.equals(wasLiked)) {
             return false; // 未点赞，无需操作
         }
@@ -207,7 +208,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
 
         // 先查 Redis Bitmap
         String bitmapKey = buildBitmapKey(likeType, targetId);
-        Boolean bit = redisTemplate.opsForValue().getBit(bitmapKey, userId);
+        Boolean bit = redisTemplate.opsForValue().getBit(bitmapKey, BitmapOffsetUtil.toOffset(userId));
         if (Boolean.TRUE.equals(bit)) {
             return true;
         }
@@ -272,9 +273,9 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
                 }
 
                 // 获取所有已点赞的用户ID（Bitmap中值为1的位）
-                Set<Long> userIds = getSetBits(bitmapKey);
-                for (Long userId : userIds) {
-                    saveInteractionToDb(userId, targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
+                Set<Long> offsets = getSetBits(bitmapKey);
+                for (Long offset : offsets) {
+                    saveInteractionToDb(offset, targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
                     userSyncCount++;
                 }
                 // 删除已同步的 Bitmap 键
@@ -562,7 +563,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
                 // 过滤无效用户ID（userId > 0）
                 if (interaction.getUserId() != null && interaction.getUserId() > 0) {
                     // 将用户ID对应的bit位设置为1，表示已点赞
-                    redisTemplate.opsForValue().setBit(bitmapKey, interaction.getUserId(), true);
+                    redisTemplate.opsForValue().setBit(bitmapKey, BitmapOffsetUtil.toOffset(interaction.getUserId()), true);
                 }
             }
             log.debug("点赞Bitmap预热完成: targetId={}, 记录数={}", targetId, interactions.size());

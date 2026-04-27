@@ -10,10 +10,6 @@
 | :--- | :--- | :--- | :--- |
 | `/api/document/docNoteComment/list` | GET | `DocNoteCommentController.java` | 查询笔记评论列表（后台） |
 | `/api/document/docNoteComment/page` | GET | `DocNoteCommentController.java` | 分页查询笔记评论列表（后台） |
-| `/api/document/docNoteComment/{id}` | GET | `DocNoteCommentController.java` | 获取笔记评论详细信息（后台） |
-| `/api/document/docNoteComment` | POST | `DocNoteCommentController.java` | 新增笔记评论（后台） |
-| `/api/document/docNoteComment` | PUT | `DocNoteCommentController.java` | 修改笔记评论（后台） |
-| `/api/document/docNoteComment/{ids}` | DELETE | `DocNoteCommentController.java` | 删除笔记评论（后台） |
 | `/api/document/docNoteComment/comments/{noteId}` | GET | `DocNoteCommentController.java` | 获取笔记评论列表（前台） |
 | `/api/document/docNoteComment/comment` | POST | `DocNoteCommentController.java` | 发表笔记评论（前台） |
 | `/api/document/docNoteComment/comment/like/{commentId}` | POST | `DocNoteCommentController.java` | 切换评论点赞状态（前台） |
@@ -435,7 +431,7 @@
 
 ---
 
-### 9. 切换评论点赞状态（前台）
+### 5. 切换评论点赞状态（前台）
 
 #### 接口信息
 - **URL**: `POST /api/document/docNoteComment/comment/like/{commentId}`

@@ -10,10 +10,6 @@
 | :--- | :--- | :--- | :--- |
 | `/api/document/docVideoComment/list` | GET | `DocVideoCommentController.java` | 查询视频评论列表（后台） |
 | `/api/document/docVideoComment/page` | GET | `DocVideoCommentController.java` | 分页查询视频评论列表（后台） |
-| `/api/document/docVideoComment/{id}` | GET | `DocVideoCommentController.java` | 获取视频评论详细信息（后台） |
-| `/api/document/docVideoComment` | POST | `DocVideoCommentController.java` | 新增视频评论（后台） |
-| `/api/document/docVideoComment` | PUT | `DocVideoCommentController.java` | 修改视频评论（后台） |
-| `/api/document/docVideoComment/{ids}` | DELETE | `DocVideoCommentController.java` | 删除视频评论（后台） |
 | `/api/document/docVideoComment/comments/{videoId}` | GET | `DocVideoCommentController.java` | 获取视频评论列表（前台） |
 | `/api/document/docVideoComment/comment` | POST | `DocVideoCommentController.java` | 发表视频评论（前台） |
 | `/api/document/docVideoComment/comment/like/{commentId}` | POST | `DocVideoCommentController.java` | 切换评论点赞状态（前台） |
@@ -136,152 +132,9 @@
 
 ---
 
-### 3. 获取视频评论详细信息
-
-#### 接口信息
-- **URL**: `GET /api/document/docVideoComment/{id}`
-- **功能**: 获取视频评论详细信息
-
-#### 路径参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | `string` | 是 | 评论ID |
-
-#### 成功响应
-
-```json
-{
-  "code": 200,
-  "msg": "success",
-  "data": {
-    "id": "1",
-    "videoId": "1",
-    "commentUserId": "1",
-    "commentContent": "评论内容",
-    "parentCommentId": null,
-    "replyUserId": null,
-    "auditStatus": 1,
-    "status": 1,
-    "version": 0,
-    "deleted": 0,
-    "createTime": "2026-02-15 10:30:00",
-    "updateTime": "2026-02-15 10:30:00"
-  }
-}
-```
-
----
-
-### 4. 新增视频评论
-
-#### 接口信息
-- **URL**: `POST /api/document/docVideoComment`
-- **功能**: 新增视频评论（后台管理直接操作）
-
-#### 请求体
-
-```json
-{
-  "videoId": "1",
-  "commentUserId": "1",
-  "commentContent": "评论内容",
-  "parentCommentId": null,
-  "replyUserId": null,
-  "auditStatus": 1,
-  "status": 1
-}
-```
-
-#### 请求字段说明
-
-| 字段 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `videoId` | `string` | 是 | 视频ID |
-| `commentUserId` | `string` | 是 | 评论人ID |
-| `commentContent` | `string` | 是 | 评论内容 |
-| `parentCommentId` | `string` | 否 | 父评论ID（NULL表示根评论） |
-| `replyUserId` | `string` | 否 | 回复人ID |
-| `auditStatus` | `number` | 否 | 审核状态（默认0） |
-| `status` | `number` | 否 | 评论状态（默认1） |
-
-#### 成功响应
-
-```json
-{
-  "code": 200,
-  "msg": "success",
-  "data": true
-}
-```
-
----
-
-### 5. 修改视频评论
-
-#### 接口信息
-- **URL**: `PUT /api/document/docVideoComment`
-- **功能**: 修改视频评论
-
-#### 请求体
-
-```json
-{
-  "id": "1",
-  "commentContent": "修改后的评论内容",
-  "auditStatus": 1,
-  "status": 1
-}
-```
-
-#### 请求字段说明
-
-| 字段 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `id` | `string` | 是 | 评论ID |
-| `commentContent` | `string` | 否 | 评论内容 |
-| `auditStatus` | `number` | 否 | 审核状态 |
-| `status` | `number` | 否 | 评论状态 |
-
-#### 成功响应
-
-```json
-{
-  "code": 200,
-  "msg": "success",
-  "data": true
-}
-```
-
----
-
-### 6. 删除视频评论
-
-#### 接口信息
-- **URL**: `DELETE /api/document/docVideoComment/{ids}`
-- **功能**: 批量删除视频评论
-
-#### 路径参数
-
-| 参数名 | 类型 | 必填 | 说明 |
-| :--- | :--- | :--- | :--- |
-| `ids` | `string` | 是 | 评论ID列表，逗号分隔 |
-
-#### 成功响应
-
-```json
-{
-  "code": 200,
-  "msg": "success",
-  "data": true
-}
-```
-
----
-
 ## 前台业务接口
 
-### 7. 获取视频评论列表（前台）
+### 3. 获取视频评论列表（前台）
 
 #### 接口信息
 - **URL**: `GET /api/document/docVideoComment/comments/{videoId}`
@@ -366,7 +219,7 @@
 
 ---
 
-### 8. 发表视频评论（前台）
+### 4. 发表视频评论（前台）
 
 #### 接口信息
 - **URL**: `POST /api/document/docVideoComment/comment`
@@ -435,7 +288,7 @@
 
 ---
 
-### 9. 切换评论点赞状态（前台）
+### 5. 切换评论点赞状态（前台）
 
 #### 接口信息
 - **URL**: `POST /api/document/docVideoComment/comment/like/{commentId}`

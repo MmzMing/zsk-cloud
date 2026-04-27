@@ -6,6 +6,7 @@ import com.zsk.document.domain.context.DocUserInteractionContext;
 import com.zsk.document.enums.CacheDocFollowTypeEnum;
 import com.zsk.document.mapper.DocUserInteractionMapper;
 import com.zsk.document.service.ICacheDocFollowService;
+import com.zsk.document.util.BitmapOffsetUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Range;
@@ -85,7 +86,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
         // SETBIT 设置为 true，返回旧状态（原子操作）
         // 旧状态=false → 未关注，需要增加粉丝计数
         // 旧状态=true → 已关注，无需操作
-        Boolean wasFollowed = redisTemplate.opsForValue().setBit(bitmapKey, targetId, true);
+        Boolean wasFollowed = redisTemplate.opsForValue().setBit(bitmapKey, BitmapOffsetUtil.targetToOffset(targetId), true);
         if (Boolean.TRUE.equals(wasFollowed)) {
             return false; // 已关注，无需重复操作
         }
@@ -127,7 +128,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
         // SETBIT 设置为 false，返回旧状态（原子操作）
         // 旧状态=true → 已关注，需要减少粉丝计数
         // 旧状态=false → 未关注，无需操作
-        Boolean wasFollowed = redisTemplate.opsForValue().setBit(bitmapKey, targetId, false);
+        Boolean wasFollowed = redisTemplate.opsForValue().setBit(bitmapKey, BitmapOffsetUtil.targetToOffset(targetId), false);
         if (Boolean.FALSE.equals(wasFollowed)) {
             return false; // 未关注，无需操作
         }
@@ -215,7 +216,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
 
         // 先查 Redis Bitmap
         String bitmapKey = buildBitmapKey(followType, userId);
-        Boolean bit = redisTemplate.opsForValue().getBit(bitmapKey, targetId);
+        Boolean bit = redisTemplate.opsForValue().getBit(bitmapKey, BitmapOffsetUtil.targetToOffset(targetId));
         if (Boolean.TRUE.equals(bit)) {
             return true;
         }
@@ -280,9 +281,9 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
                 }
 
                 // 获取用户关注的所有目标ID（Bitmap中值为1的位）
-                Set<Long> targetIds = getSetBits(bitmapKey);
-                for (Long targetId : targetIds) {
-                    saveInteractionToDb(userId, targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_FOLLOW);
+                Set<Long> offsets = getSetBits(bitmapKey);
+                for (Long offset : offsets) {
+                    saveInteractionToDb(userId, targetType, offset, DocUserInteractionContext.INTERACTION_TYPE_FOLLOW);
                     userSyncCount++;
                 }
                 // 删除已同步的 Bitmap 键
@@ -572,7 +573,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
                 if (interaction.getUserId() != null && interaction.getUserId() > 0) {
                     // 为每个关注者构建Bitmap：将targetId对应的bit位设置为1
                     String bitmapKey = buildBitmapKey(followType, interaction.getUserId());
-                    redisTemplate.opsForValue().setBit(bitmapKey, targetId, true);
+                    redisTemplate.opsForValue().setBit(bitmapKey, BitmapOffsetUtil.targetToOffset(targetId), true);
                 }
             }
             log.debug("关注Bitmap预热完成: targetId={}, 记录数={}", targetId, interactions.size());

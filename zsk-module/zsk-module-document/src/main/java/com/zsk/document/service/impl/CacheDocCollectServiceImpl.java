@@ -6,6 +6,7 @@ import com.zsk.document.domain.context.DocUserInteractionContext;
 import com.zsk.document.enums.CacheDocCollectTypeEnum;
 import com.zsk.document.mapper.DocUserInteractionMapper;
 import com.zsk.document.service.ICacheDocCollectService;
+import com.zsk.document.util.BitmapOffsetUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Range;
@@ -77,7 +78,7 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
         // SETBIT 设置为 true，返回旧状态（原子操作）
         // 旧状态=false → 未收藏，需要增加计数
         // 旧状态=true → 已收藏，无需操作
-        Boolean wasCollected = redisTemplate.opsForValue().setBit(bitmapKey, userId, true);
+        Boolean wasCollected = redisTemplate.opsForValue().setBit(bitmapKey, BitmapOffsetUtil.toOffset(userId), true);
         if (Boolean.TRUE.equals(wasCollected)) {
             return false; // 已收藏，无需重复操作
         }
@@ -119,7 +120,7 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
         // SETBIT 设置为 false，返回旧状态（原子操作）
         // 旧状态=true → 已收藏，需要减少计数
         // 旧状态=false → 未收藏，无需操作
-        Boolean wasCollected = redisTemplate.opsForValue().setBit(bitmapKey, userId, false);
+        Boolean wasCollected = redisTemplate.opsForValue().setBit(bitmapKey, BitmapOffsetUtil.toOffset(userId), false);
         if (Boolean.FALSE.equals(wasCollected)) {
             return false; // 未收藏，无需操作
         }
@@ -207,7 +208,7 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
 
         // 先查 Redis Bitmap
         String bitmapKey = buildBitmapKey(collectType, targetId);
-        Boolean bit = redisTemplate.opsForValue().getBit(bitmapKey, userId);
+        Boolean bit = redisTemplate.opsForValue().getBit(bitmapKey, BitmapOffsetUtil.toOffset(userId));
         if (Boolean.TRUE.equals(bit)) {
             return true;
         }
@@ -272,9 +273,9 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
                 }
 
                 // 获取所有已收藏的用户ID（Bitmap中值为1的位）
-                Set<Long> userIds = getSetBits(bitmapKey);
-                for (Long userId : userIds) {
-                    saveInteractionToDb(userId, targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
+                Set<Long> offsets = getSetBits(bitmapKey);
+                for (Long offset : offsets) {
+                    saveInteractionToDb(offset, targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
                     userSyncCount++;
                 }
                 // 删除已同步的 Bitmap 键
@@ -559,7 +560,7 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
                 // 过滤无效用户ID（userId > 0）
                 if (interaction.getUserId() != null && interaction.getUserId() > 0) {
                     // 将用户ID对应的bit位设置为1，表示已收藏
-                    redisTemplate.opsForValue().setBit(bitmapKey, interaction.getUserId(), true);
+                    redisTemplate.opsForValue().setBit(bitmapKey, BitmapOffsetUtil.toOffset(interaction.getUserId()), true);
                 }
             }
             log.debug("收藏Bitmap预热完成: targetId={}, 记录数={}", targetId, interactions.size());

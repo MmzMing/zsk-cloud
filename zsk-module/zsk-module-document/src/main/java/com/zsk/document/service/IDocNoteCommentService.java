@@ -81,21 +81,10 @@ public interface IDocNoteCommentService extends IService<DocNoteComment> {
     DocCommentVo postCommentWithValidation(CommentRequestDTO commentRequest, Long userId);
 
     /**
-     * 构建评论VO
-     * <p>
-     * 将评论实体转换为评论VO，包含作者信息、点赞数（从Redis获取）、点赞状态等。
-     * </p>
-     *
-     * @param comment       评论实体
-     * @param currentUserId 当前登录用户ID（可为null）
-     * @return 评论VO
-     */
-    DocCommentVo buildCommentVo(DocNoteComment comment, Long currentUserId);
-
-    /**
      * 批量构建评论VO
      * <p>
      * 将评论实体列表转换为评论VO列表，用于批量查询场景。
+     * 会通过远程用户服务批量获取真实的用户信息（昵称、头像）。
      * </p>
      *
      * @param comments      评论实体列表

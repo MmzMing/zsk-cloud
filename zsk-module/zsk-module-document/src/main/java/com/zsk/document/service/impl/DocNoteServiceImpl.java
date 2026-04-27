@@ -523,4 +523,32 @@ public class DocNoteServiceImpl extends ServiceImpl<DocNoteMapper, DocNote> impl
 
         return statsMap;
     }
+
+    /**
+     * 根据笔记ID查询笔记元信息（仅包含基础信息和封面文件URL）
+     * <p>
+     * 获取笔记的轻量级元信息，仅包含基础字段和封面文件地址。
+     * 不包含作者信息和交互统计数据，适用于分享、SEO等场景。
+     * </p>
+     *
+     * @param noteId 笔记ID
+     * @return 笔记元信息视图对象（包含封面文件信息，不含作者和统计信息）
+     */
+    @Override
+    public DocNoteListVo getNoteMeta(Long noteId) {
+        log.info("查询笔记元信息, noteId={}", noteId);
+
+        // 查询笔记实体
+        DocNote note = this.getById(noteId);
+        if (note == null) {
+            log.warn("查询笔记元信息失败, 笔记不存在, noteId={}", noteId);
+            return null;
+        }
+
+        // 转换为视图对象（仅包含基础信息和封面文件URL）
+        DocNoteListVo vo = convertToVo(note);
+
+        log.info("查询笔记元信息成功, noteId={}", noteId);
+        return vo;
+    }
 }

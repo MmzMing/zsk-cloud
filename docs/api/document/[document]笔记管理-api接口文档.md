@@ -8,6 +8,9 @@
 | `/api/document/docNote/page` | GET | `DocNoteController.java` | 分页查询笔记列表 |
 | `/api/document/docNote/{id}` | GET | `DocNoteController.java` | 获取笔记详细信息 |
 | `/api/document/docNote/{id}/interaction` | GET | `DocNoteController.java` | 获取笔记交互数据 |
+| `/api/document/docNote/{id}/stats` | GET | `DocNoteController.java` | 获取笔记统计信息 |
+| `/api/document/docNote/stats/batch` | GET | `DocNoteController.java` | 批量获取笔记统计信息 |
+| `/api/document/docNote/{id}/meta` | GET | `DocNoteController.java` | 获取笔记元信息 |
 | `/api/document/docNote` | POST | `DocNoteController.java` | 新增笔记 |
 | `/api/document/docNote` | PUT | `DocNoteController.java` | 修改笔记 |
 | `/api/document/docNote/{ids}` | DELETE | `DocNoteController.java` | 删除笔记 |
