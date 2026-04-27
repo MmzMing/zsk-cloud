@@ -10,9 +10,16 @@ import java.io.Serial;
 
 /**
  * 视频详情评论表对象 doc_video_comment
+ * <p>
+ * 采用B站式评论结构：所有回复统一挂在根评论下，不存在层级嵌套。
+ * parentCommentId 统一记录根评论ID（NULL表示根评论），
+ * replyUserId 记录被回复的用户ID（用于显示"A回复B"）。
+ * 评论点赞数从Redis获取，不再存储在表中。
+ * </p>
  *
  * @author wuhuaming
- * @date 2026-02-14
+ * @version 2.0
+ * @date 2026-04-27
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
@@ -41,10 +48,16 @@ public class DocVideoComment extends TenantEntity {
     private String commentContent;
 
     /**
-     * 父评论ID（用于回复：NULL为根评论，非NULL为回复某条评论）
+     * 父评论ID（统一记录根评论ID，NULL表示根评论）
      */
-    @Schema(description = "父评论ID")
+    @Schema(description = "父评论ID（统一记录根评论ID，NULL表示根评论）")
     private Long parentCommentId;
+
+    /**
+     * 回复人ID（记录被回复的用户ID，用于显示A回复B）
+     */
+    @Schema(description = "回复人ID（记录被回复的用户ID，用于显示A回复B）")
+    private Long replyUserId;
 
     /**
      * 审核状态（0-待审核 1-审核通过 2-审核驳回）
@@ -57,12 +70,6 @@ public class DocVideoComment extends TenantEntity {
      */
     @Schema(description = "评论状态")
     private Integer status;
-
-    /**
-     * 评论点赞数
-     */
-    @Schema(description = "评论点赞数")
-    private Long likeCount;
 
     /**
      * 乐观锁版本号

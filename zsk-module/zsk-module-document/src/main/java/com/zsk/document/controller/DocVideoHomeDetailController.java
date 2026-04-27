@@ -1,10 +1,7 @@
 package com.zsk.document.controller;
 
 import com.zsk.common.core.domain.R;
-import com.zsk.common.datasource.domain.PageQuery;
-import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.common.security.utils.SecurityUtils;
-import com.zsk.document.domain.dto.VideoCommentRequestDTO;
 import com.zsk.document.domain.vo.*;
 import com.zsk.document.enums.CacheDocViewTypeEnum;
 import com.zsk.document.service.ICacheDocViewService;
@@ -18,13 +15,14 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 前台视频首页详情控制器
  * <p>
- * 提供视频详情查询、交互操作（点赞、收藏、关注）、评论管理等功能。
+ * 提供视频详情查询、交互操作（点赞、收藏、关注）等功能。
+ * 评论相关功能已解耦到 {@link DocVideoCommentController} 中，本控制器不再处理评论业务。
  * 所有业务逻辑已下沉到 Service 层，本层仅负责参数校验和结果封装。
  * </p>
  *
  * @author wuhuaming
- * @version 2.0
- * @date 2026-04-25
+ * @version 3.0
+ * @date 2026-04-27
  */
 @Tag(name = "前台视频首页详情")
 @RestController
@@ -32,8 +30,19 @@ import org.springframework.web.bind.annotation.*;
 @RequiredArgsConstructor
 public class DocVideoHomeDetailController {
 
+    /**
+     * 视频服务
+     */
     private final IDocVideoService videoService;
+
+    /**
+     * 视频首页详情服务
+     */
     private final IDocVideoHomeDetailService videoHomeDetailService;
+
+    /**
+     * 缓存浏览服务
+     */
     private final ICacheDocViewService cacheDocViewService;
 
     /**
@@ -49,19 +58,23 @@ public class DocVideoHomeDetailController {
     @Operation(summary = "获取视频详情")
     @GetMapping("/detail/{id}")
     public R<DocVideoHomeDetailVo> getDetail(@PathVariable("id") Long id) {
+        // 查询视频基础信息
         DocVideoListVo video = videoService.getByIdWithFileUrl(id);
         if (video == null) {
             return R.fail("视频不存在");
         }
 
+        // 获取当前用户ID并增加浏览量
         Long userId = getCurrentUserId();
         cacheDocViewService.view(CacheDocViewTypeEnum.VIDEO.getCode(), id, userId);
 
+        // 构建视频详情VO
         DocVideoHomeDetailVo vo = new DocVideoHomeDetailVo();
         vo.setId(video.getId());
         vo.setTitle(video.getVideoTitle());
         vo.setDescription(video.getFileContent());
 
+        // 设置视频和封面URL
         if (video.getVideoFile() != null) {
             if (video.getVideoFile().getVideo() != null) {
                 vo.setVideoUrl(video.getVideoFile().getVideo().getFileUrl());
@@ -71,6 +84,7 @@ public class DocVideoHomeDetailController {
             }
         }
 
+        // 获取作者和统计信息
         DocVideoHomeDetailVo detail = videoHomeDetailService.getVideoDetail(id, userId);
         vo.setAuthor(detail.getAuthor());
         vo.setStats(detail.getStats());
@@ -82,7 +96,7 @@ public class DocVideoHomeDetailController {
     /**
      * 获取视频交互详情
      * <p>
-     * 独立查询视频的交互统计数据，包括浏览量、点赞数、收藏数、评论数以及当前用户的交互状态。
+     * 独立查询视频的交互统计数据，包括浏览量、点赞数、收藏数以及当前用户的交互状态。
      * </p>
      *
      * @param id 视频ID
@@ -91,10 +105,12 @@ public class DocVideoHomeDetailController {
     @Operation(summary = "获取视频交互详情")
     @GetMapping("/interaction/{id}")
     public R<DocStatsInfoVo> getInteraction(@PathVariable("id") Long id) {
+        // 验证视频是否存在
         if (videoService.getById(id) == null) {
             return R.fail("视频不存在");
         }
 
+        // 获取当前用户ID并查询交互详情
         Long userId = getCurrentUserId();
         DocStatsInfoVo stats = videoHomeDetailService.getVideoInteraction(id, userId);
         return R.ok(stats);
@@ -168,82 +184,13 @@ public class DocVideoHomeDetailController {
     }
 
     /**
-     * 获取视频评论列表
+     * 获取当前用户ID
      * <p>
-     * 查询视频的评论列表，支持热门排序和最新排序。
+     * 尝试从安全工具类获取当前登录用户ID，如果获取失败则返回null。
      * </p>
      *
-     * @param id        视频ID
-     * @param pageQuery 分页查询参数
-     * @param sort      排序方式（hot/new）
-     * @return 评论分页列表
+     * @return 当前用户ID，未登录或获取失败返回null
      */
-    @Operation(summary = "获取视频评论列表")
-    @GetMapping("/comments/{id}")
-    public R<PageResult<DocVideoCommentVo>> getComments(
-            @PathVariable("id") Long id,
-            PageQuery pageQuery,
-            @RequestParam(value = "sort", required = false) String sort) {
-
-        Long userId = getCurrentUserId();
-        PageResult<DocVideoCommentVo> result = videoHomeDetailService.getVideoComments(id, pageQuery, sort, userId);
-        return R.ok(result);
-    }
-
-    /**
-     * 发表视频评论
-     * <p>
-     * 用户发表视频评论，支持回复其他评论。
-     * </p>
-     *
-     * @param commentRequest 评论请求参数
-     * @return 评论结果
-     */
-    @Operation(summary = "发表视频评论")
-    @PostMapping("/comment")
-    public R<DocVideoCommentVo> postComment(@RequestBody VideoCommentRequestDTO commentRequest) {
-        Long userId = getCurrentUserId();
-        if (userId == null) {
-            return R.fail("请先登录");
-        }
-
-        if (commentRequest.getVideoId() == null) {
-            return R.fail("视频ID不能为空");
-        }
-        if (commentRequest.getContent() == null || commentRequest.getContent().isEmpty()) {
-            return R.fail("评论内容不能为空");
-        }
-
-        DocVideoCommentVo result = videoHomeDetailService.postComment(
-                commentRequest.getVideoId(),
-                commentRequest.getContent(),
-                commentRequest.getParentId(),
-                userId
-        );
-        return R.ok(result);
-    }
-
-    /**
-     * 切换评论点赞状态
-     * <p>
-     * 用户点赞或取消点赞视频评论。
-     * </p>
-     *
-     * @param commentId 评论ID
-     * @return 点赞操作结果
-     */
-    @Operation(summary = "切换评论点赞状态")
-    @PostMapping("/comment/like/{commentId}")
-    public R<InteractionResultVo> toggleCommentLike(@PathVariable("commentId") Long commentId) {
-        Long userId = getCurrentUserId();
-        if (userId == null) {
-            return R.fail("请先登录");
-        }
-
-        InteractionResultVo result = videoHomeDetailService.toggleCommentLike(commentId, userId);
-        return R.ok(result);
-    }
-
     private Long getCurrentUserId() {
         try {
             return SecurityUtils.getUserId();

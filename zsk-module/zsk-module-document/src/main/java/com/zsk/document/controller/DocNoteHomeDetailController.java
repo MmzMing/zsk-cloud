@@ -1,11 +1,7 @@
 package com.zsk.document.controller;
 
 import com.zsk.common.core.domain.R;
-import com.zsk.common.datasource.domain.PageQuery;
-import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.common.security.utils.SecurityUtils;
-import com.zsk.document.domain.dto.CommentRequestDTO;
-import com.zsk.document.domain.vo.DocCommentVo;
 import com.zsk.document.domain.vo.DocNoteHomeDetailVo;
 import com.zsk.document.domain.vo.DocStatsInfoVo;
 import com.zsk.document.domain.vo.InteractionResultVo;
@@ -19,13 +15,14 @@ import org.springframework.web.bind.annotation.*;
 /**
  * 前台笔记首页详情控制器
  * <p>
- * 提供笔记详情查询、交互操作（点赞、收藏、关注）、评论管理等功能。
+ * 提供笔记详情查询、交互操作（点赞、收藏、关注）等功能。
+ * 评论相关功能已解耦到 {@link DocNoteCommentController} 中，本控制器不再处理评论业务。
  * 所有交互数据（浏览量、点赞数、收藏数）均通过 Redis 缓存服务获取，不再依赖主表字段。
  * </p>
  *
  * @author wuhuaming
- * @version 2.0
- * @date 2026-04-25
+ * @version 3.0
+ * @date 2026-04-27
  */
 @Slf4j
 @Tag(name = "前台笔记首页详情")
@@ -44,7 +41,7 @@ public class DocNoteHomeDetailController {
      * <p>
      * 根据笔记ID查询笔记详情，并增加浏览量。
      * 如果用户已登录，会查询用户的点赞、收藏状态以及是否关注作者。
-     * 所有统计数据（浏览量、点赞数、收藏数、评论数）均从 Redis 缓存获取。
+     * 所有统计数据（浏览量、点赞数、收藏数）均从 Redis 缓存获取。
      * </p>
      *
      * @param id 笔记ID
@@ -71,7 +68,7 @@ public class DocNoteHomeDetailController {
     /**
      * 获取笔记交互详情
      * <p>
-     * 独立查询笔记的交互统计数据，包括浏览量、点赞数、收藏数、评论数以及当前用户的交互状态。
+     * 独立查询笔记的交互统计数据，包括浏览量、点赞数、收藏数以及当前用户的交互状态。
      * </p>
      *
      * @param id 笔记ID
@@ -180,104 +177,6 @@ public class DocNoteHomeDetailController {
         InteractionResultVo result = noteHomeDetailService.toggleFollowAuthor(authorId, userId);
 
         log.info("切换关注作者状态成功, authorId={}, status={}", authorId, result.isStatus());
-        return R.ok(result);
-    }
-
-    /**
-     * 获取笔记评论列表
-     * <p>
-     * 查询笔记的评论列表，支持热门排序和最新排序。
-     * 使用通用分页组件 {@link PageQuery} 进行分页。
-     * </p>
-     *
-     * @param id        笔记ID
-     * @param pageQuery 分页查询参数
-     * @param sort      排序方式（hot/new）
-     * @return 评论分页列表
-     */
-    @Operation(summary = "获取笔记评论列表")
-    @GetMapping("/comments/{id}")
-    public R<PageResult<DocCommentVo>> getComments(
-            @PathVariable("id") Long id,
-            PageQuery pageQuery,
-            @RequestParam(value = "sort", required = false) String sort) {
-        log.info("获取笔记评论列表请求, id={}, pageQuery={}, sort={}", id, pageQuery, sort);
-
-        // 获取当前登录用户ID
-        Long userId = getCurrentUserId();
-
-        // 调用Service层获取评论列表
-        PageResult<DocCommentVo> pageResult = noteHomeDetailService.getNoteComments(id, pageQuery, sort, userId);
-
-        log.info("获取笔记评论列表成功, id={}, total={}", id, pageResult.getTotal());
-        return R.ok(pageResult);
-    }
-
-    /**
-     * 发表笔记评论
-     * <p>
-     * 用户发表笔记评论，支持回复其他评论。
-     * 评论成功后返回构建好的评论VO。
-     * </p>
-     *
-     * @param commentRequest 评论请求参数
-     * @return 评论结果
-     */
-    @Operation(summary = "发表笔记评论")
-    @PostMapping("/comment")
-    public R<DocCommentVo> postComment(@RequestBody CommentRequestDTO commentRequest) {
-        log.info("发表笔记评论请求, docId={}", commentRequest.getDocId());
-
-        // 获取当前登录用户ID
-        Long userId = getCurrentUserId();
-        if (userId == null) {
-            return R.fail("请先登录");
-        }
-
-        // 获取请求参数
-        Long docId = commentRequest.getDocId();
-        String content = commentRequest.getContent();
-        Long parentId = commentRequest.getParentId();
-
-        // 参数校验
-        if (docId == null) {
-            return R.fail("笔记ID不能为空");
-        }
-        if (content == null || content.isEmpty()) {
-            return R.fail("评论内容不能为空");
-        }
-
-        // 调用Service层发表评论
-        DocCommentVo commentVo = noteHomeDetailService.postComment(docId, content, parentId, userId);
-
-        log.info("发表笔记评论成功, commentId={}", commentVo.getId());
-        return R.ok(commentVo);
-    }
-
-    /**
-     * 切换评论点赞状态
-     * <p>
-     * 用户点赞或取消点赞笔记评论。
-     * </p>
-     *
-     * @param commentId 评论ID
-     * @return 点赞操作结果
-     */
-    @Operation(summary = "切换评论点赞状态")
-    @PostMapping("/comment/like/{commentId}")
-    public R<InteractionResultVo> toggleCommentLike(@PathVariable("commentId") Long commentId) {
-        log.info("切换评论点赞状态请求, commentId={}", commentId);
-
-        // 获取当前登录用户ID
-        Long userId = getCurrentUserId();
-        if (userId == null) {
-            return R.fail("请先登录");
-        }
-
-        // 调用Service层执行评论点赞操作
-        InteractionResultVo result = noteHomeDetailService.toggleCommentLike(commentId, userId);
-
-        log.info("切换评论点赞状态成功, commentId={}, status={}", commentId, result.isStatus());
         return R.ok(result);
     }
 
