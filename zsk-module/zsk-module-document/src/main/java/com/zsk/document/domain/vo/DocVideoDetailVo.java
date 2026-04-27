@@ -8,8 +8,8 @@ import java.io.Serializable;
 import java.time.LocalDateTime;
 
 @Data
-@Schema(description = "视频列表视图对象")
-public class DocVideoListVo implements Serializable {
+@Schema(description = "视频详情视图对象")
+public class DocVideoDetailVo implements Serializable {
 
     @Serial
     private static final long serialVersionUID = 1L;
@@ -17,7 +17,7 @@ public class DocVideoListVo implements Serializable {
     @Schema(description = "视频ID")
     private Long id;
 
-    @Schema(description = "视频文件信息")
+    @Schema(description = "视频文件信息（包含视频地址和缩略图）")
     private DocVideoFileVo videoFile;
 
     @Schema(description = "所属用户ID")
@@ -68,8 +68,8 @@ public class DocVideoListVo implements Serializable {
     @Schema(description = "更新时间")
     private LocalDateTime updateTime;
 
-    @Schema(description = "统计数据")
-    private DocStatsInfoVo statsInfo;
+    @Schema(description = "分集信息")
+    private DocVideoDtlVo videoDtl;
 
     @Schema(description = "用户信息")
     private DocUserVo user;

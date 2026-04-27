@@ -1,4 +1,4 @@
-# [document] 视频详情管理 API 接口文档
+# [document] 视频管理 API 接口文档
 
 ## 接口列表
 
@@ -6,7 +6,7 @@
 | :--- | :--- | :--- | :--- |
 | `/api/document/docVideo/list` | GET | `DocVideoController.java` | 查询视频列表 |
 | `/api/document/docVideo/page` | GET | `DocVideoController.java` | 分页查询视频列表 |
-| `/api/document/docVideo/{id}` | GET | `DocVideoController.java` | 获取视频详细信息 |
+| `/api/document/docVideo/{id}` | GET | `DocVideoController.java` | 获取视频详情 |
 | `/api/document/docVideo/{id}/interaction` | GET | `DocVideoController.java` | 获取视频交互数据 |
 | `/api/document/docVideo/{id}/view` | POST | `DocVideoController.java` | 增加视频浏览量 |
 | `/api/document/docVideo` | POST | `DocVideoController.java` | 新增视频 |
@@ -17,8 +17,8 @@
 | `/api/document/docVideo/draft` | POST | `DocVideoController.java` | 保存草稿 |
 | `/api/document/docVideo/draft/publish/{id}` | PUT | `DocVideoController.java` | 发布草稿 |
 | `/api/document/docVideo/status/batch` | PUT | `DocVideoController.java` | 批量更新视频状态 |
-| `/api/document/docVideo/{id}/pinned` | PUT | `DocVideoController.java` | 切换视频置顶状态 |
-| `/api/document/docVideo/{id}/recommended` | PUT | `DocVideoController.java` | 切换视频推荐状态 |
+| `/api/document/docVideo/{id}/pinned` | PUT | `DocVideoController.java` | 切换置顶状态 |
+| `/api/document/docVideo/{id}/recommended` | PUT | `DocVideoController.java` | 切换推荐状态 |
 
 ---
 
@@ -26,7 +26,7 @@
 
 ### 接口信息
 - **URL**: `GET /api/document/docVideo/list`
-- **功能**: 查询视频列表
+- **功能**: 查询视频列表（包含文件信息、作者信息、统计信息）
 
 ### 查询参数
 
@@ -34,10 +34,11 @@
 | :--- | :--- | :--- | :--- |
 | `userId` | `string` | 否 | 用户ID |
 | `videoTitle` | `string` | 否 | 视频标题（支持模糊查询） |
-| `status` | `number` | 否 | 状态（1发布，2下架，3草稿） |
-| `auditStatus` | `number` | 否 | 审核状态（0待审核，1已通过，2已拒绝） |
-| `broadCode` | `string` | 否 | 分类编码 |
-| `deleted` | `number` | 否 | 删除标记（0未删除，1已删除） |
+| `status` | `number` | 否 | 状态（1-正常，2-下架，3-草稿） |
+| `auditStatus` | `number` | 否 | 审核状态（0-待审核，1-已通过，2-已驳回） |
+| `broadCode` | `string` | 否 | 大类编码 |
+| `narrowCode` | `string` | 否 | 小类编码 |
+| `deleted` | `number` | 否 | 删除标记（0-未删除，1-已删除） |
 
 ### 成功响应
 
@@ -49,22 +50,33 @@
     {
       "id": "1",
       "userId": "1",
+      "user": {
+        "id": "1",
+        "name": "作者昵称",
+        "avatar": "https://example.com/avatar.jpg"
+      },
       "videoTitle": "视频标题",
+      "tags": "tag1,tag2",
       "fileContent": "视频描述",
       "videoFile": {
-        "thumbnail": {
-          "fileId": "file-cover123",
-          "fileUrl": "https://example.com/cover.jpg"
-        },
         "video": {
-          "fileId": "file-video123",
+          "fileId": "1",
           "fileUrl": "https://example.com/video.mp4"
+        },
+        "thumbnail": {
+          "fileId": "2",
+          "fileUrl": "https://example.com/cover.jpg"
         }
       },
       "broadCode": "tech",
-      "tags": "tag1,tag2",
-      "status": 1,
+      "narrowCode": "java",
       "auditStatus": 1,
+      "status": 1,
+      "statsInfo": {
+        "views": 1234,
+        "likes": 56,
+        "favorites": 32
+      },
       "isPinned": 0,
       "isRecommended": 1,
       "deleted": 0,
@@ -79,24 +91,33 @@
 
 | 字段 | 类型 | 说明 |
 | :--- | :--- | :--- |
-| `id` | `string` | 视频ID（后端使用Jackson转为string类型） |
+| `id` | `string` | 视频ID |
 | `userId` | `string` | 用户ID |
+| `user` | `object` | 用户信息 |
+| `user.id` | `string` | 用户ID |
+| `user.name` | `string` | 用户名称（优先昵称） |
+| `user.avatar` | `string` | 用户头像URL |
 | `videoTitle` | `string` | 视频标题 |
-| `fileContent` | `string` | 视频描述 |
-| `videoFile` | `object` | 视频文件信息（一对一绑定） |
-| `videoFile.thumbnail` | `object` | 缩略图文件信息 |
-| `videoFile.thumbnail.fileId` | `string` | 缩略图文件ID（关联document_files.file_id） |
-| `videoFile.thumbnail.fileUrl` | `string` | 缩略图文件URL |
-| `videoFile.video` | `object` | 视频文件信息 |
-| `videoFile.video.fileId` | `string` | 视频文件ID（关联document_files.file_id） |
-| `videoFile.video.fileUrl` | `string` | 视频文件URL |
-| `broadCode` | `string` | 分类编码 |
 | `tags` | `string` | 标签（逗号分隔） |
-| `status` | `number` | 状态（1发布，2下架，3草稿） |
-| `auditStatus` | `number` | 审核状态（0待审核，1已通过，2已拒绝） |
-| `isPinned` | `number` | 是否置顶（0否，1是） |
-| `isRecommended` | `number` | 是否推荐（0否，1是） |
-| `deleted` | `number` | 删除标记 |
+| `fileContent` | `string` | 视频描述/文本内容 |
+| `videoFile` | `object` | 视频文件信息 |
+| `videoFile.video` | `object` | 视频文件 |
+| `videoFile.video.fileId` | `string` | 视频文件ID |
+| `videoFile.video.fileUrl` | `string` | 视频播放URL |
+| `videoFile.thumbnail` | `object` | 缩略图文件 |
+| `videoFile.thumbnail.fileId` | `string` | 缩略图文件ID |
+| `videoFile.thumbnail.fileUrl` | `string` | 缩略图URL |
+| `broadCode` | `string` | 大类编码 |
+| `narrowCode` | `string` | 小类编码 |
+| `auditStatus` | `number` | 审核状态（0-待审核，1-已通过，2-已驳回） |
+| `status` | `number` | 状态（1-正常，2-下架，3-草稿） |
+| `statsInfo` | `object` | 统计信息（从Redis缓存获取） |
+| `statsInfo.views` | `number` | 浏览量 |
+| `statsInfo.likes` | `number` | 点赞数 |
+| `statsInfo.favorites` | `number` | 收藏数 |
+| `isPinned` | `number` | 是否置顶（0-否，1-是） |
+| `isRecommended` | `number` | 是否推荐（0-否，1-是） |
+| `deleted` | `number` | 删除标记（0-未删除，1-已删除） |
 | `createTime` | `string` | 创建时间 |
 | `updateTime` | `string` | 更新时间 |
 
@@ -106,7 +127,7 @@
 
 ### 接口信息
 - **URL**: `GET /api/document/docVideo/page`
-- **功能**: 分页查询视频列表
+- **功能**: 分页查询视频列表（包含文件信息、作者信息、统计信息）
 
 ### 查询参数
 
@@ -116,7 +137,8 @@
 | `videoTitle` | `string` | 否 | - | 视频标题 |
 | `status` | `number` | 否 | - | 状态 |
 | `auditStatus` | `number` | 否 | - | 审核状态 |
-| `broadCode` | `string` | 否 | - | 分类编码 |
+| `broadCode` | `string` | 否 | - | 大类编码 |
+| `narrowCode` | `string` | 否 | - | 小类编码 |
 | `deleted` | `number` | 否 | - | 删除标记 |
 | `pageNum` | `number` | 否 | 1 | 页码 |
 | `pageSize` | `number` | 否 | 10 | 每页数量 |
@@ -132,15 +154,33 @@
       {
         "id": "1",
         "userId": "1",
+        "user": {
+          "id": "1",
+          "name": "作者昵称",
+          "avatar": "https://example.com/avatar.jpg"
+        },
         "videoTitle": "视频标题",
-        "fileContent": "视频描述",
-        "fileId": "file-abc123",
-        "videoUrl": "https://example.com/video.mp4",
-        "coverUrl": "https://example.com/cover.jpg",
-        "broadCode": "tech",
         "tags": "tag1,tag2",
-        "status": 1,
+        "fileContent": "视频描述",
+        "videoFile": {
+          "video": {
+            "fileId": "1",
+            "fileUrl": "https://example.com/video.mp4"
+          },
+          "thumbnail": {
+            "fileId": "2",
+            "fileUrl": "https://example.com/cover.jpg"
+          }
+        },
+        "broadCode": "tech",
+        "narrowCode": "java",
         "auditStatus": 1,
+        "status": 1,
+        "statsInfo": {
+          "views": 1234,
+          "likes": 56,
+          "favorites": 32
+        },
         "isPinned": 0,
         "isRecommended": 1,
         "deleted": 0,
@@ -157,11 +197,11 @@
 
 ---
 
-## 3. 获取视频详细信息
+## 3. 获取视频详情
 
 ### 接口信息
 - **URL**: `GET /api/document/docVideo/{id}`
-- **功能**: 获取视频详细信息，同时关联查询文件信息获取封面图URL和视频播放地址
+- **功能**: 获取视频详情（包含文件信息、分集信息）
 
 ### 路径参数
 
@@ -178,15 +218,35 @@
   "data": {
     "id": "1",
     "userId": "1",
+    "user": {
+      "id": "1",
+      "name": "作者昵称",
+      "avatar": "https://example.com/avatar.jpg"
+    },
     "videoTitle": "视频标题",
-    "fileContent": "视频描述",
-    "fileId": "file-abc123",
-    "videoUrl": "https://example.com/video.mp4",
-    "coverUrl": "https://example.com/cover.jpg",
-    "broadCode": "tech",
     "tags": "tag1,tag2",
-    "status": 1,
+    "fileContent": "视频描述",
+    "videoFile": {
+      "video": {
+        "fileId": "1",
+        "fileUrl": "https://example.com/video.mp4"
+      },
+      "thumbnail": {
+        "fileId": "2",
+        "fileUrl": "https://example.com/cover.jpg"
+      }
+    },
+    "broadCode": "tech",
+    "narrowCode": "java",
+    "metaData": "{\"resolution\":\"1920x1080\",\"duration\":\"3600\"}",
     "auditStatus": 1,
+    "status": 1,
+    "videoDtl": {
+      "id": "1",
+      "title": "第一集",
+      "videoUrl": "https://example.com/ep1.mp4",
+      "duration": "1200"
+    },
     "isPinned": 0,
     "isRecommended": 1,
     "deleted": 0,
@@ -195,6 +255,42 @@
   }
 }
 ```
+
+### 响应字段说明
+
+| 字段 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `id` | `string` | 视频ID |
+| `userId` | `string` | 用户ID |
+| `user` | `object` | 用户信息 |
+| `user.id` | `string` | 用户ID |
+| `user.name` | `string` | 用户名称 |
+| `user.avatar` | `string` | 用户头像URL |
+| `videoTitle` | `string` | 视频标题 |
+| `tags` | `string` | 标签（逗号分隔） |
+| `fileContent` | `string` | 视频描述/文本内容 |
+| `videoFile` | `object` | 视频文件信息 |
+| `videoFile.video` | `object` | 视频文件 |
+| `videoFile.video.fileId` | `string` | 视频文件ID |
+| `videoFile.video.fileUrl` | `string` | 视频播放URL |
+| `videoFile.thumbnail` | `object` | 缩略图文件 |
+| `videoFile.thumbnail.fileId` | `string` | 缩略图文件ID |
+| `videoFile.thumbnail.fileUrl` | `string` | 缩略图URL |
+| `broadCode` | `string` | 大类编码 |
+| `narrowCode` | `string` | 小类编码 |
+| `metaData` | `string` | 元数据（JSON格式） |
+| `auditStatus` | `number` | 审核状态 |
+| `status` | `number` | 状态 |
+| `videoDtl` | `object` | 分集信息 |
+| `videoDtl.id` | `string` | 分集ID |
+| `videoDtl.title` | `string` | 分集标题 |
+| `videoDtl.videoUrl` | `string` | 分集视频地址 |
+| `videoDtl.duration` | `string` | 分集时长 |
+| `isPinned` | `number` | 是否置顶 |
+| `isRecommended` | `number` | 是否推荐 |
+| `deleted` | `number` | 删除标记 |
+| `createTime` | `string` | 创建时间 |
+| `updateTime` | `string` | 更新时间 |
 
 ---
 
@@ -224,11 +320,25 @@
   "msg": "success",
   "data": {
     "success": true,
-    "status": true,
-    "count": 11
+    "viewCount": 1234,
+    "likeCount": 56,
+    "collectCount": 23,
+    "hasLiked": true,
+    "hasCollected": false
   }
 }
 ```
+
+### 响应字段说明
+
+| 字段 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `success` | `boolean` | 是否成功 |
+| `viewCount` | `number` | 浏览量（从Redis缓存获取） |
+| `likeCount` | `number` | 点赞量（从Redis缓存获取） |
+| `collectCount` | `number` | 收藏量（从Redis缓存获取） |
+| `hasLiked` | `boolean/null` | 是否已点赞（用户未登录时为null） |
+| `hasCollected` | `boolean/null` | 是否已收藏（用户未登录时为null） |
 
 ---
 
@@ -236,7 +346,7 @@
 
 ### 接口信息
 - **URL**: `POST /api/document/docVideo/{id}/view`
-- **功能**: 增加视频浏览量
+- **功能**: 用户浏览视频时调用，增加对应视频的浏览计数
 
 ### 路径参数
 
@@ -274,12 +384,17 @@
 {
   "userId": "1",
   "videoTitle": "新视频标题",
-  "fileContent": "视频描述",
-  "fileId": "file-abc123",
-  "broadCode": "tech",
+  "fileId": "1",
+  "coverFileId": "2",
   "tags": "tag1,tag2",
+  "fileContent": "视频描述",
+  "broadCode": "tech",
+  "narrowCode": "java",
+  "metaData": "{\"resolution\":\"1920x1080\"}",
   "status": 1,
-  "auditStatus": 0
+  "auditStatus": 0,
+  "isPinned": 0,
+  "isRecommended": 0
 }
 ```
 
@@ -289,12 +404,17 @@
 | :--- | :--- | :--- | :--- |
 | `userId` | `string` | 是 | 用户ID |
 | `videoTitle` | `string` | 是 | 视频标题 |
-| `fileContent` | `string` | 否 | 视频描述 |
-| `fileId` | `string` | 是 | 文件ID |
-| `broadCode` | `string` | 是 | 分类编码 |
+| `fileId` | `string` | 否 | 视频文件ID |
+| `coverFileId` | `string` | 否 | 封面图片文件ID |
 | `tags` | `string` | 否 | 标签（逗号分隔） |
+| `fileContent` | `string` | 否 | 视频描述/文本内容 |
+| `broadCode` | `string` | 是 | 大类编码 |
+| `narrowCode` | `string` | 否 | 小类编码 |
+| `metaData` | `string` | 否 | 元数据（JSON格式） |
 | `status` | `number` | 否 | 状态（默认1） |
 | `auditStatus` | `number` | 否 | 审核状态（默认0） |
+| `isPinned` | `number` | 否 | 是否置顶（默认0） |
+| `isRecommended` | `number` | 否 | 是否推荐（默认0） |
 
 ### 成功响应
 
@@ -313,25 +433,19 @@
 ### 接口信息
 - **URL**: `POST /api/document/docVideo/upload`
 - **功能**: 上传视频文件并保存视频信息
+- **Content-Type**: `multipart/form-data`
 
 ### 请求参数
 
 | 参数名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `file` | `MultipartFile` | 是 | 视频文件 |
-| `docVideo` | `object` | 是 | 视频信息对象 |
-
-### 请求体（docVideo）
-
-```json
-{
-  "userId": "1",
-  "videoTitle": "新视频标题",
-  "fileContent": "视频描述",
-  "broadCode": "tech",
-  "tags": "tag1,tag2"
-}
-```
+| `file` | `file` | 是 | 视频文件 |
+| `userId` | `string` | 是 | 用户ID |
+| `videoTitle` | `string` | 是 | 视频标题 |
+| `tags` | `string` | 否 | 标签 |
+| `fileContent` | `string` | 否 | 视频描述 |
+| `broadCode` | `string` | 是 | 大类编码 |
+| `narrowCode` | `string` | 否 | 小类编码 |
 
 ### 成功响应
 
@@ -357,9 +471,17 @@
 {
   "id": "1",
   "videoTitle": "修改后的标题",
+  "fileId": "1",
+  "coverFileId": "3",
+  "tags": "newtag1,newtag2",
   "fileContent": "修改后的描述",
   "broadCode": "life",
-  "tags": "tag3,tag4"
+  "narrowCode": "python",
+  "metaData": "{\"resolution\":\"4K\"}",
+  "status": 1,
+  "auditStatus": 1,
+  "isPinned": 1,
+  "isRecommended": 1
 }
 ```
 
@@ -369,9 +491,17 @@
 | :--- | :--- | :--- | :--- |
 | `id` | `string` | 是 | 视频ID |
 | `videoTitle` | `string` | 否 | 视频标题 |
-| `fileContent` | `string` | 否 | 视频描述 |
-| `broadCode` | `string` | 否 | 分类编码 |
+| `fileId` | `string` | 否 | 视频文件ID |
+| `coverFileId` | `string` | 否 | 封面图片文件ID |
 | `tags` | `string` | 否 | 标签 |
+| `fileContent` | `string` | 否 | 视频描述 |
+| `broadCode` | `string` | 否 | 大类编码 |
+| `narrowCode` | `string` | 否 | 小类编码 |
+| `metaData` | `string` | 否 | 元数据 |
+| `status` | `number` | 否 | 状态 |
+| `auditStatus` | `number` | 否 | 审核状态 |
+| `isPinned` | `number` | 否 | 是否置顶 |
+| `isRecommended` | `number` | 否 | 是否推荐 |
 
 ### 成功响应
 
@@ -413,7 +543,7 @@
 
 ### 接口信息
 - **URL**: `GET /api/document/docVideo/draft/list`
-- **功能**: 获取草稿列表
+- **功能**: 获取状态为草稿的视频列表
 
 ### 查询参数
 
@@ -433,10 +563,36 @@
       {
         "id": "1",
         "userId": "1",
+        "user": {
+          "id": "1",
+          "name": "作者昵称",
+          "avatar": "https://example.com/avatar.jpg"
+        },
         "videoTitle": "草稿标题",
+        "tags": "tag1,tag2",
         "fileContent": "草稿描述",
-        "status": 3,
+        "videoFile": {
+          "video": {
+            "fileId": "1",
+            "fileUrl": "https://example.com/video.mp4"
+          },
+          "thumbnail": {
+            "fileId": "2",
+            "fileUrl": "https://example.com/cover.jpg"
+          }
+        },
+        "broadCode": "tech",
+        "narrowCode": "java",
         "auditStatus": 0,
+        "status": 3,
+        "statsInfo": {
+          "views": 0,
+          "likes": 0,
+          "favorites": 0
+        },
+        "isPinned": 0,
+        "isRecommended": 0,
+        "deleted": 0,
         "createTime": "2026-02-15 10:30:00",
         "updateTime": "2026-02-15 10:30:00"
       }
@@ -462,9 +618,12 @@
 {
   "userId": "1",
   "videoTitle": "草稿标题",
+  "fileId": "1",
+  "coverFileId": "2",
+  "tags": "tag1,tag2",
   "fileContent": "草稿描述",
   "broadCode": "tech",
-  "tags": "tag1,tag2"
+  "narrowCode": "java"
 }
 ```
 
@@ -478,19 +637,13 @@
 }
 ```
 
-### 响应说明
-
-| 字段 | 类型 | 说明 |
-| :--- | :--- | :--- |
-| `data` | `string` | 草稿ID |
-
 ---
 
 ## 12. 发布草稿
 
 ### 接口信息
 - **URL**: `PUT /api/document/docVideo/draft/publish/{id}`
-- **功能**: 发布草稿为正式视频
+- **功能**: 将草稿状态变更为正常，并设置审核状态为待审核
 
 ### 路径参数
 
@@ -514,7 +667,7 @@
 
 ### 接口信息
 - **URL**: `PUT /api/document/docVideo/status/batch`
-- **功能**: 批量更新视频状态
+- **功能**: 批量修改视频的状态字段
 
 ### 请求体
 
@@ -530,7 +683,7 @@
 | 字段 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
 | `ids` | `array` | 是 | 视频ID列表 |
-| `status` | `number` | 是 | 目标状态（1发布，2下架，3草稿） |
+| `status` | `number` | 是 | 目标状态（1-正常，2-下架，3-草稿） |
 
 ### 成功响应
 
@@ -544,7 +697,7 @@
 
 ---
 
-## 14. 切换视频置顶状态
+## 14. 切换置顶状态
 
 ### 接口信息
 - **URL**: `PUT /api/document/docVideo/{id}/pinned`
@@ -560,7 +713,7 @@
 
 | 参数名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `pinned` | `number` | 是 | 置顶状态（0否，1是） |
+| `pinned` | `number` | 是 | 置顶状态（0-否，1-是） |
 
 ### 成功响应
 
@@ -574,7 +727,7 @@
 
 ---
 
-## 15. 切换视频推荐状态
+## 15. 切换推荐状态
 
 ### 接口信息
 - **URL**: `PUT /api/document/docVideo/{id}/recommended`
@@ -590,7 +743,7 @@
 
 | 参数名 | 类型 | 必填 | 说明 |
 | :--- | :--- | :--- | :--- |
-| `recommended` | `number` | 是 | 推荐状态（0否，1是） |
+| `recommended` | `number` | 是 | 推荐状态（0-否，1-是） |
 
 ### 成功响应
 
@@ -632,4 +785,4 @@
 | :--- | :--- | :--- |
 | `code` | `number` | 状态码（200成功，其他为失败） |
 | `msg` | `string` | 响应消息 |
-| `data` | `object/array/boolean/string/null` | 响应数据 |
+| `data` | `object/array/boolean/null` | 响应数据 |

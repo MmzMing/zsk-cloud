@@ -58,6 +58,12 @@ public class DocVideoCommentVo implements Serializable {
     private Boolean isLiked;
 
     /**
+     * 评论状态（1-正常 2-隐藏 3-删除）
+     */
+    @Schema(description = "评论状态（1-正常 2-隐藏 3-删除）")
+    private Integer status;
+
+    /**
      * 子评论列表
      */
     @Schema(description = "子评论列表")

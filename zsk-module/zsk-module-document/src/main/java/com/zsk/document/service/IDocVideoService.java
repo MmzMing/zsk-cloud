@@ -4,7 +4,9 @@ import com.baomidou.mybatisplus.extension.service.IService;
 import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.document.domain.DocVideo;
+import com.zsk.document.domain.vo.DocVideoDetailVo;
 import com.zsk.document.domain.vo.DocVideoListVo;
+import com.zsk.document.domain.vo.DocVideoListWithThumbnailVo;
 
 import java.util.List;
 
@@ -69,12 +71,12 @@ public interface IDocVideoService extends IService<DocVideo> {
     PageResult<DocVideoListVo> pageWithFileUrl(DocVideo docVideo, PageQuery pageQuery);
 
     /**
-     * 获取视频详细信息（带文件URL）
+     * 获取视频详情（带文件URL）
      *
      * @param id 视频ID
-     * @return 视频详情（包含文件信息）
+     * @return 视频详情（包含文件信息、分集信息）
      */
-    DocVideoListVo getByIdWithFileUrl(Long id);
+    DocVideoDetailVo getDetailWithFileUrl(Long id);
 
     /**
      * 获取草稿列表（带文件URL）
@@ -83,4 +85,21 @@ public interface IDocVideoService extends IService<DocVideo> {
      * @return 草稿列表（包含文件信息）
      */
     PageResult<DocVideoListVo> draftListWithFileUrl(PageQuery pageQuery);
+
+    /**
+     * 查询视频列表（带文件URL、缩略图）
+     *
+     * @param docVideo 查询条件
+     * @return 视频列表（包含文件信息、缩略图）
+     */
+    List<DocVideoListWithThumbnailVo> listWithFileUrlAndThumbnail(DocVideo docVideo);
+
+    /**
+     * 分页查询视频列表（带文件URL、缩略图）
+     *
+     * @param docVideo  查询条件
+     * @param pageQuery 分页参数
+     * @return 分页结果（包含文件信息、缩略图）
+     */
+    PageResult<DocVideoListWithThumbnailVo> pageWithFileUrlAndThumbnail(DocVideo docVideo, PageQuery pageQuery);
 }

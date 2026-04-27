@@ -5,6 +5,7 @@ import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.document.domain.DocFiles;
 import com.zsk.document.domain.DocVideo;
+import com.zsk.document.domain.vo.DocVideoDetailVo;
 import com.zsk.document.domain.vo.DocVideoListVo;
 import com.zsk.document.domain.vo.InteractionResultVo;
 import com.zsk.document.service.IDocFilesService;
@@ -51,6 +52,8 @@ public class DocVideoController {
      */
     private final IDocVideoInteractionService docVideoInteractionService;
 
+    // ===== 查询接口 =====
+
     /**
      * 查询视频列表
      * <p>
@@ -85,20 +88,22 @@ public class DocVideoController {
     }
 
     /**
-     * 获取视频详细信息
+     * 获取视频详情
      * <p>
      * 根据视频ID获取详情，同时关联查询视频文件和缩略图文件信息（一对一绑定关系）。
      * 交互数据（浏览量、点赞量等）需通过 {@link #getInteraction(Long, Long)} 接口单独获取。
      * </p>
      *
      * @param id 视频ID
-     * @return 视频详情（包含文件信息）
+     * @return 视频详情（包含文件信息、分集信息）
      */
-    @Operation(summary = "获取视频详细信息")
+    @Operation(summary = "获取视频详情")
     @GetMapping(value = "/{id}")
-    public R<DocVideoListVo> getInfo(@PathVariable("id") Long id) {
-        return R.ok(docVideoService.getByIdWithFileUrl(id));
+    public R<DocVideoDetailVo> getDetail(@PathVariable("id") Long id) {
+        return R.ok(docVideoService.getDetailWithFileUrl(id));
     }
+
+    // ===== 交互接口 =====
 
     /**
      * 获取视频交互数据
@@ -136,6 +141,8 @@ public class DocVideoController {
         docVideoInteractionService.incrementViewCount(id, userId);
         return R.ok();
     }
+
+    // ===== 管理接口 =====
 
     /**
      * 新增视频

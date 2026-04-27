@@ -34,6 +34,11 @@ public class DictTypeConstants {
      */
     public static final String DOCUMENT_TAG = "document_tag";
 
+    /**
+     * 文档违规原因字典类型
+     */
+    public static final String DOCUMENT_VIOLATION_REASON = "document_violation_reason";
+
     private DictTypeConstants() {
         throw new AssertionError("常量类禁止实例化");
     }

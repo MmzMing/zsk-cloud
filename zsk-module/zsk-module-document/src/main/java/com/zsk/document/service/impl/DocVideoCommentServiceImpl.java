@@ -16,6 +16,8 @@ import com.zsk.document.enums.CacheDocLikeTypeEnum;
 import com.zsk.document.mapper.DocVideoCommentMapper;
 import com.zsk.document.service.ICacheDocLikeService;
 import com.zsk.document.service.IDocVideoCommentService;
+import com.zsk.system.api.RemoteUserService;
+import com.zsk.system.api.domain.SysUserApi;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -26,6 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -55,6 +58,11 @@ public class DocVideoCommentServiceImpl extends ServiceImpl<DocVideoCommentMappe
      * 缓存点赞服务
      */
     private final ICacheDocLikeService cacheDocLikeService;
+
+    /**
+     * 远程用户服务
+     */
+    private final RemoteUserService remoteUserService;
 
     /**
      * 获取视频评论列表（支持热门/最新排序）
@@ -163,7 +171,7 @@ public class DocVideoCommentServiceImpl extends ServiceImpl<DocVideoCommentMappe
         this.save(comment);
         log.info("视频评论发表成功, commentId={}", comment.getId());
 
-        // 4. 构建并返回评论VO
+        // 4. 构建并返回评论VO（单条评论查询用户信息）
         return buildCommentVo(comment, userId);
     }
 
@@ -208,9 +216,10 @@ public class DocVideoCommentServiceImpl extends ServiceImpl<DocVideoCommentMappe
     }
 
     /**
-     * 构建评论VO
+     * 构建评论VO（单条查询，适用于单条评论场景）
      * <p>
      * 将评论实体转换为评论VO，包含作者信息、点赞数（从Redis获取）、点赞状态、回复对象信息等。
+     * 作者和回复对象信息通过远程用户服务获取真实用户信息。
      * </p>
      *
      * @param comment       评论实体
@@ -226,6 +235,7 @@ public class DocVideoCommentServiceImpl extends ServiceImpl<DocVideoCommentMappe
         vo.setId(comment.getId());
         vo.setContent(comment.getCommentContent());
         vo.setCreatedAt(comment.getCreateTime() != null ? comment.getCreateTime().format(DATE_FORMATTER) : "");
+        vo.setStatus(comment.getStatus());
 
         // 2. 从Redis获取评论点赞数
         Long likeCount = cacheDocLikeService.getLikeCount(CacheDocLikeTypeEnum.VIDEO_COMMENT.getCode(), comment.getId());
@@ -238,29 +248,151 @@ public class DocVideoCommentServiceImpl extends ServiceImpl<DocVideoCommentMappe
             vo.setIsLiked(false);
         }
 
-        // 4. 构建评论作者信息
-        DocUserVo author = new DocUserVo();
-        author.setId(comment.getCommentUserId());
-        author.setName("用户" + comment.getCommentUserId());
-        author.setAvatar("");
-        vo.setAuthor(author);
+        // 4. 构建评论作者信息（从远程用户服务获取）
+        vo.setAuthor(fetchUserInfo(comment.getCommentUserId()));
 
-        // 5. 设置回复对象信息（如果有replyUserId）
+        // 5. 设置回复对象信息（从远程用户服务获取）
         if (comment.getReplyUserId() != null) {
-            DocUserVo replyTo = new DocUserVo();
-            replyTo.setId(comment.getReplyUserId());
-            replyTo.setName("用户" + comment.getReplyUserId());
-            replyTo.setAvatar("");
-            vo.setReplyTo(replyTo);
+            vo.setReplyTo(fetchUserInfo(comment.getReplyUserId()));
         }
 
         return vo;
     }
 
     /**
+     * 构建评论VO（批量查询，适用于列表场景避免循环RPC）
+     * <p>
+     * 将评论实体转换为评论VO，使用预先批量查询的用户信息Map，避免循环调用远程服务。
+     * </p>
+     *
+     * @param comment       评论实体
+     * @param currentUserId 当前登录用户ID（可为null）
+     * @param userMap       用户信息缓存Map（key: userId, value: SysUserApi）
+     * @return 评论VO
+     */
+    private DocVideoCommentVo buildCommentVo(DocVideoComment comment, Long currentUserId, Map<Long, SysUserApi> userMap) {
+        log.debug("构建视频评论VO(批量模式), commentId={}, currentUserId={}", comment.getId(), currentUserId);
+
+        // 1. 创建评论VO对象
+        DocVideoCommentVo vo = new DocVideoCommentVo();
+        vo.setId(comment.getId());
+        vo.setContent(comment.getCommentContent());
+        vo.setCreatedAt(comment.getCreateTime() != null ? comment.getCreateTime().format(DATE_FORMATTER) : "");
+        vo.setStatus(comment.getStatus());
+
+        // 2. 从Redis获取评论点赞数
+        Long likeCount = cacheDocLikeService.getLikeCount(CacheDocLikeTypeEnum.VIDEO_COMMENT.getCode(), comment.getId());
+        vo.setLikes(likeCount != null ? likeCount.intValue() : 0);
+
+        // 3. 查询当前用户是否点赞该评论
+        if (currentUserId != null) {
+            vo.setIsLiked(cacheDocLikeService.hasLiked(CacheDocLikeTypeEnum.VIDEO_COMMENT.getCode(), comment.getId(), currentUserId));
+        } else {
+            vo.setIsLiked(false);
+        }
+
+        // 4. 构建评论作者信息（从userMap获取）
+        vo.setAuthor(convertToDocUserVo(comment.getCommentUserId(), userMap));
+
+        // 5. 设置回复对象信息（从userMap获取）
+        if (comment.getReplyUserId() != null) {
+            vo.setReplyTo(convertToDocUserVo(comment.getReplyUserId(), userMap));
+        }
+
+        return vo;
+    }
+
+    /**
+     * 从远程用户服务获取用户信息（单条查询）
+     *
+     * @param userId 用户ID
+     * @return 用户信息VO
+     */
+    private DocUserVo fetchUserInfo(Long userId) {
+        DocUserVo userVo = new DocUserVo();
+        userVo.setId(userId);
+
+        try {
+            com.zsk.common.core.domain.R<SysUserApi> result = remoteUserService.getUserById(userId);
+            if (result != null && result.getData() != null) {
+                SysUserApi user = result.getData();
+                userVo.setName(user.getNickName() != null ? user.getNickName() : user.getUserName());
+                userVo.setAvatar(user.getAvatar());
+            } else {
+                userVo.setName("用户" + userId);
+            }
+        } catch (Exception e) {
+            log.warn("获取用户信息失败, userId={}, error={}", userId, e.getMessage());
+            userVo.setName("用户" + userId);
+        }
+
+        return userVo;
+    }
+
+    /**
+     * 批量获取用户信息
+     * <p>
+     * 通过远程用户服务批量查询用户信息，避免循环调用RPC。
+     * </p>
+     *
+     * @param userIds 用户ID列表
+     * @return 用户信息Map（key: userId, value: SysUserApi）
+     */
+    private Map<Long, SysUserApi> fetchUserMap(List<Long> userIds) {
+        if (userIds == null || userIds.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        // 去重并过滤null
+        List<Long> distinctIds = userIds.stream()
+                .filter(Objects::nonNull)
+                .distinct()
+                .collect(Collectors.toList());
+
+        if (distinctIds.isEmpty()) {
+            return new HashMap<>();
+        }
+
+        try {
+            var result = remoteUserService.listByIds(distinctIds);
+            if (result != null && result.getData() != null) {
+                return result.getData().stream()
+                        .collect(Collectors.toMap(SysUserApi::getId, user -> user, (a, b) -> a));
+            }
+        } catch (Exception e) {
+            log.error("批量获取用户信息失败, userIds={}", distinctIds, e);
+        }
+
+        return new HashMap<>();
+    }
+
+    /**
+     * 将SysUserApi转换为DocUserVo
+     *
+     * @param userId  用户ID
+     * @param userMap 用户信息Map
+     * @return DocUserVo
+     */
+    private DocUserVo convertToDocUserVo(Long userId, Map<Long, SysUserApi> userMap) {
+        DocUserVo userVo = new DocUserVo();
+        userVo.setId(userId);
+
+        SysUserApi user = userMap.get(userId);
+        if (user != null) {
+            userVo.setName(user.getNickName() != null ? user.getNickName() : user.getUserName());
+            userVo.setAvatar(user.getAvatar());
+        } else {
+            userVo.setName("用户" + userId);
+        }
+
+        return userVo;
+    }
+
+    /**
      * 批量构建评论VO
-         * <p>
+     * <p>
      * 将评论实体列表转换为评论VO列表，用于批量查询场景。
+     * 会批量查询所有相关用户信息，避免循环RPC调用。
      * </p>
      *
      * @param comments      评论实体列表
@@ -275,8 +407,23 @@ public class DocVideoCommentServiceImpl extends ServiceImpl<DocVideoCommentMappe
             return new ArrayList<>();
         }
 
+        // 1. 收集所有需要查询的用户ID（评论作者 + 回复对象）
+        List<Long> allUserIds = new ArrayList<>();
+        for (DocVideoComment comment : comments) {
+            if (comment.getCommentUserId() != null) {
+                allUserIds.add(comment.getCommentUserId());
+            }
+            if (comment.getReplyUserId() != null) {
+                allUserIds.add(comment.getReplyUserId());
+            }
+        }
+
+        // 2. 批量获取用户信息
+        Map<Long, SysUserApi> userMap = fetchUserMap(allUserIds);
+
+        // 3. 构建VO列表
         return comments.stream()
-                .map(comment -> buildCommentVo(comment, currentUserId))
+                .map(comment -> buildCommentVo(comment, currentUserId, userMap))
                 .collect(Collectors.toList());
     }
 
@@ -355,14 +502,38 @@ public class DocVideoCommentServiceImpl extends ServiceImpl<DocVideoCommentMappe
             replyMap.computeIfAbsent(reply.getParentCommentId(), k -> new ArrayList<>()).add(reply);
         }
 
-        // 5. 构建根评论VO列表，并为每个根评论设置回复列表
+        // 5. 收集所有需要查询的用户ID（根评论作者 + 回复作者 + 回复对象）
+        List<Long> allUserIds = new ArrayList<>();
+        for (DocVideoComment rootComment : rootComments) {
+            if (rootComment.getCommentUserId() != null) {
+                allUserIds.add(rootComment.getCommentUserId());
+            }
+            if (rootComment.getReplyUserId() != null) {
+                allUserIds.add(rootComment.getReplyUserId());
+            }
+        }
+        for (DocVideoComment reply : allReplies) {
+            if (reply.getCommentUserId() != null) {
+                allUserIds.add(reply.getCommentUserId());
+            }
+            if (reply.getReplyUserId() != null) {
+                allUserIds.add(reply.getReplyUserId());
+            }
+        }
+
+        // 6. 批量获取所有用户信息
+        Map<Long, SysUserApi> userMap = fetchUserMap(allUserIds);
+
+        // 7. 构建根评论VO列表，并为每个根评论设置回复列表
         List<DocVideoCommentVo> result = new ArrayList<>();
         for (DocVideoComment rootComment : rootComments) {
-            DocVideoCommentVo rootVo = buildCommentVo(rootComment, userId);
+            DocVideoCommentVo rootVo = buildCommentVo(rootComment, userId, userMap);
 
             // 构建该根评论下的回复VO列表
             List<DocVideoComment> replies = replyMap.getOrDefault(rootComment.getId(), new ArrayList<>());
-            List<DocVideoCommentVo> replyVos = buildCommentVoList(replies, userId);
+            List<DocVideoCommentVo> replyVos = replies.stream()
+                    .map(reply -> buildCommentVo(reply, userId, userMap))
+                    .collect(Collectors.toList());
             rootVo.setReplies(replyVos);
 
             result.add(rootVo);

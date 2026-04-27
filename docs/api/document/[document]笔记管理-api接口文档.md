@@ -718,6 +718,168 @@
 
 ---
 
+## 13. 获取笔记统计信息
+
+### 接口信息
+- **URL**: `GET /api/document/docNote/{id}/stats`
+- **功能**: 获取笔记统计信息（浏览量、点赞数、收藏数）
+
+### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | `string` | 是 | 笔记ID |
+
+### 成功响应
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "views": 1234,
+    "likes": 56,
+    "favorites": 32
+  }
+}
+```
+
+### 响应字段说明
+
+| 字段 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `views` | `number` | 浏览量（从Redis缓存获取） |
+| `likes` | `number` | 点赞数（从Redis缓存获取） |
+| `favorites` | `number` | 收藏数（从Redis缓存获取） |
+
+---
+
+## 14. 批量获取笔记统计信息
+
+### 接口信息
+- **URL**: `GET /api/document/docNote/stats/batch`
+- **功能**: 批量获取多个笔记的统计信息
+
+### 查询参数
+
+| 参数名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `ids` | `array` | 是 | 笔记ID列表 |
+
+### 成功响应
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "1": {
+      "views": 1234,
+      "likes": 56,
+      "favorites": 32
+    },
+    "2": {
+      "views": 567,
+      "likes": 23,
+      "favorites": 10
+    }
+  }
+}
+```
+
+---
+
+## 15. 获取笔记元信息
+
+### 接口信息
+- **URL**: `GET /api/document/docNote/{id}/meta`
+- **功能**: 获取笔记元信息（仅包含基础信息和封面图片地址，不含作者信息和交互数据）
+
+### 路径参数
+
+| 参数名 | 类型 | 必填 | 说明 |
+| :--- | :--- | :--- | :--- |
+| `id` | `string` | 是 | 笔记ID |
+
+### 成功响应
+
+```json
+{
+  "code": 200,
+  "msg": "success",
+  "data": {
+    "id": "1",
+    "userId": "1",
+    "noteName": "笔记标题",
+    "noteTags": "tag1,tag2",
+    "content": "笔记内容",
+    "description": "笔记简介",
+    "coverFile": {
+      "fileId": "file-abc123",
+      "fileUrl": "https://example.com/cover.jpg"
+    },
+    "broadCode": "tech",
+    "narrowCode": "java",
+    "noteGrade": 1,
+    "noteMode": 1,
+    "suitableUsers": "初学者",
+    "auditStatus": 1,
+    "status": 1,
+    "publishTime": "2026-02-15 10:30:00",
+    "isPinned": 0,
+    "isRecommended": 1,
+    "seoTitle": "SEO标题",
+    "seoDescription": "SEO描述",
+    "seoKeywords": "keyword1,keyword2",
+    "deleted": 0,
+    "createTime": "2026-02-15 10:30:00",
+    "updateTime": "2026-02-15 10:30:00"
+  }
+}
+```
+
+### 响应字段说明
+
+| 字段 | 类型 | 说明 |
+| :--- | :--- | :--- |
+| `id` | `string` | 笔记ID |
+| `userId` | `string` | 用户ID |
+| `noteName` | `string` | 笔记名称 |
+| `noteTags` | `string` | 笔记标签（逗号分隔） |
+| `content` | `string` | 文档内容 |
+| `description` | `string` | 笔记简介/描述 |
+| `coverFile` | `object` | 封面文件信息 |
+| `coverFile.fileId` | `string` | 封面图片文件ID |
+| `coverFile.fileUrl` | `string` | 封面图片文件URL |
+| `broadCode` | `string` | 大类编码 |
+| `narrowCode` | `string` | 小类编码 |
+| `noteGrade` | `number` | 笔记等级 |
+| `noteMode` | `number` | 笔记模式 |
+| `suitableUsers` | `string` | 适合人群 |
+| `auditStatus` | `number` | 审核状态（0待审核，1已通过，2已拒绝） |
+| `status` | `number` | 笔记状态（1发布，2下架，3草稿） |
+| `publishTime` | `string` | 笔记发布时间 |
+| `isPinned` | `number` | 是否置顶（0否，1是） |
+| `isRecommended` | `number` | 是否推荐（0否，1是） |
+| `seoTitle` | `string` | SEO标题 |
+| `seoDescription` | `string` | SEO描述 |
+| `seoKeywords` | `string` | SEO关键词（逗号分隔） |
+| `deleted` | `number` | 删除标记（0未删除，1已删除） |
+| `createTime` | `string` | 创建时间 |
+| `updateTime` | `string` | 更新时间 |
+
+### 失败响应（笔记不存在）
+
+```json
+{
+  "code": 500,
+  "msg": "笔记不存在",
+  "data": null
+}
+```
+
+---
+
 ## 通用响应格式
 
 ### 成功响应

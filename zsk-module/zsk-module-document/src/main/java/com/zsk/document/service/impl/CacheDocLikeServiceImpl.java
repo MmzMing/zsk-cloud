@@ -6,7 +6,7 @@ import com.zsk.document.domain.context.DocUserInteractionContext;
 import com.zsk.document.enums.CacheDocLikeTypeEnum;
 import com.zsk.document.mapper.DocUserInteractionMapper;
 import com.zsk.document.service.ICacheDocLikeService;
-import com.zsk.document.util.BitmapOffsetUtil;
+import com.zsk.common.redis.utils.BitmapOffsetUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Range;

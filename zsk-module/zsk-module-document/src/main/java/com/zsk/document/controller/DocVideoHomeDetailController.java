@@ -59,7 +59,7 @@ public class DocVideoHomeDetailController {
     @GetMapping("/detail/{id}")
     public R<DocVideoHomeDetailVo> getDetail(@PathVariable("id") Long id) {
         // 查询视频基础信息
-        DocVideoListVo video = videoService.getByIdWithFileUrl(id);
+        DocVideoDetailVo video = videoService.getDetailWithFileUrl(id);
         if (video == null) {
             return R.fail("视频不存在");
         }

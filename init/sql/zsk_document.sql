@@ -170,7 +170,7 @@ DROP TABLE IF EXISTS `document_video`;
 CREATE TABLE `document_video`  (
   `id` bigint(20) NOT NULL COMMENT '主键',
   `tenant_id` bigint(20) DEFAULT 0 COMMENT '租户ID',
-  `file_id` bigint(20) NOT NULL COMMENT '文件ID（关联document_files.id）',
+  `file_id` bigint(20) NULL COMMENT '文件ID（关联document_files.id）',
   `user_id` bigint(20) NOT NULL COMMENT '所属用户ID',
   `video_title` varchar(200) DEFAULT NULL COMMENT '视频标题',
   `broad_code` varchar(20) NULL DEFAULT NULL COMMENT '大类（如：技术、生活、职场）',
@@ -255,6 +255,54 @@ CREATE TABLE `document_video_comment`  (
   INDEX `idx_vc_status`(`status` ASC) USING BTREE COMMENT '评论状态索引',
   INDEX `idx_vc_create_time`(`create_time` ASC) USING BTREE COMMENT '评论时间索引'
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_视频详情评论表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- 8. 视频合集表
+-- ----------------------------
+DROP TABLE IF EXISTS `document_video_collection`;
+CREATE TABLE `document_video_collection` (
+  `id` bigint(20) NOT NULL COMMENT '主键',
+  `tenant_id` bigint(20) DEFAULT 0 COMMENT '租户ID',
+  `user_id` bigint(20) NOT NULL COMMENT '所属用户ID',
+  `collection_name` varchar(100) NOT NULL COMMENT '合集名称',
+  `description` varchar(500) DEFAULT NULL COMMENT '合集描述',
+  `cover_file_id` bigint(20) DEFAULT NULL COMMENT '封面图片文件ID（关联document_files.id）',
+  `video_count` int(11) DEFAULT 0 COMMENT '视频数量（冗余字段，便于列表展示）',
+  `sort_order` int(11) DEFAULT 0 COMMENT '合集排序（越大越靠前）',
+  `remark` varchar(32) NULL DEFAULT NULL COMMENT '备注',
+  `status` int(4) NOT NULL DEFAULT 1 COMMENT '状态（1-公开 2-私密）',
+  `create_name` varchar(100) DEFAULT NULL COMMENT '创建者姓名',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_name` varchar(100) DEFAULT NULL COMMENT '更新者姓名',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否已删除(0否1是)',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_dvc_user_id`(`user_id` ASC) USING BTREE COMMENT '用户ID索引',
+  INDEX `idx_dvc_status`(`status` ASC) USING BTREE COMMENT '状态索引'
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_视频合集表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- 9. 视频合集关联表
+-- ----------------------------
+DROP TABLE IF EXISTS `document_video_collection_item`;
+CREATE TABLE `document_video_collection_item` (
+  `id` bigint(20) NOT NULL COMMENT '主键',
+  `tenant_id` bigint(20) DEFAULT 0 COMMENT '租户ID',
+  `collection_id` bigint(20) NOT NULL COMMENT '合集ID（关联document_video_collection.id）',
+  `video_id` bigint(20) NOT NULL COMMENT '视频ID（关联document_video.id）',
+  `sort_order` int(11) DEFAULT 0 COMMENT '视频在合集中的排序（越小越靠前）',
+  `remark` varchar(32) NULL DEFAULT NULL COMMENT '备注',
+  `create_name` varchar(100) DEFAULT NULL COMMENT '创建者姓名',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_name` varchar(100) DEFAULT NULL COMMENT '更新者姓名',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否已删除(0否1是)',
+  PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_dvci_collection_video`(`collection_id` ASC, `video_id` ASC) USING BTREE COMMENT '合集视频唯一索引（防止重复添加）',
+  INDEX `idx_dvci_collection_id`(`collection_id` ASC) USING BTREE COMMENT '合集ID索引',
+  INDEX `idx_dvci_video_id`(`video_id` ASC) USING BTREE COMMENT '视频ID索引',
+  INDEX `idx_dvci_sort_order`(`collection_id` ASC, `sort_order` ASC) USING BTREE COMMENT '合集排序索引'
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_视频合集关联表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
 -- 10. 用户交互关系表

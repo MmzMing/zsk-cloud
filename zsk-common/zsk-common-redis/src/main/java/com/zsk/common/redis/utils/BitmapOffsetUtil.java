@@ -1,4 +1,4 @@
-package com.zsk.document.util;
+package com.zsk.common.redis.utils;
 
 /**
  * Redis Bitmap Offset 转换工具类
