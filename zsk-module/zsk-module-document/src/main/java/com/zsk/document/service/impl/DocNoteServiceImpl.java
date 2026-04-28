@@ -4,9 +4,9 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zsk.common.core.domain.R;
 import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
-import com.zsk.common.core.domain.R;
 import com.zsk.document.domain.DocFiles;
 import com.zsk.document.domain.DocNote;
 import com.zsk.document.domain.vo.DocFileInfoVo;
@@ -473,7 +473,7 @@ public class DocNoteServiceImpl extends ServiceImpl<DocNoteMapper, DocNote> impl
         Long collectCount = cacheDocCollectService.getCollectCount(CacheDocCollectTypeEnum.NOTE.getCode(), noteId);
         stats.setFavorites(collectCount != null ? collectCount.intValue() : 0);
 
-        log.info("查询笔记统计信息成功, noteId={}, views={}, likes={}, favorites={}", 
+        log.info("查询笔记统计信息成功, noteId={}, views={}, likes={}, favorites={}",
                 noteId, stats.getViews(), stats.getLikes(), stats.getFavorites());
 
         return stats;

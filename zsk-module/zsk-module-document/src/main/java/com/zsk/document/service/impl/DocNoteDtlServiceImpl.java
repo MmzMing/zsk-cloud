@@ -19,16 +19,16 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
-     * 笔记详情Service业务层处理
-     * <p>
-     * 实现笔记详情的 CRUD 操作。
-     * 遵循 Service 层约束：负责核心业务逻辑、事务控制，方法粒度适中，单一职责。
-     * </p>
-     *
-     * @author wuhuaming
-     * @version 1.0
-     * @date 2026-04-25
-     */
+ * 笔记详情Service业务层处理
+ * <p>
+ * 实现笔记详情的 CRUD 操作。
+ * 遵循 Service 层约束：负责核心业务逻辑、事务控制，方法粒度适中，单一职责。
+ * </p>
+ *
+ * @author wuhuaming
+ * @version 1.0
+ * @date 2026-04-25
+ */
 @Slf4j
 @Service
 @RequiredArgsConstructor
@@ -242,7 +242,7 @@ public class DocNoteDtlServiceImpl extends ServiceImpl<DocNoteDtlMapper, DocNote
      */
     @Override
     public boolean uploadMdFile(Long noteId, MultipartFile file) {
-        log.info("上传MD文件并保存到数据库, noteId={}, fileName={}", noteId, 
+        log.info("上传MD文件并保存到数据库, noteId={}, fileName={}", noteId,
                 file != null ? file.getOriginalFilename() : null);
 
         // 参数校验：文件不能为空

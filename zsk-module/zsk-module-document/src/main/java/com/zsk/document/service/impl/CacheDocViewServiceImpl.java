@@ -85,7 +85,7 @@ public class CacheDocViewServiceImpl implements ICacheDocViewService {
         String statKey = buildStatKey(viewType, targetId);
         String countField = buildCountField(viewType);
         redisTemplate.opsForHash().increment(statKey, countField, 1);
-        
+
         log.debug("浏览 {} targetId={}, userId={}", viewType.getDesc(), targetId, userId);
         return true;
     }
@@ -120,7 +120,7 @@ public class CacheDocViewServiceImpl implements ICacheDocViewService {
             return 0L;
         }
         Long dbCount = docUserInteractionMapper.countByTarget(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_VIEW);
-        
+
         // 回写缓存（仅当有数据时）
         if (dbCount != null && dbCount > 0) {
             redisTemplate.opsForHash().put(statKey, countField, dbCount.toString());
@@ -338,7 +338,7 @@ public class CacheDocViewServiceImpl implements ICacheDocViewService {
         // 浏览量无需用户级状态记录，只需存储统计值，因此只有Hash预热，没有Bitmap预热
         String statKey = buildStatKey(viewType, targetId);
         String countField = buildCountField(viewType);
-        
+
         // 通过countByTarget重新统计，而不是读取userId=0的统计记录
         // 这样可以保证数据一致性，避免因异常导致统计记录与实际不一致
         Long dbCount = docUserInteractionMapper.countByTarget(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_VIEW);

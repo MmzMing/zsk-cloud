@@ -24,12 +24,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -133,11 +128,11 @@ public class DocNoteCommentServiceImpl extends ServiceImpl<DocNoteCommentMapper,
      * 如果回复的是某条回复，则parentCommentId记录根评论ID，replyUserId记录被回复评论的用户ID。
      * </p>
      *
-     * @param noteId     笔记ID
-     * @param content    评论内容
-     * @param parentId   父评论ID（根评论时传null，回复时传根评论ID）
-     * @param replyToId  回复用户ID（直接回复根评论时传null，回复某条评论时传该评论的用户ID）
-     * @param userId     当前用户ID
+     * @param noteId    笔记ID
+     * @param content   评论内容
+     * @param parentId  父评论ID（根评论时传null，回复时传根评论ID）
+     * @param replyToId 回复用户ID（直接回复根评论时传null，回复某条评论时传该评论的用户ID）
+     * @param userId    当前用户ID
      * @return 评论VO，包含评论详情和作者信息
      */
     @Override

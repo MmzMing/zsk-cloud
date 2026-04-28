@@ -53,23 +53,23 @@ public interface ICacheDocViewService {
     Map<Long, Long> getViewCountBatch(Integer type, Iterable<Long> targetIds);
 
     /**
- * 同步浏览数据到数据库
- * <p>
- * 将Redis中的浏览量数据同步到数据库持久化。
- * 由定时任务调用。
- * </p>
- */
-void syncViewDataToDb();
+     * 同步浏览数据到数据库
+     * <p>
+     * 将Redis中的浏览量数据同步到数据库持久化。
+     * 由定时任务调用。
+     * </p>
+     */
+    void syncViewDataToDb();
 
-/**
- * 从数据库预热浏览量缓存
- * <p>
- * 将数据库中的浏览量数据加载到Redis缓存，用于服务重启后的缓存预热。
- * 加载浏览量计数到Hash。
- * </p>
- *
- * @param type     浏览类型
- * @param targetId 目标ID
- */
-void warmViewCacheFromDb(Integer type, Long targetId);
+    /**
+     * 从数据库预热浏览量缓存
+     * <p>
+     * 将数据库中的浏览量数据加载到Redis缓存，用于服务重启后的缓存预热。
+     * 加载浏览量计数到Hash。
+     * </p>
+     *
+     * @param type     浏览类型
+     * @param targetId 目标ID
+     */
+    void warmViewCacheFromDb(Integer type, Long targetId);
 }

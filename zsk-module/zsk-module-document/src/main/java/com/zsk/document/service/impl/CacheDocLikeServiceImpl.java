@@ -1,12 +1,12 @@
 package com.zsk.document.service.impl;
 
 import com.zsk.common.core.constant.CacheConstants;
+import com.zsk.common.redis.utils.BitmapOffsetUtil;
 import com.zsk.document.domain.DocUserInteraction;
 import com.zsk.document.domain.context.DocUserInteractionContext;
 import com.zsk.document.enums.CacheDocLikeTypeEnum;
 import com.zsk.document.mapper.DocUserInteractionMapper;
 import com.zsk.document.service.ICacheDocLikeService;
-import com.zsk.common.redis.utils.BitmapOffsetUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Range;
@@ -14,12 +14,7 @@ import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 缓存文档点赞服务实现类
@@ -74,7 +69,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
 
         // 构建 Bitmap Key：like:bit:{typeCode}:{targetId}
         String bitmapKey = buildBitmapKey(likeType, targetId);
-        
+
         // SETBIT 设置为 true，返回旧状态（原子操作）
         // 旧状态=false → 未点赞，需要增加计数
         // 旧状态=true → 已点赞，无需操作
@@ -87,7 +82,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
         String statKey = buildStatKey(likeType, targetId);
         String countField = buildCountField(likeType);
         redisTemplate.opsForHash().increment(statKey, countField, 1);
-        
+
         log.debug("用户 {} 点赞 {} targetId={}", userId, likeType.getDesc(), targetId);
         return true;
     }
@@ -116,7 +111,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
 
         // 构建 Bitmap Key
         String bitmapKey = buildBitmapKey(likeType, targetId);
-        
+
         // SETBIT 设置为 false，返回旧状态（原子操作）
         // 旧状态=true → 已点赞，需要减少计数
         // 旧状态=false → 未点赞，无需操作
@@ -129,7 +124,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
         String statKey = buildStatKey(likeType, targetId);
         String countField = buildCountField(likeType);
         redisTemplate.opsForHash().increment(statKey, countField, -1);
-        
+
         log.debug("用户 {} 取消点赞 {} targetId={}", userId, likeType.getDesc(), targetId);
         return true;
     }
@@ -181,7 +176,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
             return 0L;
         }
         Long dbCount = docUserInteractionMapper.countByTarget(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);
-        
+
         // 回写缓存（仅当有数据时）
         if (dbCount != null && dbCount > 0) {
             redisTemplate.opsForHash().put(statKey, countField, dbCount.toString());
@@ -574,7 +569,7 @@ public class CacheDocLikeServiceImpl implements ICacheDocLikeService {
         // Field: like:{typeCode} -> 点赞计数值
         String statKey = buildStatKey(likeType, targetId);
         String countField = buildCountField(likeType);
-        
+
         // 通过countByTarget重新统计用户级记录，而不是读取userId=0的统计记录
         // 这样可以保证数据一致性，避免因异常导致统计记录与实际用户记录不一致
         Long dbCount = docUserInteractionMapper.countByTarget(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_LIKE);

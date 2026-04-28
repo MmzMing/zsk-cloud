@@ -85,7 +85,7 @@ public class DocNoteDtlAggregateController {
     @Operation(summary = "全量更新笔记（元信息 + 正文）")
     @PutMapping("/{id}/full")
     public R<Boolean> updateFull(@PathVariable("id") Long id,
-                                  @RequestBody @Valid DocNoteFullDTO dto) {
+                                 @RequestBody @Valid DocNoteFullDTO dto) {
         dto.getDocNote().setId(id);
         return R.ok(docNoteDtlAggregateService.updateNoteFull(dto));
     }

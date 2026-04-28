@@ -1,12 +1,12 @@
 package com.zsk.document.service;
 
+import com.baomidou.mybatisplus.extension.service.IService;
 import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.document.domain.DocNoteComment;
 import com.zsk.document.domain.dto.CommentRequestDTO;
 import com.zsk.document.domain.vo.DocCommentVo;
 import com.zsk.document.domain.vo.InteractionResultVo;
-import com.baomidou.mybatisplus.extension.service.IService;
 
 import java.util.List;
 
@@ -46,11 +46,11 @@ public interface IDocNoteCommentService extends IService<DocNoteComment> {
      * 回复评论时，parentCommentId统一记录根评论ID，replyUserId记录被回复的用户ID。
      * </p>
      *
-     * @param noteId     笔记ID
-     * @param content    评论内容
-     * @param parentId   父评论ID（根评论时传null，回复时传根评论ID）
-     * @param replyToId  回复用户ID（直接回复根评论时传null，回复某条评论时传该评论的用户ID）
-     * @param userId     当前用户ID
+     * @param noteId    笔记ID
+     * @param content   评论内容
+     * @param parentId  父评论ID（根评论时传null，回复时传根评论ID）
+     * @param replyToId 回复用户ID（直接回复根评论时传null，回复某条评论时传该评论的用户ID）
+     * @param userId    当前用户ID
      * @return 评论VO，包含评论详情和作者信息
      */
     DocCommentVo postComment(Long noteId, String content, Long parentId, Long replyToId, Long userId);

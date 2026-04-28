@@ -10,7 +10,6 @@ import com.zsk.document.domain.DocNoteDtl;
 import com.zsk.document.domain.DocVideo;
 import com.zsk.document.domain.dto.SearchRequestDto;
 import com.zsk.document.domain.vo.DocHomeSearchResultVo;
-import com.zsk.document.enums.CacheDocCollectTypeEnum;
 import com.zsk.document.enums.CacheDocLikeTypeEnum;
 import com.zsk.document.enums.CacheDocViewTypeEnum;
 import com.zsk.document.enums.SearchTypeEnum;
@@ -28,11 +27,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**

@@ -360,9 +360,9 @@ public class DocVideoAuditServiceImpl extends ServiceImpl<DocVideoAuditMapper, D
     /**
      * 构建审核记录实体
      *
-     * @param videoId    视频ID
+     * @param videoId     视频ID
      * @param auditStatus 审核状态
-     * @param auditMind  审核意见
+     * @param auditMind   审核意见
      * @return 审核记录实体
      */
     private DocVideoAudit buildAuditRecord(Long videoId, Integer auditStatus, String auditMind) {

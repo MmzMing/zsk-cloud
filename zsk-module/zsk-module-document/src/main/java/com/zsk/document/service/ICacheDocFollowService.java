@@ -89,23 +89,23 @@ public interface ICacheDocFollowService {
     Map<Long, Long> getFollowCountBatch(Integer type, Iterable<Long> targetIds);
 
     /**
- * 同步关注数据到数据库
- * <p>
- * 将Redis中的关注数据同步到数据库持久化。
- * 由定时任务调用。
- * </p>
- */
-void syncFollowDataToDb();
+     * 同步关注数据到数据库
+     * <p>
+     * 将Redis中的关注数据同步到数据库持久化。
+     * 由定时任务调用。
+     * </p>
+     */
+    void syncFollowDataToDb();
 
-/**
- * 从数据库预热关注缓存
- * <p>
- * 将数据库中的关注数据加载到Redis缓存，用于服务重启后的缓存预热。
- * 加载用户关注状态到Bitmap，粉丝计数到Hash。
- * </p>
- *
- * @param type     关注类型
- * @param targetId 目标ID（被关注者ID）
- */
-void warmFollowCacheFromDb(Integer type, Long targetId);
+    /**
+     * 从数据库预热关注缓存
+     * <p>
+     * 将数据库中的关注数据加载到Redis缓存，用于服务重启后的缓存预热。
+     * 加载用户关注状态到Bitmap，粉丝计数到Hash。
+     * </p>
+     *
+     * @param type     关注类型
+     * @param targetId 目标ID（被关注者ID）
+     */
+    void warmFollowCacheFromDb(Integer type, Long targetId);
 }

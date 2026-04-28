@@ -1,12 +1,12 @@
 package com.zsk.document.service.impl;
 
 import com.zsk.common.core.constant.CacheConstants;
+import com.zsk.common.redis.utils.BitmapOffsetUtil;
 import com.zsk.document.domain.DocUserInteraction;
 import com.zsk.document.domain.context.DocUserInteractionContext;
 import com.zsk.document.enums.CacheDocFollowTypeEnum;
 import com.zsk.document.mapper.DocUserInteractionMapper;
 import com.zsk.document.service.ICacheDocFollowService;
-import com.zsk.common.redis.utils.BitmapOffsetUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Range;
@@ -14,12 +14,7 @@ import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 
 /**
  * 缓存文档关注服务实现类
@@ -82,7 +77,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
         // 构建 Bitmap Key：follow:bit:{typeCode}:{userId}
         // Bitmap 的位为目标ID，用于记录该用户关注了哪些目标
         String bitmapKey = buildBitmapKey(followType, userId);
-        
+
         // SETBIT 设置为 true，返回旧状态（原子操作）
         // 旧状态=false → 未关注，需要增加粉丝计数
         // 旧状态=true → 已关注，无需操作
@@ -95,7 +90,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
         String statKey = buildStatKey(followType, targetId);
         String countField = buildCountField(followType);
         redisTemplate.opsForHash().increment(statKey, countField, 1);
-        
+
         log.debug("用户 {} 关注 {} targetId={}", userId, followType.getDesc(), targetId);
         return true;
     }
@@ -124,7 +119,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
 
         // 构建 Bitmap Key
         String bitmapKey = buildBitmapKey(followType, userId);
-        
+
         // SETBIT 设置为 false，返回旧状态（原子操作）
         // 旧状态=true → 已关注，需要减少粉丝计数
         // 旧状态=false → 未关注，无需操作
@@ -137,7 +132,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
         String statKey = buildStatKey(followType, targetId);
         String countField = buildCountField(followType);
         redisTemplate.opsForHash().increment(statKey, countField, -1);
-        
+
         log.debug("用户 {} 取消关注 {} targetId={}", userId, followType.getDesc(), targetId);
         return true;
     }
@@ -189,7 +184,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
             return 0L;
         }
         Long dbCount = docUserInteractionMapper.countByTarget(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_FOLLOW);
-        
+
         // 回写缓存（仅当有数据时）
         if (dbCount != null && dbCount > 0) {
             redisTemplate.opsForHash().put(statKey, countField, dbCount.toString());
@@ -561,7 +556,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
         // - Key: follow:bit:{typeCode}:{userId} — 以关注者ID作为Key
         // - Bit位: targetId — 以被关注者ID作为bit位位置
         // 这样设计便于快速查询"某用户关注了哪些人"（BITOP操作）
-        
+
         // 查询数据库中关注该目标的所有用户记录（status=1）
         // 必须查询用户级记录（userId > 0），因为需要知道具体哪些用户关注了该目标
         List<DocUserInteraction> interactions = docUserInteractionMapper.selectByTarget(
@@ -584,7 +579,7 @@ public class CacheDocFollowServiceImpl implements ICacheDocFollowService {
         // Field: follow:{typeCode} -> 粉丝计数值
         String statKey = buildStatKey(followType, targetId);
         String countField = buildCountField(followType);
-        
+
         // 通过countByTarget重新统计用户级记录，而不是读取userId=0的统计记录
         // 这样可以保证数据一致性，避免因异常导致统计记录与实际用户记录不一致
         Long dbCount = docUserInteractionMapper.countByTarget(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_FOLLOW);
