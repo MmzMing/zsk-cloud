@@ -3,8 +3,11 @@ package com.zsk.document.domain.vo;
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
+
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.LocalDateTime;
 import java.util.List;
 
 /**
@@ -28,7 +31,7 @@ public class DocHomeSearchResultVo implements Serializable {
     /**
      * 资源ID
      */
-    @Schema(description = "资源ID")
+    @Schema(description = "资源ID（格式：类型_原始ID，如 video_123, document_456）")
     private String id;
 
     /**
@@ -56,10 +59,11 @@ public class DocHomeSearchResultVo implements Serializable {
     private String author;
 
     /**
-     * 描述/简介
+     * 更新时间
      */
-    @Schema(description = "描述/简介")
-    private String description;
+    @Schema(description = "更新时间")
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss")
+    private LocalDateTime updateTime;
 
     /**
      * 分类编码

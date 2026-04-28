@@ -6,7 +6,6 @@ import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.document.domain.DocFiles;
 import com.zsk.document.domain.DocNote;
-import com.zsk.document.domain.DocNoteDtl;
 import com.zsk.document.domain.DocVideo;
 import com.zsk.document.domain.dto.SearchRequestDto;
 import com.zsk.document.domain.vo.DocHomeSearchResultVo;
@@ -14,7 +13,6 @@ import com.zsk.document.enums.CacheDocLikeTypeEnum;
 import com.zsk.document.enums.CacheDocViewTypeEnum;
 import com.zsk.document.enums.SearchTypeEnum;
 import com.zsk.document.mapper.DocFilesMapper;
-import com.zsk.document.mapper.DocNoteDtlMapper;
 import com.zsk.document.mapper.DocNoteMapper;
 import com.zsk.document.mapper.DocVideoMapper;
 import com.zsk.document.service.ICacheDocLikeService;
@@ -28,6 +26,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
 
 /**
@@ -35,99 +36,68 @@ import java.util.stream.Collectors;
  * <p>
  * 提供全站内容搜索的业务逻辑实现，支持视频、笔记等多种类型资源的统一搜索。
  * 核心业务包括：
- * 1. 多类型资源搜索（视频、笔记）
- * 2. 统计数据聚合（从 Redis 缓存获取浏览量、点赞数、收藏数）
- * 3. 评论数查询（从数据库获取）
- * 4. 结果排序与分页
+ * 1. 多类型资源搜索（视频、笔记），使用虚拟线程 + CompletableFuture 并行编排
+ * 2. 统计数据聚合（从 Redis 缓存获取浏览量、点赞数）
+ * 3. 结果排序与内存分页
  * </p>
  *
  * @author wuhuaming
- * @version 2.0
- * @date 2026-04-28
+ * @version 3.0
+ * @date 2026-04-29
  */
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class SearchServiceImpl implements ISearchService {
 
-    /**
-     * 视频 Mapper（数据库查询）
-     */
     private final DocVideoMapper videoMapper;
 
-    /**
-     * 笔记 Mapper（数据库查询）
-     */
     private final DocNoteMapper noteMapper;
 
-    /**
-     * 笔记详情 Mapper（数据库查询）
-     */
-    private final DocNoteDtlMapper noteDtlMapper;
-
-    /**
-     * 文件 Mapper（数据库查询）
-     */
     private final DocFilesMapper docFilesMapper;
 
-    /**
-     * 缓存浏览服务
-     */
     private final ICacheDocViewService cacheDocViewService;
 
-    /**
-     * 缓存点赞服务
-     */
     private final ICacheDocLikeService cacheDocLikeService;
 
-    /**
-     * 远程用户服务
-     */
     private final RemoteUserService remoteUserService;
 
-    /**
-     * 视频状态：正常
-     */
     private static final Integer VIDEO_STATUS_NORMAL = 1;
 
-    /**
-     * 视频审核状态：通过
-     */
     private static final Integer VIDEO_AUDIT_STATUS_PASS = 1;
 
-    /**
-     * 笔记状态：正常
-     */
     private static final Integer NOTE_STATUS_NORMAL = 1;
 
-    /**
-     * 笔记审核状态：通过
-     */
     private static final Integer NOTE_AUDIT_STATUS_PASS = 1;
 
-    /**
-     * 删除标记：正常
-     */
     private static final Integer DELETED_NORMAL = 0;
+
+    /**
+     * 虚拟线程执行器（JDK 21）
+     * <p>
+     * 每个任务分配一个虚拟线程，无线程池上限、无队列积压风险，
+     * 适用于 I/O 密集型任务（DB 查询、Redis 读取、RPC 调用）的并行编排。
+     * </p>
+     */
+    private static final Executor VIRTUAL_THREAD_EXECUTOR = Executors.newVirtualThreadPerTaskExecutor();
 
     /**
      * 全站搜索
      * <p>
      * 根据关键字、类型、分类等条件搜索视频和笔记内容。
-     * 支持按热门、点赞等方式排序，使用通用分页组件返回结果。
+     * 使用 CompletableFuture + 虚拟线程并行执行视频搜索和笔记搜索，
+     * 两个独立任务同时进行，总耗时取决于较慢的一方。
      * 搜索流程：
      * 1. 解析搜索参数（关键字、类型、排序、分类）
-     * 2. 根据类型筛选搜索范围（全部/视频/笔记）
-     * 3. 分别查询视频和笔记数据（仅返回审核通过且状态正常的数据）
-     * 4. 从 Redis 缓存获取统计数据，从数据库获取评论数
-     * 5. 构建前台搜索结果 VO（仅包含展示所需字段）
-     * 6. 按指定方式排序
-     * 7. 执行内存分页并返回结果
+     * 2. 根据类型筛选，将视频搜索和笔记搜索分别提交到虚拟线程并行执行
+     * 3. 等待所有异步任务完成（任一任务异常时降级返回空列表，不影响另一任务）
+     * 4. 合并结果并按指定方式排序
+     * 5. 执行内存分页并返回结果
      * </p>
      *
      * @param searchRequest 搜索请求参数（包含关键字、类型、排序、分类等）
      * @param pageQuery     分页查询参数（包含页码、每页大小）
-     * @return 搜索结果分页列表（包含完整的统计信息和格式化文本）
+     * @return 搜索结果分页列表
      */
     @Override
     public PageResult<DocHomeSearchResultVo> searchAll(SearchRequestDto searchRequest, PageQuery pageQuery) {
@@ -141,29 +111,48 @@ public class SearchServiceImpl implements ISearchService {
         String sort = searchRequest.getSort();
         String category = searchRequest.getCategory();
 
-        // 2. 初始化结果列表
-        List<DocHomeSearchResultVo> allResults = new ArrayList<>();
+        // 2. 初始化异步任务（默认返回空列表，仅当类型匹配时才提交实际搜索任务）
+        CompletableFuture<List<DocHomeSearchResultVo>> videoFuture = CompletableFuture.completedFuture(new ArrayList<>());
+        CompletableFuture<List<DocHomeSearchResultVo>> docFuture = CompletableFuture.completedFuture(new ArrayList<>());
 
-        // 3. 搜索视频
+        // 3. 提交视频搜索任务到虚拟线程
         if (SearchTypeEnum.matchVideo(type)) {
-            log.debug("开始搜索视频内容");
-            List<DocHomeSearchResultVo> videoResults = searchVideos(keyword, category);
-            allResults.addAll(videoResults);
-            log.debug("视频搜索完成, 共{}条", videoResults.size());
+            videoFuture = CompletableFuture.supplyAsync(() -> {
+                log.debug("开始搜索视频内容");
+                List<DocHomeSearchResultVo> result = searchVideos(keyword, category);
+                log.debug("视频搜索完成, 共{}条", result.size());
+                return result;
+            }, VIRTUAL_THREAD_EXECUTOR).exceptionally(ex -> {
+                log.error("视频搜索异常", ex);
+                return new ArrayList<>();
+            });
         }
 
-        // 4. 搜索笔记
+        // 4. 提交笔记搜索任务到虚拟线程
         if (SearchTypeEnum.matchDocument(type)) {
-            log.debug("开始搜索笔记内容");
-            List<DocHomeSearchResultVo> docResults = searchDocuments(keyword, category);
-            allResults.addAll(docResults);
-            log.debug("笔记搜索完成, 共{}条", docResults.size());
+            docFuture = CompletableFuture.supplyAsync(() -> {
+                log.debug("开始搜索笔记内容");
+                List<DocHomeSearchResultVo> result = searchDocuments(keyword, category);
+                log.debug("笔记搜索完成, 共{}条", result.size());
+                return result;
+            }, VIRTUAL_THREAD_EXECUTOR).exceptionally(ex -> {
+                log.error("笔记搜索异常", ex);
+                return new ArrayList<>();
+            });
         }
 
-        // 5. 排序结果
+        // 5. 等待所有异步任务完成
+        CompletableFuture.allOf(videoFuture, docFuture).join();
+
+        // 6. 合并搜索结果
+        List<DocHomeSearchResultVo> allResults = new ArrayList<>();
+        allResults.addAll(videoFuture.join());
+        allResults.addAll(docFuture.join());
+
+        // 7. 排序结果
         sortResults(allResults, sort);
 
-        // 6. 内存分页
+        // 8. 内存分页
         long total = allResults.size();
         int fromIndex = (int) ((pageQuery.getPageNum() - 1) * pageQuery.getPageSize());
         int toIndex = (int) Math.min(fromIndex + pageQuery.getPageSize(), total);
@@ -173,7 +162,6 @@ public class SearchServiceImpl implements ISearchService {
 
         log.info("全站搜索完成, 总结果{}条, 当前页{}条", total, pageResults.size());
 
-        // 7. 构建分页结果
         return PageResult.of(
                 pageResults,
                 total,
@@ -190,15 +178,14 @@ public class SearchServiceImpl implements ISearchService {
      * 1. 构建 MyBatis-Plus 查询条件（未删除、状态正常、审核通过、关键字模糊查询、分类）
      * 2. 执行数据库查询获取视频列表
      * 3. 批量查询封面文件信息
-     * 4. 批量查询缓存统计数据（浏览量、点赞数、收藏数）
-     * 5. 批量查询评论数
-     * 6. 批量查询作者信息
-     * 7. 构建前台搜索结果 VO
+     * 4. 批量查询缓存统计数据（浏览量、点赞数）
+     * 5. 批量查询作者信息（RPC 调用）
+     * 6. 构建前台搜索结果 VO（ID 拼接类型前缀避免跨表 ID 冲突）
      * </p>
      *
      * @param keyword  搜索关键字（可为空）
      * @param category 分类筛选（可为空）
-     * @return 视频搜索结果列表（仅包含前台展示字段）
+     * @return 视频搜索结果列表
      */
     private List<DocHomeSearchResultVo> searchVideos(String keyword, String category) {
         // 1. 构建查询条件：查询未删除、状态正常、审核通过的视频
@@ -242,14 +229,14 @@ public class SearchServiceImpl implements ISearchService {
         Map<Long, Long> likeCountMap = cacheDocLikeService.getLikeCountBatch(
                 CacheDocLikeTypeEnum.VIDEO.getCode(), videoIds);
 
-        // 8. 批量查询作者信息
+        // 8. 批量查询作者信息（RPC 调用远程用户服务）
         Map<Long, SysUserApi> userMap = buildUserMap(videos.stream()
                 .map(DocVideo::getUserId)
                 .filter(id -> id != null)
                 .distinct()
                 .collect(Collectors.toList()));
 
-        // 10. 构建搜索结果VO列表
+        // 9. 构建搜索结果VO列表
         List<DocHomeSearchResultVo> results = new ArrayList<>();
         for (DocVideo video : videos) {
             Long videoId = video.getId();
@@ -259,10 +246,11 @@ public class SearchServiceImpl implements ISearchService {
             Long likeCount = likeCountMap.getOrDefault(videoId, 0L);
 
             DocHomeSearchResultVo vo = new DocHomeSearchResultVo();
-            vo.setId(String.valueOf(videoId));
+            // ID 拼接类型前缀，避免视频表和笔记表 ID 冲突
+            vo.setId("video_" + videoId);
             vo.setType("video");
             vo.setTitle(video.getVideoTitle());
-            vo.setDescription(video.getFileContent() != null ? video.getFileContent() : "");
+            vo.setUpdateTime(video.getUpdateTime());
             vo.setCategory(video.getBroadCode());
 
             // 填充封面URL
@@ -278,7 +266,7 @@ public class SearchServiceImpl implements ISearchService {
                 vo.setAuthor(user.getNickName() != null ? user.getNickName() : user.getUserName());
             }
 
-            // 解析标签
+            // 解析标签（逗号分隔字符串 → 列表）
             if (video.getTags() != null && !video.getTags().isEmpty()) {
                 vo.setTags(Arrays.asList(video.getTags().split(",")));
             } else {
@@ -303,16 +291,14 @@ public class SearchServiceImpl implements ISearchService {
      * 1. 构建 MyBatis-Plus 查询条件（未删除、状态正常、审核通过、关键字模糊查询、分类）
      * 2. 执行数据库查询获取笔记列表
      * 3. 批量查询封面文件信息
-     * 4. 批量查询笔记详情内容
-     * 5. 批量查询缓存统计数据（浏览量、点赞数、收藏数）
-     * 6. 批量查询评论数
-     * 7. 批量查询作者信息
-     * 8. 构建前台搜索结果 VO
+     * 4. 批量查询缓存统计数据（浏览量、点赞数）
+     * 5. 批量查询作者信息（RPC 调用）
+     * 6. 构建前台搜索结果 VO（ID 拼接类型前缀避免跨表 ID 冲突）
      * </p>
      *
      * @param keyword  搜索关键字（可为空）
      * @param category 分类筛选（可为空）
-     * @return 笔记搜索结果列表（仅包含前台展示字段）
+     * @return 笔记搜索结果列表
      */
     private List<DocHomeSearchResultVo> searchDocuments(String keyword, String category) {
         // 1. 构建查询条件：查询未删除、状态正常、审核通过的笔记
@@ -350,23 +336,20 @@ public class SearchServiceImpl implements ISearchService {
         // 6. 批量查询封面文件信息
         Map<Long, DocFiles> fileMap = buildNoteCoverFileMap(notes);
 
-        // 7. 批量查询笔记详情内容
-        Map<Long, String> noteContentMap = buildNoteContentMap(noteIds);
-
-        // 8. 批量查询统计数据（从 Redis 缓存）
+        // 7. 批量查询统计数据（从 Redis 缓存）
         Map<Long, Long> viewCountMap = cacheDocViewService.getViewCountBatch(
                 CacheDocViewTypeEnum.NOTE.getCode(), noteIds);
         Map<Long, Long> likeCountMap = cacheDocLikeService.getLikeCountBatch(
                 CacheDocLikeTypeEnum.NOTE.getCode(), noteIds);
 
-        // 9. 批量查询作者信息
+        // 8. 批量查询作者信息（RPC 调用远程用户服务）
         Map<Long, SysUserApi> userMap = buildUserMap(notes.stream()
                 .map(DocNote::getUserId)
                 .filter(id -> id != null)
                 .distinct()
                 .collect(Collectors.toList()));
 
-        // 11. 构建搜索结果VO列表
+        // 9. 构建搜索结果VO列表
         List<DocHomeSearchResultVo> results = new ArrayList<>();
         for (DocNote note : notes) {
             Long noteId = note.getId();
@@ -376,17 +359,11 @@ public class SearchServiceImpl implements ISearchService {
             Long likeCount = likeCountMap.getOrDefault(noteId, 0L);
 
             DocHomeSearchResultVo vo = new DocHomeSearchResultVo();
-            vo.setId(String.valueOf(noteId));
+            // ID 拼接类型前缀，避免视频表和笔记表 ID 冲突
+            vo.setId("document_" + noteId);
             vo.setType("document");
             vo.setTitle(note.getNoteName());
-
-            // 优先使用描述，若无则使用详情内容
-            String description = note.getDescription();
-            if (!StringUtils.hasText(description)) {
-                description = noteContentMap.getOrDefault(noteId, "");
-            }
-            vo.setDescription(description != null ? description : "");
-
+            vo.setUpdateTime(note.getUpdateTime());
             vo.setCategory(note.getBroadCode());
 
             // 填充封面URL
@@ -402,7 +379,7 @@ public class SearchServiceImpl implements ISearchService {
                 vo.setAuthor(user.getNickName() != null ? user.getNickName() : user.getUserName());
             }
 
-            // 解析标签
+            // 解析标签（逗号分隔字符串 → 列表）
             if (note.getNoteTags() != null && !note.getNoteTags().isEmpty()) {
                 vo.setTags(Arrays.asList(note.getNoteTags().split(",")));
             } else {
@@ -421,9 +398,6 @@ public class SearchServiceImpl implements ISearchService {
 
     /**
      * 构建视频封面文件映射
-     * <p>
-     * 批量查询视频封面文件信息，构建封面文件ID到文件对象的映射。
-     * </p>
      *
      * @param videos 视频实体列表
      * @return 封面文件ID到文件对象的映射
@@ -440,9 +414,6 @@ public class SearchServiceImpl implements ISearchService {
 
     /**
      * 构建笔记封面文件映射
-     * <p>
-     * 批量查询笔记封面文件信息，构建封面文件ID到文件对象的映射。
-     * </p>
      *
      * @param notes 笔记实体列表
      * @return 封面文件ID到文件对象的映射
@@ -460,7 +431,7 @@ public class SearchServiceImpl implements ISearchService {
     /**
      * 构建文件映射
      * <p>
-     * 根据文件ID列表批量查询文件信息，构建文件ID到文件对象的映射。
+     * 根据文件ID列表批量查询文件信息，避免 N+1 查询问题。
      * </p>
      *
      * @param fileIds 文件ID列表
@@ -484,33 +455,9 @@ public class SearchServiceImpl implements ISearchService {
     }
 
     /**
-     * 构建笔记内容映射
-     * <p>
-     * 批量查询笔记详情内容，构建笔记ID到内容的映射。
-     * </p>
-     *
-     * @param noteIds 笔记ID列表
-     * @return 笔记ID到内容的映射
-     */
-    private Map<Long, String> buildNoteContentMap(List<Long> noteIds) {
-        Map<Long, String> contentMap = new HashMap<>();
-        if (noteIds == null || noteIds.isEmpty()) {
-            return contentMap;
-        }
-
-        for (Long noteId : noteIds) {
-            DocNoteDtl dtl = noteDtlMapper.selectByNoteId(noteId);
-            if (dtl != null && dtl.getContent() != null) {
-                contentMap.put(noteId, dtl.getContent());
-            }
-        }
-        return contentMap;
-    }
-
-    /**
      * 构建用户信息映射
      * <p>
-     * 批量查询用户信息，构建用户ID到用户对象的映射。
+     * 通过 Feign 远程调用用户服务批量查询用户信息，避免 N+1 RPC 问题。
      * </p>
      *
      * @param userIds 用户ID列表
@@ -536,7 +483,7 @@ public class SearchServiceImpl implements ISearchService {
      * <p>
      * 根据排序方式对搜索结果进行排序：
      * - hot：按浏览量降序排序（视频用 playCount，笔记用 readCount）
-     * - latest：按创建时间降序排序
+     * - latest：按更新时间降序排序（updateTime 为 null 的记录排末尾）
      * - 默认/其他：不排序，保持原始顺序
      * </p>
      *
@@ -560,15 +507,18 @@ public class SearchServiceImpl implements ISearchService {
                 });
                 break;
             case "latest":
-                // 按ID降序排序（ID为雪花算法生成，趋势递增）
+                // 按更新时间降序排序，null 值排末尾
                 results.sort((a, b) -> {
-                    try {
-                        long aId = Long.parseLong(a.getId());
-                        long bId = Long.parseLong(b.getId());
-                        return Long.compare(bId, aId);
-                    } catch (NumberFormatException e) {
+                    if (a.getUpdateTime() == null && b.getUpdateTime() == null) {
                         return 0;
                     }
+                    if (a.getUpdateTime() == null) {
+                        return 1;
+                    }
+                    if (b.getUpdateTime() == null) {
+                        return -1;
+                    }
+                    return b.getUpdateTime().compareTo(a.getUpdateTime());
                 });
                 break;
             default:
