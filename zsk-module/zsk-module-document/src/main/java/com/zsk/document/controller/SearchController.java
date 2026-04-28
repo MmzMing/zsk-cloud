@@ -4,7 +4,7 @@ import com.zsk.common.core.domain.R;
 import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.document.domain.dto.SearchRequestDto;
-import com.zsk.document.domain.vo.SearchResultVo;
+import com.zsk.document.domain.vo.DocHomeSearchResultVo;
 import com.zsk.document.service.ISearchService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.RestController;
  *
  * @author wuhuaming
  * @version 2.0
- * @date 2026-04-25
+ * @date 2026-04-28
  */
 @Tag(name = "全局搜索")
 @RestController
@@ -43,18 +43,19 @@ public class SearchController {
      * <p>
      * 根据关键字、类型、分类等条件搜索视频和笔记内容。
      * 支持按热门、点赞等方式排序，使用通用分页组件返回结果。
+     * 返回的结果仅包含前台展示所需的字段，不包含敏感信息。
      * </p>
      *
      * @param searchRequest 搜索请求参数（包含关键字、类型、排序、分类等筛选条件）
      * @param pageQuery     分页查询参数（包含页码、每页大小）
-     * @return 搜索结果分页列表（包含完整的统计信息和格式化文本）
+     * @return 前台搜索结果分页列表（包含完整的统计信息和格式化文本）
      */
     @Operation(summary = "全站搜索")
     @GetMapping("/all")
-    public R<PageResult<SearchResultVo>> searchAll(
+    public R<PageResult<DocHomeSearchResultVo>> searchAll(
             SearchRequestDto searchRequest,
             PageQuery pageQuery) {
-        PageResult<SearchResultVo> result = searchService.searchAll(searchRequest, pageQuery);
+        PageResult<DocHomeSearchResultVo> result = searchService.searchAll(searchRequest, pageQuery);
         return R.ok(result);
     }
 }

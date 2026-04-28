@@ -257,7 +257,7 @@ CREATE TABLE `document_video_comment`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_视频详情评论表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- 8. 视频合集表
+-- 10. 视频合集表
 -- ----------------------------
 DROP TABLE IF EXISTS `document_video_collection`;
 CREATE TABLE `document_video_collection` (
@@ -305,7 +305,7 @@ CREATE TABLE `document_video_collection_item` (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_视频合集关联表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- 10. 用户交互关系表
+-- 11. 用户交互关系表
 -- ----------------------------
 DROP TABLE IF EXISTS `doc_user_interaction`;
 CREATE TABLE `doc_user_interaction`  (
