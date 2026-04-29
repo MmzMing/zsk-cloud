@@ -16,13 +16,13 @@ spring:
       - optional:nacos:${spring.application.name}-${spring.profiles.active}.yml?group=${spring.profiles.active}&refresh=true
   cloud:
     nacos:
-      server-addr: 192.168.101.129:8848
-      username: nacos
-      password: 123456
+      server-addr: ${NACOS_ADDR:192.168.101.129:8848}
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:123456}
       discovery:
-        namespace: d4cbb030-726e-4d17-92d3-1042063c3bd7
+        namespace: ${NACOS_NAMESPACE:d4cbb030-726e-4d17-92d3-1042063c3bd7}
         group: ${spring.profiles.active}
       config:
-        namespace: d4cbb030-726e-4d17-92d3-1042063c3bd7
+        namespace: ${NACOS_NAMESPACE:d4cbb030-726e-4d17-92d3-1042063c3bd7}
         file-extension: yml
         refresh-enabled: true

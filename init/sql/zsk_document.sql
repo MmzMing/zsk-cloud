@@ -15,7 +15,7 @@ CREATE TABLE `document_note`  (
   `note_grade` int(4) NULL DEFAULT NULL COMMENT '笔记等级（1-入门 2-进阶 3-高级 4-专家）',
   `note_mode` int(4) NULL DEFAULT NULL COMMENT '笔记模式（1-公开 2-仅自己可见 3-指定租户可见 4-付费可见）',
   `suitable_users` varchar(255) NULL DEFAULT NULL COMMENT '适合人群（多个人群用英文逗号分隔，如：初学者,开发工程师,架构师）',
-  `audit_status` int(4) NOT NULL COMMENT '审核状态（0-待审核 1-审核通过 2-审核驳回 3-已撤回）',
+  `audit_status` int(4) NOT NULL DEFAULT 0 COMMENT '审核状态（0-待审核 1-审核通过 2-审核驳回 3-已撤回）',
   `status` int(4) NOT NULL DEFAULT 1 COMMENT '笔记状态（1-正常 2-下架 3-草稿 4-过期）',
   `publish_time` datetime NULL DEFAULT NULL COMMENT '笔记发布时间（审核通过后生效）',
   `is_pinned` tinyint(1) DEFAULT 0 COMMENT '是否置顶（0否 1是）',
@@ -69,7 +69,7 @@ CREATE TABLE `document_note_comment`  (
   `comment_content` varchar(1000) NOT NULL COMMENT '评论内容',
   `parent_comment_id` bigint(20) UNSIGNED NULL DEFAULT NULL COMMENT '父评论ID（统一记录根评论ID，NULL表示根评论）',
   `reply_user_id` bigint(20) UNSIGNED NULL DEFAULT NULL COMMENT '回复人ID（记录被回复的用户ID，用于显示A回复B）',
-  `audit_status` int(4) NOT NULL COMMENT '审核状态（0-待审核 1-审核通过 2-审核驳回）',
+  `audit_status` int(4) NOT NULL DEFAULT 0 COMMENT '审核状态（0-待审核 1-审核通过 2-审核驳回）',
   `status` int(4) NOT NULL DEFAULT 1 COMMENT '评论状态（1-正常 2-隐藏 3-删除）',
   `remark` varchar(32) NULL DEFAULT NULL COMMENT '备注',
   `version` bigint(20) UNSIGNED NULL DEFAULT 0 COMMENT '乐观锁版本号（防并发更新冲突）',
@@ -200,34 +200,6 @@ CREATE TABLE `document_video`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_视频表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- 8. 视频审核详情表
--- ----------------------------
-DROP TABLE IF EXISTS `document_video_audit`;
-CREATE TABLE `document_video_audit` (
-  `id` bigint(20) NOT NULL COMMENT '主键ID（雪花算法）',
-  `tenant_id` bigint(20) DEFAULT 0 COMMENT '租户ID',
-  `video_id` bigint(20) NOT NULL COMMENT '视频ID',
-  `audit_type` varchar(20) NOT NULL DEFAULT 'manual' COMMENT '审核类型（ai-AI审核 manual-人工审核）',
-  `audit_status` int(4) NOT NULL DEFAULT 0 COMMENT '审核状态（0-待审核 1-审核通过 2-审核驳回）',
-  `audit_result` text DEFAULT NULL COMMENT '审核结果详情（JSON格式）',
-  `risk_level` varchar(20) DEFAULT 'low' COMMENT '风险等级（low-低 medium-中 high-高）',
-  `audit_mind` varchar(500) DEFAULT NULL COMMENT '审核意见',
-  `auditor_id` bigint(20) DEFAULT NULL COMMENT '审核人ID',
-  `auditor_name` varchar(50) DEFAULT NULL COMMENT '审核人姓名',
-  `audit_time` datetime DEFAULT NULL COMMENT '审核时间',
-  `remark` varchar(32) NULL DEFAULT NULL COMMENT '备注',
-  `create_name` varchar(100) DEFAULT NULL COMMENT '创建人',
-  `create_time` datetime DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
-  `update_name` varchar(100) DEFAULT NULL COMMENT '更新人',
-  `update_time` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
-  `deleted` tinyint(1) DEFAULT 0 COMMENT '删除标记（0-未删除 1-已删除）',
-  PRIMARY KEY (`id`),
-  INDEX `idx_dva_video_id` (`video_id`) COMMENT '视频ID索引',
-  INDEX `idx_dva_audit_status` (`audit_status`) COMMENT '审核状态索引',
-  INDEX `idx_dva_audit_time` (`audit_time`) COMMENT '审核时间索引'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='视频审核详情表';
-
--- ----------------------------
 -- 9. 视频详情评论表
 -- ----------------------------
 DROP TABLE IF EXISTS `document_video_comment`;
@@ -327,3 +299,34 @@ CREATE TABLE `doc_user_interaction`  (
   INDEX `idx_ui_target`(`target_type` ASC, `target_id` ASC) USING BTREE COMMENT '目标索引',
   INDEX `idx_ui_interaction`(`interaction_type` ASC, `status` ASC) USING BTREE COMMENT '交互类型索引'
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文档管理服务_用户交互关系表' ROW_FORMAT = DYNAMIC;
+
+-- ----------------------------
+-- 12. 统一审核记录表
+-- ----------------------------
+DROP TABLE IF EXISTS `document_audit`;
+CREATE TABLE `document_audit`  (
+  `id` bigint(20) NOT NULL COMMENT '主键ID（雪花算法）',
+  `tenant_id` bigint(20) DEFAULT 0 COMMENT '租户ID',
+  `target_type` smallint NOT NULL COMMENT '审核目标类型（1-文档 2-视频 3-文档评论 4-视频评论）',
+  `target_id` bigint(20) NOT NULL COMMENT '审核目标ID',
+  `audit_type` varchar(20) NOT NULL DEFAULT 'manual' COMMENT '审核类型（ai-AI审核 manual-人工审核）',
+  `audit_status` int(4) NOT NULL DEFAULT 0 COMMENT '审核状态（0-待审核 1-审核通过 2-审核驳回 3-已撤回）',
+  `audit_result` text NULL DEFAULT NULL COMMENT '审核结果详情（JSON格式）',
+  `risk_level` varchar(20) NULL DEFAULT 'low' COMMENT '风险等级（low-低 medium-中 high-高）',
+  `audit_mind` varchar(500) NULL DEFAULT NULL COMMENT '审核意见',
+  `violation_ids` varchar(255) NULL DEFAULT NULL COMMENT '违规原因ID列表（逗号分隔）',
+  `auditor_id` bigint(20) NULL DEFAULT NULL COMMENT '审核人ID',
+  `auditor_name` varchar(50) NULL DEFAULT NULL COMMENT '审核人姓名',
+  `audit_time` datetime NULL DEFAULT NULL COMMENT '审核时间',
+  `remark` varchar(500) NULL DEFAULT NULL COMMENT '备注',
+  `create_name` varchar(100) DEFAULT NULL COMMENT '创建者姓名',
+  `create_time` datetime DEFAULT NULL COMMENT '创建时间',
+  `update_name` varchar(100) DEFAULT NULL COMMENT '更新者姓名',
+  `update_time` datetime DEFAULT NULL COMMENT '更新时间',
+  `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否已删除(0否1是)',
+  PRIMARY KEY (`id`) USING BTREE,
+  INDEX `idx_da_target`(`target_type` ASC, `target_id` ASC) USING BTREE COMMENT '目标类型+ID索引',
+  INDEX `idx_da_audit_status`(`audit_status` ASC) USING BTREE COMMENT '审核状态索引',
+  INDEX `idx_da_audit_time`(`audit_time` ASC) USING BTREE COMMENT '审核时间索引',
+  INDEX `idx_da_target_type_status`(`target_type` ASC, `audit_status` ASC) USING BTREE COMMENT '目标类型+审核状态索引'
+) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '文档管理服务_统一审核记录表' ROW_FORMAT = DYNAMIC;

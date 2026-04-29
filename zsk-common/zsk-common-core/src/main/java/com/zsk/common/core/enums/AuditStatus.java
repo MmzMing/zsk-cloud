@@ -25,7 +25,12 @@ public enum AuditStatus {
     /**
      * 审核驳回
      */
-    REJECTED(2, "rejected", "审核驳回");
+    REJECTED(2, "rejected", "审核驳回"),
+
+    /**
+     * 已撤回
+     */
+    WITHDRAWN(3, "withdrawn", "已撤回");
 
     private final Integer code;
     private final String value;

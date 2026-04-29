@@ -34,11 +34,10 @@ public class ZskAuthApplication {
             path = "";
         }
         log.info("\n----------------------------------------------------------\n\t" +
-                "Application System is running! Access URLs:\n\t" +
-                "Local: \t\thttp://localhost:" + port + path + "/\n\t" +
-                "External: \thttp://" + ip + ":" + port + path + "/\n\t" +
-                "nacos: \t\thttp://192.168.101.129:8088/nacos\n\t" +
-                "Knife4j: \thttp://" + ip + ":" + port + path + "/doc.html\n" +
+                "Application Auth is running successfully!\n\t" +
+                "Nacos: \t\thttp://192.168.101.129:8848/nacos\n\t" +
+                "Knife4j: \thttp://" + ip + ":" + port + path + "/doc.html\n\t" +
+                "1Panel: \thttp://192.168.101.129:29585/d66a3eae39\n" +
                 "----------------------------------------------------------");
     }
 }

@@ -10,29 +10,35 @@ import java.io.Serial;
 import java.time.LocalDateTime;
 
 /**
- * 文档审核详情表对象 document_note_audit
+ * 统一审核记录表对象 document_audit
  *
- * <p>存储文档（笔记）的人工审核和AI审核记录，与 document_note 表是一对多关系。
- * 每次审核操作产生一条记录，便于追溯审核历史。</p>
+ * <p>统一存储文档、视频、评论等多种内容类型的审核记录，
+ * 通过 target_type + target_id 多态关联具体内容。</p>
  *
  * @author wuhuaming
  * @version 1.0
- * @date 2026-02-15
+ * @date 2026-04-30
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("document_note_audit")
-@Schema(description = "文档审核详情对象")
-public class DocNoteAudit extends TenantEntity {
+@TableName("document_audit")
+@Schema(description = "统一审核记录对象")
+public class DocAudit extends TenantEntity {
 
     @Serial
     private static final long serialVersionUID = 1L;
 
     /**
-     * 文档ID（关联 document_note.id）
+     * 审核目标类型（1-文档 2-视频 3-文档评论 4-视频评论）
      */
-    @Schema(description = "文档ID")
-    private Long noteId;
+    @Schema(description = "审核目标类型（1-文档 2-视频 3-文档评论 4-视频评论）")
+    private Integer targetType;
+
+    /**
+     * 审核目标ID
+     */
+    @Schema(description = "审核目标ID")
+    private Long targetId;
 
     /**
      * 审核类型（ai-AI审核 manual-人工审核）
@@ -41,13 +47,13 @@ public class DocNoteAudit extends TenantEntity {
     private String auditType;
 
     /**
-     * 审核状态（0-待审核 1-审核通过 2-审核驳回）
+     * 审核状态（0-待审核 1-审核通过 2-审核驳回 3-已撤回）
      */
-    @Schema(description = "审核状态（0-待审核 1-审核通过 2-审核驳回）")
+    @Schema(description = "审核状态（0-待审核 1-审核通过 2-审核驳回 3-已撤回）")
     private Integer auditStatus;
 
     /**
-     * 审核结果详情（JSON格式，如AI检测结果、违规项列表等）
+     * 审核结果详情（JSON格式）
      */
     @Schema(description = "审核结果详情（JSON格式）")
     private String auditResult;
@@ -63,6 +69,12 @@ public class DocNoteAudit extends TenantEntity {
      */
     @Schema(description = "审核意见")
     private String auditMind;
+
+    /**
+     * 违规原因ID列表（逗号分隔）
+     */
+    @Schema(description = "违规原因ID列表（逗号分隔）")
+    private String violationIds;
 
     /**
      * 审核人ID
