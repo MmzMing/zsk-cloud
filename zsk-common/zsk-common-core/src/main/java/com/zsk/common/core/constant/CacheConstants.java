@@ -43,6 +43,42 @@ public class CacheConstants {
     public static final String CACHE_DICT = CACHE_PREFIX + "dict:";
 
     /**
+     * 字典类型标签集合缓存键（Set，存储所有已缓存的 dictType）
+     */
+    public static final String CACHE_DICT_TAGS = CACHE_DICT + "tags";
+
+    /**
+     * 字典数据缓存键模板（List，拼接 dictType 值）
+     * 用法：CACHE_DICT_DATA_KEY_TEMPLATE + dictType
+     */
+    public static final String CACHE_DICT_DATA_KEY_PREFIX = CACHE_DICT + "data:";
+
+    /**
+     * 字典缓存预热分布式锁键
+     */
+    public static final String CACHE_DICT_WARMUP_LOCK = CACHE_PREFIX + "lock:dict:warmup";
+
+    /**
+     * 字典缓存过期时间（小时）
+     */
+    public static final long CACHE_DICT_EXPIRE_HOURS = 24;
+
+    /**
+     * 字典缓存预热锁等待时间（分钟）
+     */
+    public static final long CACHE_DICT_WARMUP_LOCK_WAIT_MINUTES = 3;
+
+    /**
+     * 字典缓存预热锁持有时间（分钟）
+     */
+    public static final long CACHE_DICT_WARMUP_LOCK_LEASE_MINUTES = 5;
+
+    /**
+     * 字典缓存预热分片大小（每个虚拟线程处理的字典类型数量）
+     */
+    public static final int CACHE_DICT_WARMUP_SHARD_SIZE = 5;
+
+    /**
      * 参数配置缓存键前缀
      */
     public static final String CACHE_CONFIG = CACHE_PREFIX + "config:";
