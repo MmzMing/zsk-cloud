@@ -13,7 +13,14 @@
 | /api/system/dict/type | PUT | SysDictTypeController.java | 修改字典类型 |
 | /api/system/dict/type/{ids} | DELETE | SysDictTypeController.java | 删除字典类型 |
 
-### 1.2 缓存管理接口
+### 1.2 版本控制接口
+
+| API路径 | HTTP方法 | 所属文件 | 功能描述 |
+|---------|----------|----------|----------|
+| /api/system/dict/type/version | GET | SysDictTypeController.java | 获取字典缓存全局版本号 |
+| /api/system/dict/type/version/{dictType} | GET | SysDictTypeController.java | 获取指定字典类型版本号 |
+
+### 1.3 缓存管理接口
 
 | API路径 | HTTP方法 | 所属文件 | 功能描述 |
 |---------|----------|----------|----------|
@@ -33,24 +40,78 @@
 
 | 缓存 Key | 类型 | 存储内容 | 示例 |
 |---------|------|---------|------|
-| `dict:tags` | Set | 所有已缓存的字典类型标签集合 | 成员: `sys_common_status`, `sys_yes_no`, `doc_audit_status` |
-| `dict:data:{dictType}` | List | 某个字典类型下的数据列表（按 dictSort 排序） | `dict:data:sys_common_status` → `[{正常,0}, {停用,1}]` |
+| `zsk:dict:tags` | Set | 所有已缓存的字典类型标签集合 | 成员: `sys_common_status`, `sys_yes_no`, `doc_audit_status` |
+| `zsk:dict:data:{dictType}` | Value(DictCacheItem) | 版本号 + 字典数据列表（按 dictSort 排序） | `zsk:dict:data:sys_common_status` → `{"version":5,"data":[{正常,0},{停用,1}]}` |
+| `zsk:dict:version` | String(Long) | 字典缓存全局版本号 | `5` |
 
-### 2.2 缓存标签区分方式
+### 2.2 版本控制机制（Value 打包模式）
+
+版本号与字典数据打包存储在同一个 Redis Value 中，实现原子读取、强一致性：
+
+```json
+// Key: zsk:dict:data:sys_common_status
+// Value: DictCacheItem
+{
+  "version": 5,
+  "data": [
+    {"id": 20021, "dictSort": 1, "dictLabel": "正常", "dictValue": "0", "status": "0"},
+    {"id": 20022, "dictSort": 2, "dictLabel": "停用", "dictValue": "1", "status": "0"}
+  ]
+}
+```
+
+**全局版本号**（`zsk:dict:version`）：
+- 任何字典类型或字典数据的增删改都会递增此版本号
+- 使用 Redis INCR 命令保证原子性
+- 无过期时间，持久存在
+
+**按类型版本号**（DictCacheItem.version）：
+- 内嵌在 DictCacheItem 中，与字典数据存储在同一个 Value 里
+- 刷新缓存时，先递增全局版本号，再将新版本号写入 DictCacheItem
+- 一次 GET 即可同时获得版本号和数据，保证强一致
+
+### 2.3 缓存一致性保障
+
+| 操作 | 缓存维护 | 版本号更新 |
+|------|---------|-----------|
+| 新增字典类型 | refreshCache | 全局版本号 + DictCacheItem.version |
+| 修改字典类型 | refreshCache（dictType变更时处理新旧类型） | 全局版本号 + DictCacheItem.version |
+| 删除字典类型 | deleteCache | 全局版本号递增 |
+| 新增字典数据 | refreshCache | 全局版本号 + DictCacheItem.version |
+| 修改字典数据 | refreshCache（dictType变更时处理新旧类型） | 全局版本号 + DictCacheItem.version |
+| 删除字典数据 | refreshCache（按类型去重） | 全局版本号 + DictCacheItem.version |
+| 切换状态 | refreshCache | 全局版本号 + DictCacheItem.version |
+| 批量切换状态 | refreshCache（按类型去重） | 全局版本号 + DictCacheItem.version |
+| 缓存预热 | 全量加载 | 全局版本号递增 + DictCacheItem.version |
+| 清空缓存 | 全量清除 | 全局版本号递增 |
+
+### 2.4 前端使用流程
+
+```
+1. 前端每次加载 → 调用 GET /dict/type/version 获取全局版本号
+2. 与本地缓存的版本号比较
+3. 若版本号一致 → 使用本地缓存的字典数据（无需重新请求）
+4. 若版本号不一致 → 重新拉取字典数据，并更新本地版本号
+5. （可选优化）调用 GET /dict/type/version/{dictType} 按类型检查，仅更新变更的类型
+```
+
+### 2.5 缓存标签区分方式
 
 **标签 = dictType 值**，例如：
 
 - `sys_common_status` — 通用状态
-- `sys_yes_no` — 是否开关  
+- `sys_yes_no` — 是否开关
 - `doc_audit_status` — 审核状态
 
-所有标签统一存储在 `dict:tags` 这个 Redis Set 中，通过它可以快速查询当前系统缓存了哪些字典类型。
+所有标签统一存储在 `zsk:dict:tags` 这个 Redis Set 中，通过它可以快速查询当前系统缓存了哪些字典类型。
 
-### 2.3 缓存过期策略
+### 2.6 缓存过期策略
 
-- **过期时间**: 24 小时
+- **数据缓存过期时间**: 24 小时
+- **版本号过期时间**: 无（持久存在）
 - **自动预热**: 应用启动时自动执行缓存预热
-- **手动刷新**: 字典数据变更时调用刷新接口
+- **自动刷新**: 字典数据增删改时自动刷新缓存并递增版本号
+- **手动刷新**: 支持手动触发缓存预热和按类型刷新
 
 ---
 
@@ -171,7 +232,7 @@
 
 **路径**: `POST /api/system/dict/type`
 
-**功能描述**: 新增字典类型
+**功能描述**: 新增字典类型，新增后自动刷新缓存并递增版本号
 
 **请求体**:
 
@@ -209,7 +270,7 @@
 
 **路径**: `PUT /api/system/dict/type`
 
-**功能描述**: 修改字典类型
+**功能描述**: 修改字典类型，修改后自动刷新缓存并递增版本号；若 dictType 编码变更，同时处理新旧类型的缓存
 
 **请求体**:
 
@@ -237,7 +298,7 @@
 
 **路径**: `DELETE /api/system/dict/type/{ids}`
 
-**功能描述**: 删除字典类型（支持批量删除）
+**功能描述**: 删除字典类型（支持批量删除），删除后自动清理缓存并递增全局版本号
 
 **路径参数**:
 
@@ -257,13 +318,69 @@
 
 ---
 
-## 4. 缓存管理接口详情
+## 4. 版本控制接口详情
 
-### 4.1 手动触发缓存预热
+### 4.1 获取字典缓存全局版本号
+
+**路径**: `GET /api/system/dict/type/version`
+
+**功能描述**: 获取字典缓存全局版本号，前端用于判断是否需要重新拉取字典数据
+
+**请求参数**: 无
+
+**成功响应** (200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": 5
+}
+```
+
+**使用场景**:
+- 前端每次加载时调用此接口，与本地缓存的版本号比较
+- 若版本号一致，使用本地缓存的字典数据，无需重新请求
+- 若版本号不一致，重新拉取字典数据，并更新本地版本号
+
+---
+
+### 4.2 获取指定字典类型版本号
+
+**路径**: `GET /api/system/dict/type/version/{dictType}`
+
+**功能描述**: 获取指定字典类型的缓存版本号，前端用于增量更新
+
+**路径参数**:
+
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| dictType | string | 是 | 字典类型编码（如 sys_common_status） |
+
+**成功响应** (200):
+
+```json
+{
+  "code": 0,
+  "msg": "success",
+  "data": 5
+}
+```
+
+**使用场景**:
+- 前端按类型检查版本号，仅重新拉取发生变更的字典类型数据
+- 实现增量更新，减少网络传输量
+- 版本号从 DictCacheItem.version 中读取，与字典数据强一致
+
+---
+
+## 5. 缓存管理接口详情
+
+### 5.1 手动触发缓存预热
 
 **路径**: `POST /api/system/dict/type/cache/warmUp`
 
-**功能描述**: 手动触发缓存预热，加载所有正常状态的字典类型及其数据到Redis
+**功能描述**: 手动触发缓存预热，加载所有正常状态的字典类型及其数据到Redis，预热完成后递增全局版本号
 
 **请求参数**: 无
 
@@ -279,7 +396,7 @@
 
 ---
 
-### 4.2 获取所有缓存标签集合
+### 5.2 获取所有缓存标签集合
 
 **路径**: `GET /api/system/dict/type/cache/tags`
 
@@ -311,7 +428,7 @@
 
 ---
 
-### 4.3 根据标签获取缓存数据
+### 5.3 根据标签获取缓存数据
 
 **路径**: `GET /api/system/dict/type/cache/tag/{tag}`
 
@@ -356,7 +473,7 @@
 
 ---
 
-### 4.4 获取全部缓存数据（按标签分组）
+### 5.4 获取全部缓存数据（按标签分组）
 
 **路径**: `GET /api/system/dict/type/cache/all`
 
@@ -372,16 +489,16 @@
   "msg": "success",
   "data": {
     "sys_common_status": [
-      {"id": 20021, "dictLabel": "正常", "dictValue": "0", "dictSort": 1, ...},
-      {"id": 20022, "dictLabel": "停用", "dictValue": "1", "dictSort": 2, ...}
+      {"id": 20021, "dictLabel": "正常", "dictValue": "0", "dictSort": 1},
+      {"id": 20022, "dictLabel": "停用", "dictValue": "1", "dictSort": 2}
     ],
     "sys_yes_no": [
-      {"id": 20041, "dictLabel": "否", "dictValue": "0", "dictSort": 1, ...},
-      {"id": 20042, "dictLabel": "是", "dictValue": "1", "dictSort": 2, ...}
+      {"id": 20041, "dictLabel": "否", "dictValue": "0", "dictSort": 1},
+      {"id": 20042, "dictLabel": "是", "dictValue": "1", "dictSort": 2}
     ],
     "video_category": [
-      {"id": 10001, "dictLabel": "前端开发", "dictValue": "1", "dictSort": 1, ...},
-      {"id": 10002, "dictLabel": "后端开发", "dictValue": "2", "dictSort": 2, ...}
+      {"id": 10001, "dictLabel": "前端开发", "dictValue": "1", "dictSort": 1},
+      {"id": 10002, "dictLabel": "后端开发", "dictValue": "2", "dictSort": 2}
     ]
   }
 }
@@ -389,11 +506,11 @@
 
 ---
 
-### 4.5 刷新指定字典类型的缓存
+### 5.5 刷新指定字典类型的缓存
 
 **路径**: `POST /api/system/dict/type/cache/refresh/{dictType}`
 
-**功能描述**: 刷新指定字典类型的缓存，先删除旧缓存再重新从数据库加载
+**功能描述**: 刷新指定字典类型的缓存，先递增全局版本号，再从数据库重新加载该类型的字典数据，将版本号与数据打包为 DictCacheItem 写入 Redis
 
 **路径参数**:
 
@@ -413,11 +530,11 @@
 
 ---
 
-### 4.6 删除指定字典类型的缓存
+### 5.6 删除指定字典类型的缓存
 
 **路径**: `DELETE /api/system/dict/type/cache/{dictType}`
 
-**功能描述**: 删除指定字典类型的缓存及对应标签
+**功能描述**: 删除指定字典类型的缓存及对应标签，删除后递增全局版本号
 
 **路径参数**:
 
@@ -437,11 +554,11 @@
 
 ---
 
-### 4.7 清空所有字典缓存
+### 5.7 清空所有字典缓存
 
 **路径**: `DELETE /api/system/dict/type/cache/all`
 
-**功能描述**: 清空所有字典类型的缓存
+**功能描述**: 清空所有字典类型的缓存，清空后递增全局版本号
 
 **请求参数**: 无
 

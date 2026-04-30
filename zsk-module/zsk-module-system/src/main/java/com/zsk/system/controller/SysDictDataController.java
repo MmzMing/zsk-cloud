@@ -18,6 +18,9 @@ import java.util.List;
 
 /**
  * 字典数据 控制器
+ * <p>
+ * 提供字典数据的增删改查及状态切换等接口，对应 sys_dict_data 表。
+ * 字典数据是某个字典类型下的具体键值项，例如「性别」类型下的「男/女」。
  *
  * @author wuhuaming
  * @version 1.0
@@ -31,11 +34,16 @@ public class SysDictDataController {
 
     private final ISysDictDataService dictDataService;
 
+    // ==================== 查询 ====================
+
     /**
-     * 查询字典数据列表
+     * 查询字典数据列表（不分页）
+     * <p>
+     * 根据字典类型（精确匹配）、字典标签（模糊匹配）、状态（精确匹配）筛选，
+     * 结果按排序字段 dictSort 升序排列。
      *
-     * @param dictData 查询条件
-     * @return 字典数据列表
+     * @param dictData 查询条件对象，支持 dictType / dictLabel / status
+     * @return 符合条件的字典数据列表
      */
     @Operation(summary = "查询字典数据列表")
     @GetMapping("/list")
@@ -50,10 +58,12 @@ public class SysDictDataController {
 
     /**
      * 分页查询字典数据列表
+     * <p>
+     * 筛选条件与 {@link #list} 一致，额外支持分页参数。
      *
-     * @param pageQuery 分页参数
-     * @param dictData  查询条件
-     * @return 分页结果
+     * @param pageQuery 分页参数（页码、每页条数）
+     * @param dictData  查询条件对象，支持 dictType / dictLabel / status
+     * @return 分页结果，包含总条数与当前页数据
      */
     @Operation(summary = "分页查询字典数据列表")
     @GetMapping("/page")
@@ -69,10 +79,13 @@ public class SysDictDataController {
     }
 
     /**
-     * 根据字典类型查询字典数据信息
+     * 根据字典类型查询字典数据
+     * <p>
+     * 通过字典类型编码（如 sys_user_sex）获取该类型下所有正常状态的字典数据，
+     * 通常用于前端下拉框、单选框等组件的数据源。
      *
-     * @param dictType 字典类型
-     * @return 字典数据列表
+     * @param dictType 字典类型编码
+     * @return 该类型下的字典数据列表
      */
     @Operation(summary = "根据字典类型查询字典数据信息")
     @GetMapping(value = "/type/{dictType}")
@@ -82,8 +95,10 @@ public class SysDictDataController {
 
     /**
      * 获取字典数据详细信息
+     * <p>
+     * 根据字典数据主键 ID 查询单条记录的完整信息，用于编辑回显等场景。
      *
-     * @param id 字典ID
+     * @param id 字典数据主键 ID
      * @return 字典数据详情
      */
     @Operation(summary = "获取字典数据详细信息")
@@ -92,11 +107,15 @@ public class SysDictDataController {
         return R.ok(dictDataService.getById(id));
     }
 
+    // ==================== 新增 ====================
+
     /**
      * 新增字典数据
+     * <p>
+     * 在指定字典类型下新增一条字典数据项，需保证同一类型下 dictValue 不重复。
      *
-     * @param dictData 字典数据
-     * @return 是否成功
+     * @param dictData 字典数据对象（JSON 请求体）
+     * @return 操作结果
      */
     @Operation(summary = "新增字典数据")
     @PostMapping
@@ -104,11 +123,15 @@ public class SysDictDataController {
         return dictDataService.save(dictData) ? R.ok() : R.fail();
     }
 
+    // ==================== 修改 ====================
+
     /**
      * 修改字典数据
+     * <p>
+     * 根据主键 ID 更新字典数据信息，仅更新请求体中非空字段。
      *
-     * @param dictData 字典数据
-     * @return 是否成功
+     * @param dictData 字典数据对象（JSON 请求体，必须包含 id）
+     * @return 操作结果
      */
     @Operation(summary = "修改字典数据")
     @PutMapping
@@ -117,23 +140,14 @@ public class SysDictDataController {
     }
 
     /**
-     * 删除字典数据
+     * 切换字典数据状态
+     * <p>
+     * 将指定字典数据的状态在「正常(0)」和「停用(1)」之间切换，
+     * 停用后该字典项在前端下拉框等组件中将不再展示。
      *
-     * @param ids 字典ID列表
-     * @return 是否成功
-     */
-    @Operation(summary = "删除字典数据")
-    @DeleteMapping("/{ids}")
-    public R<Void> remove(@PathVariable List<Long> ids) {
-        return dictDataService.removeByIds(ids) ? R.ok() : R.fail();
-    }
-
-    /**
-     * 切换字典状态
-     *
-     * @param id     字典ID
-     * @param status 状态（0正常 1停用）
-     * @return 是否成功
+     * @param id     字典数据主键 ID
+     * @param status 目标状态（0-正常，1-停用）
+     * @return 操作结果
      */
     @Operation(summary = "切换字典状态")
     @PutMapping("/toggleStatus")
@@ -142,15 +156,34 @@ public class SysDictDataController {
     }
 
     /**
-     * 批量切换字典状态
+     * 批量切换字典数据状态
+     * <p>
+     * 批量将多个字典数据项切换为指定状态，适用于列表页批量启用/停用操作。
      *
-     * @param ids    字典ID列表
-     * @param status 状态（0正常 1停用）
-     * @return 是否成功
+     * @param ids    字典数据主键 ID 列表（JSON 请求体）
+     * @param status 目标状态（0-正常，1-停用）
+     * @return 操作结果
      */
     @Operation(summary = "批量切换字典状态")
     @PutMapping("/batchToggleStatus")
     public R<Void> batchToggleStatus(@RequestBody List<Long> ids, @RequestParam String status) {
         return dictDataService.batchToggleStatus(ids, status) ? R.ok() : R.fail();
+    }
+
+    // ==================== 删除 ====================
+
+    /**
+     * 删除字典数据
+     * <p>
+     * 根据主键 ID 列表批量删除字典数据，支持单个删除（传一个 ID）和批量删除（传多个 ID）。
+     * 删除前应确认该字典项未被业务引用。
+     *
+     * @param ids 字典数据主键 ID 列表（路径参数，逗号分隔）
+     * @return 操作结果
+     */
+    @Operation(summary = "删除字典数据")
+    @DeleteMapping("/{ids}")
+    public R<Void> remove(@PathVariable List<Long> ids) {
+        return dictDataService.removeByIds(ids) ? R.ok() : R.fail();
     }
 }

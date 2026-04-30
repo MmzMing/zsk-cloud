@@ -236,6 +236,20 @@ public class RedisService {
     }
 
     /**
+     * 递增Hash中指定字段的值（原子操作）
+     * <p>
+     * 如果字段不存在，Redis 会自动初始化为 0 再递增。
+     *
+     * @param key   Redis键
+     * @param hKey  Hash字段键
+     * @param delta 递增量（大于0）
+     * @return 递增后的值
+     */
+    public long incrementCacheMapValue(final String key, final String hKey, final long delta) {
+        return redisTemplate.opsForHash().increment(key, hKey, delta);
+    }
+
+    /**
      * 获得缓存的基本对象列表
      *
      * @param pattern 字符串前缀

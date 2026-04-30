@@ -13,21 +13,6 @@ public class CacheConstants {
     public static final String CACHE_PREFIX = "zsk:";
 
     /**
-     * 在线用户缓存键前缀
-     */
-    public static final String CACHE_ONLINE_TOKEN = CACHE_PREFIX + "online:token:";
-
-    /**
-     * 登录失败次数缓存键前缀
-     */
-    public static final String CACHE_LOGIN_FAIL = CACHE_PREFIX + "login:fail:";
-
-    /**
-     * 登录IP黑名单缓存键前缀
-     */
-    public static final String CACHE_LOGIN_BLACKLIST = CACHE_PREFIX + "login:blacklist:";
-
-    /**
      * 验证码缓存键前缀
      */
     public static final String CACHE_CAPTCHA_CODE = CACHE_PREFIX + "captcha:";
@@ -48,10 +33,20 @@ public class CacheConstants {
     public static final String CACHE_DICT_TAGS = CACHE_DICT + "tags";
 
     /**
-     * 字典数据缓存键模板（List，拼接 dictType 值）
-     * 用法：CACHE_DICT_DATA_KEY_TEMPLATE + dictType
+     * 字典数据缓存键模板（Value/DictCacheItem，拼接 dictType 值）
+     * 用法：CACHE_DICT_DATA_KEY_PREFIX + dictType
      */
     public static final String CACHE_DICT_DATA_KEY_PREFIX = CACHE_DICT + "data:";
+
+    /**
+     * 字典缓存全局版本号键（String/Long，记录所有字典数据的全局版本）
+     * 任何字典类型或字典数据的增删改都会递增此版本号
+     * 前端可通过比较版本号决定是否需要重新拉取字典数据
+     * <p>
+     * 按类型版本号已内嵌到 DictCacheItem.version 字段中，
+     * 与字典数据存储在同一个 Redis Value 里，无需单独维护。
+     */
+    public static final String CACHE_DICT_VERSION = CACHE_DICT + "version";
 
     /**
      * 字典缓存预热分布式锁键
@@ -77,66 +72,6 @@ public class CacheConstants {
      * 字典缓存预热分片大小（每个虚拟线程处理的字典类型数量）
      */
     public static final int CACHE_DICT_WARMUP_SHARD_SIZE = 5;
-
-    /**
-     * 参数配置缓存键前缀
-     */
-    public static final String CACHE_CONFIG = CACHE_PREFIX + "config:";
-
-    /**
-     * 用户信息缓存键前缀
-     */
-    public static final String CACHE_USER_INFO = CACHE_PREFIX + "user:info:";
-
-    /**
-     * 用户权限缓存键前缀
-     */
-    public static final String CACHE_USER_PERMISSION = CACHE_PREFIX + "user:permission:";
-
-    /**
-     * 用户角色缓存键前缀
-     */
-    public static final String CACHE_USER_ROLE = CACHE_PREFIX + "user:role:";
-
-    /**
-     * 路由缓存键前缀
-     */
-    public static final String CACHE_ROUTE = CACHE_PREFIX + "route:";
-
-    /**
-     * Token黑名单缓存键前缀
-     */
-    public static final String CACHE_TOKEN_BLACKLIST = CACHE_PREFIX + "token:blacklist:";
-
-    /**
-     * 分布式锁前缀
-     */
-    public static final String CACHE_LOCK = CACHE_PREFIX + "lock:";
-
-    /**
-     * 限流前缀
-     */
-    public static final String CACHE_RATE_LIMIT = CACHE_PREFIX + "rate_limit:";
-
-    /**
-     * 幂等性前缀
-     */
-    public static final String CACHE_IDEMPOTENCY = CACHE_PREFIX + "idempotency:";
-
-    /**
-     * 租户信息缓存键前缀
-     */
-    public static final String CACHE_TENANT_INFO = CACHE_PREFIX + "tenant:info:";
-
-    /**
-     * 租户数据源缓存键前缀
-     */
-    public static final String CACHE_TENANT_DATASOURCE = CACHE_PREFIX + "tenant:datasource:";
-
-    /**
-     * 系统信息缓存键前缀
-     */
-    public static final String CACHE_SYS_INFO = CACHE_PREFIX + "sys:info:";
 
     /**
      * 登录令牌缓存键前缀
@@ -202,21 +137,6 @@ public class CacheConstants {
      * 魔法链接缓存键前缀
      */
     public static final String CACHE_MAGIC_LINK = CACHE_PREFIX + "magic:link:";
-
-    /**
-     * 魔法链接发送频率限制缓存键前缀
-     */
-    public static final String CACHE_MAGIC_LINK_RATE_LIMIT = CACHE_PREFIX + "magic:link:rate_limit:";
-
-    /**
-     * 视频分类缓存键
-     */
-    public static final String CACHE_VIDEO_CATEGORY = CACHE_PREFIX + "video:category:list";
-
-    /**
-     * 视频标签缓存键
-     */
-    public static final String CACHE_VIDEO_TAG = CACHE_PREFIX + "video:tag:list";
 
     private CacheConstants() {
         throw new AssertionError("常量类禁止实例化");

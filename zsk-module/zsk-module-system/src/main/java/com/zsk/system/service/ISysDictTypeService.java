@@ -44,6 +44,10 @@ public interface ISysDictTypeService extends IService<SysDictType> {
 
     /**
      * 刷新单个字典类型的缓存
+     * <p>
+     * 先递增全局版本号，再从数据库重新加载该类型的字典数据，
+     * 将版本号与数据打包为 DictCacheItem 写入 Redis，
+     * 保证版本号与数据的强一致性。
      *
      * @param dictType 字典类型
      */
@@ -60,4 +64,27 @@ public interface ISysDictTypeService extends IService<SysDictType> {
      * 清空所有字典缓存
      */
     void clearAllCache();
+
+    // ==================== 版本控制 ====================
+
+    /**
+     * 获取字典缓存全局版本号
+     * <p>
+     * 任何字典类型或字典数据的增删改都会递增全局版本号，
+     * 前端可通过比较版本号决定是否需要重新拉取字典数据。
+     *
+     * @return 全局版本号，若不存在返回 0
+     */
+    long getDictVersion();
+
+    /**
+     * 获取指定字典类型的缓存版本号
+     * <p>
+     * 版本号内嵌在 DictCacheItem 中，与字典数据存储在同一个 Redis Value 里，
+     * 读取时从 DictCacheItem.version 字段获取，保证版本与数据的强一致性。
+     *
+     * @param dictType 字典类型编码
+     * @return 该类型的版本号，若缓存不存在返回 0
+     */
+    long getDictVersion(String dictType);
 }
