@@ -143,6 +143,11 @@ public class CacheSysServiceImpl implements ICacheSysService {
      */
     @Override
     public Object getCacheValue(String cacheKey) {
+        // Bitmap 类型的 key 存储的是二进制数据，不能用 JSON 反序列化
+        if (isBitmapKey(cacheKey)) {
+            log.warn("Bitmap 类型的缓存键不支持直接获取值: {}", cacheKey);
+            return "[Bitmap 二进制数据，不支持查看]";
+        }
         return redisService.getCacheObject(cacheKey);
     }
 
@@ -635,8 +640,14 @@ public class CacheSysServiceImpl implements ICacheSysService {
                     connection.type(cacheKey.getBytes(StandardCharsets.UTF_8))
             );
 
+            // Bitmap 是一种特殊的 STRING 类型，存储的是二进制数据，不能用 JSON 反序列化
+            if (isBitmapKey(cacheKey)) {
+                cacheInfo.setDataType("BITMAP");
+                cacheInfo.setCacheValue("[Bitmap 二进制数据，不支持查看]");
+                cacheInfo.setDataSize(0L);
+            }
             // 只有 String 类型才能使用 opsForValue().get() 获取值
-            if (DataType.STRING == dataType) {
+            else if (DataType.STRING == dataType) {
                 Object value = redisTemplate.opsForValue().get(cacheKey);
                 if (value != null) {
                     cacheInfo.setCacheValue(truncateValue(value.toString()));
@@ -657,6 +668,24 @@ public class CacheSysServiceImpl implements ICacheSysService {
         // 5. 设置创建时间（实际为查询时间）
         cacheInfo.setCreateTime(System.currentTimeMillis());
         return cacheInfo;
+    }
+
+    /**
+     * 判断是否为 Bitmap 类型的缓存键
+     * <p>
+     * Bitmap 虽然底层是 STRING 类型，但存储的是二进制数据，不能用 JSON 反序列化
+     * 通过缓存常量前缀识别 Bitmap key
+     *
+     * @param cacheKey 缓存键名
+     * @return true-是 Bitmap 类型，false-不是 Bitmap 类型
+     */
+    private boolean isBitmapKey(String cacheKey) {
+        if (cacheKey == null) {
+            return false;
+        }
+        return cacheKey.startsWith(CacheConstants.CACHE_LIKE_BIT)
+                || cacheKey.startsWith(CacheConstants.CACHE_COLLECT_BIT)
+                || cacheKey.startsWith(CacheConstants.CACHE_FOLLOW_BIT);
     }
 
     /**
