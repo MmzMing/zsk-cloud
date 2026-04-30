@@ -153,7 +153,14 @@ public class DocVideoController {
     @Operation(summary = "新增视频")
     @PostMapping
     public R<Boolean> add(@RequestBody DocVideo docVideo) {
-        return R.ok(docVideoService.save(docVideo));
+        if (docVideo.getStatus() == null) {
+            docVideo.setStatus(3);
+        }
+        boolean result = docVideoService.save(docVideo);
+        if (result && docVideo.getStatus() == 1) {
+            docVideoService.submitToAuditAfterCreate(docVideo.getId());
+        }
+        return R.ok(result);
     }
 
     /**
@@ -168,7 +175,14 @@ public class DocVideoController {
     public R<Boolean> upload(@RequestPart("file") MultipartFile file, DocVideo docVideo) {
         DocFiles docFile = docFilesService.uploadFile(file);
         docVideo.setFileId(docFile.getId());
-        return R.ok(docVideoService.save(docVideo));
+        if (docVideo.getStatus() == null) {
+            docVideo.setStatus(3);
+        }
+        boolean result = docVideoService.save(docVideo);
+        if (result && docVideo.getStatus() == 1) {
+            docVideoService.submitToAuditAfterCreate(docVideo.getId());
+        }
+        return R.ok(result);
     }
 
     /**
@@ -180,7 +194,13 @@ public class DocVideoController {
     @Operation(summary = "修改视频")
     @PutMapping
     public R<Boolean> edit(@RequestBody DocVideo docVideo) {
-        return R.ok(docVideoService.updateById(docVideo));
+        DocVideo existing = docVideoService.getById(docVideo.getId());
+        boolean needReaudit = existing != null && existing.getAuditStatus() != null && existing.getAuditStatus() == 1;
+        boolean result = docVideoService.updateById(docVideo);
+        if (result && needReaudit) {
+            docVideoService.submitToAuditAfterCreate(docVideo.getId());
+        }
+        return R.ok(result);
     }
 
     /**

@@ -40,7 +40,7 @@ public class DocAuditController {
      *
      * <p>根据目标类型和审核状态筛选审核队列，支持分页查询。</p>
      *
-     * @param targetType 目标类型（1-文档 2-视频 3-文档评论 4-视频评论）
+     * @param targetType 目标类型（可选，null则查询全部类型）
      * @param auditStatus 审核状态（可选，0-待审核 1-通过 2-驳回）
      * @param pageQuery  分页参数
      * @return 审核队列分页结果
@@ -48,7 +48,7 @@ public class DocAuditController {
     @Operation(summary = "获取审核队列")
     @GetMapping("/queue")
     public R<PageResult<DocAuditQueueVO>> getAuditQueue(
-            @RequestParam Integer targetType,
+            @RequestParam(required = false) Integer targetType,
             @RequestParam(required = false) Integer auditStatus,
             PageQuery pageQuery) {
         return R.ok(auditService.getAuditQueue(targetType, auditStatus, pageQuery));

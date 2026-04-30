@@ -200,7 +200,7 @@ CREATE TABLE `document_video`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_视频表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- 9. 视频详情评论表
+-- 8. 视频详情评论表
 -- ----------------------------
 DROP TABLE IF EXISTS `document_video_comment`;
 CREATE TABLE `document_video_comment`  (
@@ -229,7 +229,7 @@ CREATE TABLE `document_video_comment`  (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_视频详情评论表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- 10. 视频合集表
+-- 9. 视频合集表
 -- ----------------------------
 DROP TABLE IF EXISTS `document_video_collection`;
 CREATE TABLE `document_video_collection` (
@@ -254,7 +254,7 @@ CREATE TABLE `document_video_collection` (
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_general_ci COMMENT = '内容管理服务_视频合集表' ROW_FORMAT = DYNAMIC;
 
 -- ----------------------------
--- 9. 视频合集关联表
+-- 10. 视频合集关联表
 -- ----------------------------
 DROP TABLE IF EXISTS `document_video_collection_item`;
 CREATE TABLE `document_video_collection_item` (
@@ -279,8 +279,8 @@ CREATE TABLE `document_video_collection_item` (
 -- ----------------------------
 -- 11. 用户交互关系表
 -- ----------------------------
-DROP TABLE IF EXISTS `doc_user_interaction`;
-CREATE TABLE `doc_user_interaction`  (
+DROP TABLE IF EXISTS `document_user_interaction`;
+CREATE TABLE `document_user_interaction`  (
   `id` bigint(20) NOT NULL COMMENT '主键',
   `user_id` bigint(20) NOT NULL COMMENT '用户ID',
   `target_type` int(4) NOT NULL COMMENT '目标类型（1-文档 2-视频 3-用户 4-评论）',
@@ -310,6 +310,7 @@ CREATE TABLE `document_audit`  (
   `target_type` smallint NOT NULL COMMENT '审核目标类型（1-文档 2-视频 3-文档评论 4-视频评论）',
   `target_id` bigint(20) NOT NULL COMMENT '审核目标ID',
   `audit_type` varchar(20) NOT NULL DEFAULT 'manual' COMMENT '审核类型（ai-AI审核 manual-人工审核）',
+  `audit_round` int(4) NOT NULL DEFAULT 1 COMMENT '审核轮次（第几次审核，从1开始递增）',
   `audit_status` int(4) NOT NULL DEFAULT 0 COMMENT '审核状态（0-待审核 1-审核通过 2-审核驳回 3-已撤回）',
   `audit_result` text NULL DEFAULT NULL COMMENT '审核结果详情（JSON格式）',
   `risk_level` varchar(20) NULL DEFAULT 'low' COMMENT '风险等级（low-低 medium-中 high-高）',

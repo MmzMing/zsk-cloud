@@ -18,6 +18,7 @@ import com.zsk.document.mapper.DocVideoMapper;
 import com.zsk.document.service.ICacheDocCollectService;
 import com.zsk.document.service.ICacheDocLikeService;
 import com.zsk.document.service.ICacheDocViewService;
+import com.zsk.document.service.IDocAuditService;
 import com.zsk.document.service.IDocVideoService;
 import com.zsk.system.api.RemoteUserService;
 import com.zsk.system.api.domain.SysUserApi;
@@ -46,6 +47,7 @@ public class DocVideoServiceImpl extends ServiceImpl<DocVideoMapper, DocVideo> i
     private final ICacheDocViewService cacheDocViewService;
     private final ICacheDocLikeService cacheDocLikeService;
     private final ICacheDocCollectService cacheDocCollectService;
+    private final IDocAuditService docAuditService;
 
 
     /**
@@ -111,6 +113,13 @@ public class DocVideoServiceImpl extends ServiceImpl<DocVideoMapper, DocVideo> i
         updateWrapper.set(DocVideo::getStatus, 1);
         updateWrapper.set(DocVideo::getAuditStatus, 0);
         boolean result = this.update(updateWrapper);
+        if (result) {
+            try {
+                docAuditService.submitToAudit(2, id);
+            } catch (Exception e) {
+                log.error("视频提交审核失败, videoId={}, error={}", id, e.getMessage(), e);
+            }
+        }
         log.info("发布视频草稿完成, id={}, result={}", id, result);
         return result;
     }
@@ -135,9 +144,45 @@ public class DocVideoServiceImpl extends ServiceImpl<DocVideoMapper, DocVideo> i
         LambdaUpdateWrapper<DocVideo> updateWrapper = new LambdaUpdateWrapper<>();
         updateWrapper.in(DocVideo::getId, ids);
         updateWrapper.set(DocVideo::getStatus, status);
+        if (status == 1) {
+            updateWrapper.set(DocVideo::getAuditStatus, 0);
+        }
         boolean result = this.update(updateWrapper);
         log.info("批量更新视频状态完成, 影响{}条记录", ids.size());
+
+        if (result && status == 1) {
+            for (Long id : ids) {
+                try {
+                    docAuditService.submitToAudit(2, id);
+                } catch (Exception e) {
+                    log.error("视频提交审核失败, videoId={}, error={}", id, e.getMessage(), e);
+                }
+            }
+        }
+
         return result;
+    }
+
+    /**
+     * 视频创建后提交审核
+     * <p>
+     * 设置审核状态为待审核，并提交到审核队列。
+     * </p>
+     *
+     * @param videoId 视频ID
+     */
+    public void submitToAuditAfterCreate(Long videoId) {
+        log.info("视频创建后提交审核, videoId={}", videoId);
+        DocVideo video = this.getById(videoId);
+        if (video != null) {
+            video.setAuditStatus(0);
+            this.updateById(video);
+            try {
+                docAuditService.submitToAudit(2, videoId);
+            } catch (Exception e) {
+                log.error("视频提交审核失败, videoId={}, error={}", videoId, e.getMessage(), e);
+            }
+        }
     }
 
     /**

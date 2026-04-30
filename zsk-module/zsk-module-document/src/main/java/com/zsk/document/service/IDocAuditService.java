@@ -23,9 +23,10 @@ public interface IDocAuditService extends IService<DocAudit> {
     /**
      * 获取审核队列
      *
-     * <p>根据目标类型和审核状态筛选审核队列，支持分页查询。</p>
+     * <p>根据目标类型和审核状态筛选审核队列，支持分页查询。
+     * targetType 为空时查询全部类型。</p>
      *
-     * @param targetType 目标类型（1-文档 2-视频 3-文档评论 4-视频评论）
+     * @param targetType 目标类型（可选，null则查询全部类型）
      * @param auditStatus 审核状态（可选，null则查询全部状态）
      * @param pageQuery  分页参数
      * @return 审核队列分页结果
@@ -77,4 +78,15 @@ public interface IDocAuditService extends IService<DocAudit> {
      * @return 违规原因列表
      */
     List<DocViolationReasonVO> getViolationReasons(Integer targetType);
+
+    /**
+     * 提交内容到审核队列
+     *
+     * <p>当内容（文档/视频/评论）发布时调用此方法，在 document_audit 表中
+     * 创建一条 audit_status=0 的待审核记录，使内容进入审核队列。</p>
+     *
+     * @param targetType 目标类型（1-文档 2-视频 3-文档评论 4-视频评论）
+     * @param targetId   目标ID
+     */
+    void submitToAudit(Integer targetType, Long targetId);
 }

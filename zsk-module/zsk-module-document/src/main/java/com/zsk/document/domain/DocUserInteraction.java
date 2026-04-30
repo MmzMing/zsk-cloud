@@ -9,7 +9,7 @@ import lombok.EqualsAndHashCode;
 import java.io.Serial;
 
 /**
- * 用户交互关系表对象 doc_user_interaction
+ * 用户交互关系表对象 document_user_interaction
  * 统一管理点赞、收藏、关注关系
  *
  * @author wuhuaming
@@ -18,7 +18,7 @@ import java.io.Serial;
  */
 @Data
 @EqualsAndHashCode(callSuper = true)
-@TableName("doc_user_interaction")
+@TableName("document_user_interaction")
 @Schema(description = "用户交互关系对象")
 public class DocUserInteraction extends BaseEntity {
 

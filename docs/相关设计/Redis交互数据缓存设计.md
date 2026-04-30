@@ -235,7 +235,7 @@ Redis 是缓存，数据最终需要同步到数据库持久化。我们采用**
 
 ```sql
 -- 用户交互表（单表存储所有交互行为）
-CREATE TABLE doc_user_interaction (
+CREATE TABLE document_user_interaction (
     id              BIGINT PRIMARY KEY,
     user_id         BIGINT COMMENT '用户ID（0表示统计记录）',
     target_type     INT COMMENT '目标类型: 1=笔记, 2=视频, 3=评论, 4=用户',

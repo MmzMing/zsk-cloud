@@ -88,9 +88,9 @@ public class DocAuditServiceImpl extends ServiceImpl<DocAuditMapper, DocAudit> i
      * 获取审核队列
      *
      * <p>根据目标类型和审核状态筛选审核队列，支持分页查询。
-     * 通过策略模式获取对应内容类型的展示信息。</p>
+     * targetType 为空时查询全部类型的审核队列。</p>
      *
-     * @param targetType  目标类型（1-文档 2-视频 3-文档评论 4-视频评论）
+     * @param targetType  目标类型（可选，null则查询全部类型）
      * @param auditStatus 审核状态（可选，null则查询全部状态）
      * @param pageQuery   分页参数（pageNum、pageSize）
      * @return 审核队列分页结果，包含内容基本信息、审核状态、风险等级等
@@ -100,13 +100,10 @@ public class DocAuditServiceImpl extends ServiceImpl<DocAuditMapper, DocAudit> i
         log.info("获取审核队列, targetType={}, auditStatus={}, pageNum={}, pageSize={}",
                 targetType, auditStatus, pageQuery.getPageNum(), pageQuery.getPageSize());
 
-        AuditTargetType type = validateAndGetTargetType(targetType);
-        AuditTargetStrategy strategy = getStrategy(type);
-
         long offset = calculateOffset(pageQuery);
 
         List<DocAudit> auditList = this.lambdaQuery()
-                .eq(DocAudit::getTargetType, type.getCode())
+                .eq(targetType != null, DocAudit::getTargetType, targetType)
                 .eq(auditStatus != null, DocAudit::getAuditStatus, auditStatus)
                 .orderByDesc(DocAudit::getCreateTime)
                 .last("LIMIT " + offset + "," + pageQuery.getPageSize())
@@ -114,6 +111,11 @@ public class DocAuditServiceImpl extends ServiceImpl<DocAuditMapper, DocAudit> i
 
         List<DocAuditQueueVO> voList = auditList.stream()
                 .map(audit -> {
+                    AuditTargetType type = AuditTargetType.getByCode(audit.getTargetType());
+                    if (type == null) {
+                        return null;
+                    }
+                    AuditTargetStrategy strategy = getStrategy(type);
                     DocAuditQueueVO vo = strategy.buildQueueItem(audit.getTargetId());
                     if (vo != null) {
                         vo.setId(audit.getId());
@@ -126,7 +128,7 @@ public class DocAuditServiceImpl extends ServiceImpl<DocAuditMapper, DocAudit> i
                 .toList();
 
         long total = this.lambdaQuery()
-                .eq(DocAudit::getTargetType, type.getCode())
+                .eq(targetType != null, DocAudit::getTargetType, targetType)
                 .eq(auditStatus != null, DocAudit::getAuditStatus, auditStatus)
                 .count();
 
@@ -190,13 +192,16 @@ public class DocAuditServiceImpl extends ServiceImpl<DocAuditMapper, DocAudit> i
     /**
      * 提交审核结果
      *
-     * <p>单条内容审核结果提交，包含以下步骤：</p>
+     * <p>单条内容审核结果提交，包含以下逻辑：</p>
      * <ol>
      *   <li>校验请求参数（targetType、targetId、auditStatus）</li>
      *   <li>获取对应策略，校验目标内容是否存在</li>
-     *   <li>创建审核记录并保存到 document_audit 表</li>
+     *   <li>查找最新的待审核记录，存在则更新；不存在则创建新记录（重新审核场景）</li>
      *   <li>通过策略回写主表的 audit_status 字段</li>
      * </ol>
+     *
+     * <p>重新审核支持：如果内容已被审核过（audit_status=1或2），再次提交审核时会
+     * 将审核状态重置为待审核（0），审核轮次+1，等待新的审核结果。</p>
      *
      * @param request 审核提交请求（targetType、targetId、auditStatus必填）
      * @throws BusinessException 当目标内容不存在或参数无效时
@@ -221,23 +226,68 @@ public class DocAuditServiceImpl extends ServiceImpl<DocAuditMapper, DocAudit> i
             throw new BusinessException(type.getDesc() + "不存在");
         }
 
-        DocAudit audit = new DocAudit();
-        audit.setTargetType(type.getCode());
-        audit.setTargetId(targetId);
-        audit.setAuditType(AUDIT_TYPE_MANUAL);
-        audit.setAuditStatus(auditStatus);
-        audit.setAuditMind(request.getAuditMind());
-        audit.setRiskLevel(RISK_LEVEL_LOW);
-        audit.setViolationIds(CollectionUtils.isEmpty(request.getViolationIds())
-                ? null : String.join(",", request.getViolationIds()));
-        audit.setAuditTime(LocalDateTime.now());
-        audit.setAuditorId(SecurityUtils.getUserId());
-        audit.setAuditorName(SecurityUtils.getUserName());
-        this.save(audit);
+        // 查找最新的审核记录
+        DocAudit latestAudit = this.lambdaQuery()
+                .eq(DocAudit::getTargetType, type.getCode())
+                .eq(DocAudit::getTargetId, targetId)
+                .orderByDesc(DocAudit::getAuditRound)
+                .orderByDesc(DocAudit::getCreateTime)
+                .last("LIMIT 1")
+                .one();
+
+        DocAudit audit;
+        if (latestAudit != null && latestAudit.getAuditStatus() != null && latestAudit.getAuditStatus() == AuditStatus.PENDING.getCode()) {
+            // 有待审核记录，直接更新
+            audit = latestAudit;
+            audit.setAuditStatus(auditStatus);
+            audit.setAuditMind(request.getAuditMind());
+            audit.setViolationIds(CollectionUtils.isEmpty(request.getViolationIds())
+                    ? null : String.join(",", request.getViolationIds()));
+            audit.setAuditTime(LocalDateTime.now());
+            audit.setAuditorId(SecurityUtils.getUserId());
+            audit.setAuditorName(SecurityUtils.getUserName());
+            this.updateById(audit);
+            log.info("更新待审核记录, auditId={}, auditRound={}", audit.getId(), audit.getAuditRound());
+        } else if (latestAudit != null) {
+            // 已有审核结果，重新审核：创建新记录，轮次+1
+            audit = new DocAudit();
+            audit.setTargetType(type.getCode());
+            audit.setTargetId(targetId);
+            audit.setAuditType(AUDIT_TYPE_MANUAL);
+            audit.setAuditStatus(auditStatus);
+            audit.setAuditMind(request.getAuditMind());
+            audit.setRiskLevel(RISK_LEVEL_LOW);
+            audit.setViolationIds(CollectionUtils.isEmpty(request.getViolationIds())
+                    ? null : String.join(",", request.getViolationIds()));
+            audit.setAuditTime(LocalDateTime.now());
+            audit.setAuditorId(SecurityUtils.getUserId());
+            audit.setAuditorName(SecurityUtils.getUserName());
+            audit.setAuditRound(latestAudit.getAuditRound() + 1);
+            this.save(audit);
+            log.info("重新审核，创建新记录, auditId={}, auditRound={}", audit.getId(), audit.getAuditRound());
+        } else {
+            // 首次审核
+            audit = new DocAudit();
+            audit.setTargetType(type.getCode());
+            audit.setTargetId(targetId);
+            audit.setAuditType(AUDIT_TYPE_MANUAL);
+            audit.setAuditStatus(auditStatus);
+            audit.setAuditMind(request.getAuditMind());
+            audit.setRiskLevel(RISK_LEVEL_LOW);
+            audit.setViolationIds(CollectionUtils.isEmpty(request.getViolationIds())
+                    ? null : String.join(",", request.getViolationIds()));
+            audit.setAuditTime(LocalDateTime.now());
+            audit.setAuditorId(SecurityUtils.getUserId());
+            audit.setAuditorName(SecurityUtils.getUserName());
+            audit.setAuditRound(1);
+            this.save(audit);
+            log.info("首次审核，创建记录, auditId={}, auditRound={}", audit.getId(), audit.getAuditRound());
+        }
 
         strategy.updateAuditStatus(targetId, auditStatus, request.getAuditMind());
 
-        log.info("提交审核结果完成, targetType={}, targetId={}, auditId={}", type.getDesc(), targetId, audit.getId());
+        log.info("提交审核结果完成, targetType={}, targetId={}, auditId={}, auditRound={}",
+                type.getDesc(), targetId, audit.getId(), audit.getAuditRound());
     }
 
     /**
@@ -309,9 +359,30 @@ public class DocAuditServiceImpl extends ServiceImpl<DocAuditMapper, DocAudit> i
 
         long offset = calculateOffset(pageQuery);
 
-        List<DocAuditLogVO> list = baseMapper.selectAuditLogs(targetType, offset, pageQuery.getPageSize());
+        List<DocAudit> audits = this.lambdaQuery()
+                .eq(targetType != null, DocAudit::getTargetType, targetType)
+                .in(DocAudit::getAuditStatus, 1, 2, 3)
+                .orderByDesc(DocAudit::getAuditTime)
+                .last("LIMIT " + offset + "," + pageQuery.getPageSize())
+                .list();
 
-        if (!CollectionUtils.isEmpty(list)) {
+        List<DocAuditLogVO> list = audits.stream()
+                .map(audit -> {
+                    DocAuditLogVO vo = new DocAuditLogVO();
+                    vo.setId(audit.getId());
+                    vo.setTargetType(audit.getTargetType());
+                    vo.setTargetId(audit.getTargetId());
+                    vo.setAuditRound(audit.getAuditRound());
+                    vo.setAuditorName(audit.getAuditorName());
+                    vo.setAuditTime(audit.getAuditTime() != null ? audit.getAuditTime().toString() : null);
+                    vo.setResult(audit.getAuditStatus());
+                    vo.setAuditMind(audit.getAuditMind());
+                    vo.setRiskLevel(audit.getRiskLevel());
+                    return vo;
+                })
+                .toList();
+
+        if (!list.isEmpty()) {
             for (DocAuditLogVO logVO : list) {
                 AuditTargetType type = AuditTargetType.getByCode(logVO.getTargetType());
                 if (type != null) {
@@ -324,7 +395,10 @@ public class DocAuditServiceImpl extends ServiceImpl<DocAuditMapper, DocAudit> i
             }
         }
 
-        long total = baseMapper.countAuditLogs(targetType);
+        long total = this.lambdaQuery()
+                .eq(targetType != null, DocAudit::getTargetType, targetType)
+                .in(DocAudit::getAuditStatus, 1, 2, 3)
+                .count();
 
         log.info("获取审核日志完成, 共{}条记录", total);
         return PageResult.of(list, total, pageQuery.getPageNum(), pageQuery.getPageSize());
@@ -369,6 +443,57 @@ public class DocAuditServiceImpl extends ServiceImpl<DocAuditMapper, DocAudit> i
     }
 
     // ==================== 私有辅助方法 ====================
+
+    /**
+     * 提交内容到审核队列
+     *
+     * <p>当内容（文档/视频/评论）发布时调用此方法，在 document_audit 表中
+     * 创建一条 audit_status=0 的待审核记录，使内容进入审核队列。
+     * 如果该内容已有待审核记录，则跳过不重复创建。</p>
+     *
+     * @param targetType 目标类型（1-文档 2-视频 3-文档评论 4-视频评论）
+     * @param targetId   目标ID
+     */
+    @Override
+    public void submitToAudit(Integer targetType, Long targetId) {
+        AuditTargetType type = validateAndGetTargetType(targetType);
+
+        log.info("提交内容到审核队列, targetType={}, targetId={}", type.getDesc(), targetId);
+
+        long existingCount = this.lambdaQuery()
+                .eq(DocAudit::getTargetType, type.getCode())
+                .eq(DocAudit::getTargetId, targetId)
+                .eq(DocAudit::getAuditStatus, AuditStatus.PENDING.getCode())
+                .count();
+
+        if (existingCount > 0) {
+            log.info("内容已有待审核记录，跳过创建, targetType={}, targetId={}", type.getDesc(), targetId);
+            return;
+        }
+
+        // 查询最大审核轮次
+        Integer maxRound = this.lambdaQuery()
+                .eq(DocAudit::getTargetType, type.getCode())
+                .eq(DocAudit::getTargetId, targetId)
+                .select(DocAudit::getAuditRound)
+                .orderByDesc(DocAudit::getAuditRound)
+                .last("LIMIT 1")
+                .oneOpt()
+                .map(DocAudit::getAuditRound)
+                .orElse(0);
+
+        DocAudit audit = new DocAudit();
+        audit.setTargetType(type.getCode());
+        audit.setTargetId(targetId);
+        audit.setAuditType(AUDIT_TYPE_MANUAL);
+        audit.setAuditStatus(AuditStatus.PENDING.getCode());
+        audit.setRiskLevel(RISK_LEVEL_LOW);
+        audit.setAuditRound(maxRound + 1);
+        this.save(audit);
+
+        log.info("内容已提交到审核队列, targetType={}, targetId={}, auditId={}, auditRound={}",
+                type.getDesc(), targetId, audit.getId(), audit.getAuditRound());
+    }
 
     /**
      * 根据目标类型获取对应的审核策略

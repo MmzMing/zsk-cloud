@@ -47,6 +47,12 @@ public class DocAudit extends TenantEntity {
     private String auditType;
 
     /**
+     * 审核轮次（第几次审核，从1开始递增，用于支持重新审核和历史追溯）
+     */
+    @Schema(description = "审核轮次（第几次审核，从1开始递增）")
+    private Integer auditRound;
+
+    /**
      * 审核状态（0-待审核 1-审核通过 2-审核驳回 3-已撤回）
      */
     @Schema(description = "审核状态（0-待审核 1-审核通过 2-审核驳回 3-已撤回）")

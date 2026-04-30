@@ -199,7 +199,7 @@ zsk-cloud
 | `document_video_comment` | 视频评论表 |
 | `document_video_collection` | 视频合集表 |
 | `document_video_collection_item` | 合集视频关联表 |
-| `doc_user_interaction` | 用户交互关系表（4 种目标类型 × 4 种交互类型） |
+| `document_user_interaction` | 用户交互关系表（4 种目标类型 × 4 种交互类型） |
 | `document_audit` | 统一审核记录表（支持 AI/人工审核，4 种目标类型） |
 
 ### 其他数据库

@@ -21,6 +21,7 @@ import com.zsk.document.mapper.DocNoteMapper;
 import com.zsk.document.service.ICacheDocCollectService;
 import com.zsk.document.service.ICacheDocLikeService;
 import com.zsk.document.service.ICacheDocViewService;
+import com.zsk.document.service.IDocAuditService;
 import com.zsk.document.service.IDocNoteService;
 import com.zsk.system.api.RemoteUserService;
 import com.zsk.system.api.domain.SysUserApi;
@@ -51,6 +52,7 @@ public class DocNoteServiceImpl extends ServiceImpl<DocNoteMapper, DocNote> impl
     private final ICacheDocViewService cacheDocViewService;
     private final ICacheDocLikeService cacheDocLikeService;
     private final ICacheDocCollectService cacheDocCollectService;
+    private final IDocAuditService docAuditService;
 
 
     /**
@@ -293,7 +295,7 @@ public class DocNoteServiceImpl extends ServiceImpl<DocNoteMapper, DocNote> impl
 
         if ("published".equals(status)) {
             updateWrapper.set(DocNote::getStatus, 1);
-            updateWrapper.set(DocNote::getAuditStatus, 1);
+            updateWrapper.set(DocNote::getAuditStatus, 0);
         } else if ("offline".equals(status)) {
             updateWrapper.set(DocNote::getStatus, 2);
         } else {
@@ -303,6 +305,17 @@ public class DocNoteServiceImpl extends ServiceImpl<DocNoteMapper, DocNote> impl
 
         boolean result = this.update(updateWrapper);
         log.info("批量更新笔记状态完成, 影响{}条记录", ids.size());
+
+        if (result && "published".equals(status)) {
+            for (Long id : ids) {
+                try {
+                    docAuditService.submitToAudit(1, id);
+                } catch (Exception e) {
+                    log.error("笔记提交审核失败, noteId={}, error={}", id, e.getMessage(), e);
+                }
+            }
+        }
+
         return result;
     }
 

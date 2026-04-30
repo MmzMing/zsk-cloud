@@ -15,6 +15,7 @@ import com.zsk.document.domain.vo.InteractionResultVo;
 import com.zsk.document.enums.CacheDocLikeTypeEnum;
 import com.zsk.document.mapper.DocVideoCommentMapper;
 import com.zsk.document.service.ICacheDocLikeService;
+import com.zsk.document.service.IDocAuditService;
 import com.zsk.document.service.IDocVideoCommentService;
 import com.zsk.system.api.RemoteUserService;
 import com.zsk.system.api.domain.SysUserApi;
@@ -55,10 +56,9 @@ public class DocVideoCommentServiceImpl extends ServiceImpl<DocVideoCommentMappe
      */
     private final ICacheDocLikeService cacheDocLikeService;
 
-    /**
-     * 远程用户服务
-     */
     private final RemoteUserService remoteUserService;
+
+    private final IDocAuditService docAuditService;
 
     /**
      * 获取视频评论列表（支持热门/最新排序）
@@ -167,7 +167,14 @@ public class DocVideoCommentServiceImpl extends ServiceImpl<DocVideoCommentMappe
         this.save(comment);
         log.info("视频评论发表成功, commentId={}", comment.getId());
 
-        // 4. 构建并返回评论VO（单条评论查询用户信息）
+        // 4. 提交评论到审核队列
+        try {
+            docAuditService.submitToAudit(4, comment.getId());
+        } catch (Exception e) {
+            log.error("视频评论提交审核失败, commentId={}, error={}", comment.getId(), e.getMessage(), e);
+        }
+
+        // 5. 构建并返回评论VO（单条评论查询用户信息）
         return buildCommentVo(comment, userId);
     }
 

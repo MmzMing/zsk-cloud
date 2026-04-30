@@ -102,4 +102,11 @@ public interface IDocVideoService extends IService<DocVideo> {
      * @return 分页结果（包含文件信息、缩略图）
      */
     PageResult<DocVideoListWithThumbnailVo> pageWithFileUrlAndThumbnail(DocVideo docVideo, PageQuery pageQuery);
+
+    /**
+     * 视频创建后提交审核
+     *
+     * @param videoId 视频ID
+     */
+    void submitToAuditAfterCreate(Long videoId);
 }

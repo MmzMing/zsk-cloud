@@ -28,7 +28,7 @@ public interface DocUserInteractionMapper extends BaseMapper<DocUserInteraction>
      * @param interactionType 交互类型
      * @return 交互记录
      */
-    @Select("SELECT * FROM doc_user_interaction WHERE user_id = #{userId} AND target_type = #{targetType} AND target_id = #{targetId} AND interaction_type = #{interactionType} ORDER BY create_time DESC LIMIT 1")
+    @Select("SELECT * FROM document_user_interaction WHERE user_id = #{userId} AND target_type = #{targetType} AND target_id = #{targetId} AND interaction_type = #{interactionType} ORDER BY create_time DESC LIMIT 1")
     DocUserInteraction selectByUserAndTarget(@Param("userId") Long userId,
                                              @Param("targetType") Integer targetType,
                                              @Param("targetId") Long targetId,
@@ -42,7 +42,7 @@ public interface DocUserInteractionMapper extends BaseMapper<DocUserInteraction>
      * @param interactionType 交互类型
      * @return 数量
      */
-    @Select("SELECT COUNT(*) FROM doc_user_interaction WHERE target_type = #{targetType} AND target_id = #{targetId} AND interaction_type = #{interactionType} AND status = 1")
+    @Select("SELECT COUNT(*) FROM document_user_interaction WHERE target_type = #{targetType} AND target_id = #{targetId} AND interaction_type = #{interactionType} AND status = 1")
     Long countByTarget(@Param("targetType") Integer targetType,
                        @Param("targetId") Long targetId,
                        @Param("interactionType") Integer interactionType);
@@ -54,7 +54,7 @@ public interface DocUserInteractionMapper extends BaseMapper<DocUserInteraction>
      * @param interactionType 交互类型
      * @return 数量
      */
-    @Select("SELECT COUNT(*) FROM doc_user_interaction WHERE user_id = #{userId} AND interaction_type = #{interactionType} AND status = 1")
+    @Select("SELECT COUNT(*) FROM document_user_interaction WHERE user_id = #{userId} AND interaction_type = #{interactionType} AND status = 1")
     Long countByUser(@Param("userId") Long userId,
                      @Param("interactionType") Integer interactionType);
 
@@ -64,7 +64,7 @@ public interface DocUserInteractionMapper extends BaseMapper<DocUserInteraction>
      * @param id 记录ID
      * @return 影响行数
      */
-    @Update("UPDATE doc_user_interaction SET status = 0 WHERE id = #{id}")
+    @Update("UPDATE document_user_interaction SET status = 0 WHERE id = #{id}")
     int cancelInteraction(@Param("id") Long id);
 
     /**
@@ -75,7 +75,7 @@ public interface DocUserInteractionMapper extends BaseMapper<DocUserInteraction>
      * @param interactionType 交互类型
      * @return 交互记录列表
      */
-    @Select("SELECT * FROM doc_user_interaction WHERE target_type = #{targetType} AND target_id = #{targetId} AND interaction_type = #{interactionType} AND status = 1")
+    @Select("SELECT * FROM document_user_interaction WHERE target_type = #{targetType} AND target_id = #{targetId} AND interaction_type = #{interactionType} AND status = 1")
     List<DocUserInteraction> selectByTarget(@Param("targetType") Integer targetType,
                                             @Param("targetId") Long targetId,
                                             @Param("interactionType") Integer interactionType);

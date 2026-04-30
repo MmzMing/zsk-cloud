@@ -261,7 +261,45 @@ INSERT INTO `sys_dict_data` (`id`, `dict_sort`, `dict_label`, `dict_value`, `dic
 (10206, 6, '低俗内容', '6', 'video_violation_reason', NULL, 'warning', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
 (10207, 7, '广告推广', '7', 'video_violation_reason', NULL, 'info', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
 (10208, 8, '其他违规', '8', 'video_violation_reason', NULL, 'info', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL);
-- ----------------------------
+
+-- ----------------------------
+-- 文档字典类型
+-- ----------------------------
+INSERT INTO `sys_dict_type` (`id`, `dict_name`, `dict_type`, `status`, `create_name`, `create_time`, `update_name`, `update_time`, `remark`) VALUES
+(1004, '文档分类', 'document_category', 0, 'admin', NOW(), 'admin', NOW(), '文档内容分类'),
+(1005, '文档标签', 'document_tag', 0, 'admin', NOW(), 'admin', NOW(), '文档内容标签'),
+(1006, '文档违规原因', 'document_violation_reason', 0, 'admin', NOW(), 'admin', NOW(), '文档审核违规原因');
+
+INSERT INTO `sys_dict_data` (`id`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_name`, `create_time`, `update_name`, `update_time`, `remark`) VALUES
+(10301, 1, '前端开发', '1', 'document_category', NULL, 'primary', 1, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10302, 2, '后端开发', '2', 'document_category', NULL, 'success', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10303, 3, '计算机基础', '3', 'document_category', NULL, 'info', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10304, 4, '人工智能', '4', 'document_category', NULL, 'warning', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10305, 5, '职场技能', '5', 'document_category', NULL, 'danger', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL);
+
+INSERT INTO `sys_dict_data` (`id`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_name`, `create_time`, `update_name`, `update_time`, `remark`) VALUES
+(10401, 1, 'Java', 'java', 'document_tag', NULL, 'primary', 1, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10402, 2, 'Python', 'python', 'document_tag', NULL, 'success', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10403, 3, '前端', 'frontend', 'document_tag', NULL, 'info', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10404, 4, '后端', 'backend', 'document_tag', NULL, 'warning', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10405, 5, '数据库', 'database', 'document_tag', NULL, 'danger', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10406, 6, '微服务', 'microservice', 'document_tag', NULL, 'primary', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10407, 7, 'Docker', 'docker', 'document_tag', NULL, 'success', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10408, 8, 'Kubernetes', 'k8s', 'document_tag', NULL, 'info', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10409, 9, 'AI', 'ai', 'document_tag', NULL, 'warning', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10410, 10, '大数据', 'bigdata', 'document_tag', NULL, 'danger', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL);
+
+INSERT INTO `sys_dict_data` (`id`, `dict_sort`, `dict_label`, `dict_value`, `dict_type`, `css_class`, `list_class`, `is_default`, `status`, `create_name`, `create_time`, `update_name`, `update_time`, `remark`) VALUES
+(10501, 1, '涉黄内容', '1', 'document_violation_reason', NULL, 'danger', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10502, 2, '涉政内容', '2', 'document_violation_reason', NULL, 'danger', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10503, 3, '涉暴内容', '3', 'document_violation_reason', NULL, 'danger', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10504, 4, '侵权内容', '4', 'document_violation_reason', NULL, 'warning', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10505, 5, '虚假信息', '5', 'document_violation_reason', NULL, 'warning', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10506, 6, '低俗内容', '6', 'document_violation_reason', NULL, 'warning', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10507, 7, '广告推广', '7', 'document_violation_reason', NULL, 'info', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL),
+(10508, 8, '其他违规', '8', 'document_violation_reason', NULL, 'info', 0, 0, 'admin', NOW(), 'admin', NOW(), NULL);
+
+-- ----------------------------
 -- 4.1 菜单数据
 -- ----------------------------
 INSERT INTO zsk_system.sys_menu (id, menu_name, parent_id, order_num, path, component, query, is_frame, is_cache, menu_type, visible, status, perms, icon, deleted, create_name, create_time, update_name, update_time, remark) VALUES (2001, '仪表盘', 0, 1, '/admin/dashboard', 'dashboard/index', '', 1, 0, 'C', 0, 0, 'dashboard:view', 'home', 0, 'admin', '2026-04-20 15:17:27', '771220492@qq.com', '2026-04-21 15:35:52', null);

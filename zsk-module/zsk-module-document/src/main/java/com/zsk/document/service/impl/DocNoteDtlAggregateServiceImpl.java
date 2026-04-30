@@ -8,6 +8,7 @@ import com.zsk.document.domain.dto.DocNoteDtlDTO;
 import com.zsk.document.domain.dto.DocNoteFullDTO;
 import com.zsk.document.domain.vo.DocNoteFullVO;
 import com.zsk.document.domain.vo.DocNoteListVo;
+import com.zsk.document.service.IDocAuditService;
 import com.zsk.document.service.IDocNoteDtlAggregateService;
 import com.zsk.document.service.IDocNoteDtlService;
 import com.zsk.document.service.IDocNoteService;
@@ -38,10 +39,9 @@ public class DocNoteDtlAggregateServiceImpl implements IDocNoteDtlAggregateServi
      */
     private final IDocNoteService docNoteService;
 
-    /**
-     * 笔记详情Service
-     */
     private final IDocNoteDtlService docNoteDtlService;
+
+    private final IDocAuditService docAuditService;
 
     /**
      * 创建笔记（元信息 + 正文）
@@ -85,6 +85,16 @@ public class DocNoteDtlAggregateServiceImpl implements IDocNoteDtlAggregateServi
         }
 
         log.info("笔记全量信息创建完成, noteId={}", noteId);
+
+        // 3. 如果笔记状态为发布（status=1），提交到审核队列
+        if (docNote.getStatus() != null && docNote.getStatus() == 1) {
+            try {
+                docAuditService.submitToAudit(1, noteId);
+            } catch (Exception e) {
+                log.error("笔记提交审核失败, noteId={}, error={}", noteId, e.getMessage(), e);
+            }
+        }
+
         return true;
     }
 

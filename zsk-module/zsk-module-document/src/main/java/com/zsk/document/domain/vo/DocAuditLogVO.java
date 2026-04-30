@@ -59,10 +59,16 @@ public class DocAuditLogVO implements Serializable {
     private String auditTime;
 
     /**
-     * 审核结果（approved-通过 rejected-驳回 withdrawn-已撤回）
+     * 审核结果（1-通过 2-驳回 3-已撤回）
      */
-    @Schema(description = "审核结果")
-    private String result;
+    @Schema(description = "审核结果（1-通过 2-驳回 3-已撤回）")
+    private Integer result;
+
+    /**
+     * 审核轮次
+     */
+    @Schema(description = "审核轮次")
+    private Integer auditRound;
 
     /**
      * 审核意见
