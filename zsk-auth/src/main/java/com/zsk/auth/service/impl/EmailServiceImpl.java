@@ -261,18 +261,23 @@ public class EmailServiceImpl implements IEmailService {
                 <meta charset="UTF-8">
                 <title>登录链接</title>
                 <style>
-                    body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; background-color: #f4f4f4; margin: 0; padding: 0; }
-                    .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; padding: 40px; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-                    .header { text-align: center; padding-bottom: 30px; border-bottom: 1px solid #eeeeee; margin-bottom: 30px; }
-                    .header h2 { color: #333333; margin: 0; font-size: 24px; font-weight: 500; }
-                    .content { text-align: center; color: #555555; }
-                    .message { font-size: 16px; line-height: 1.6; margin-bottom: 25px; }
+                    body { font-family: "Helvetica Neue", Helvetica, Arial, sans-serif; background-color: #ffffff; margin: 0; padding: 0; }
+                    .container { max-width: 600px; margin: 40px auto; background-color: #ffffff; padding: 40px; border-radius: 0; }
+                    .header { text-align: center; padding-bottom: 24px; border-bottom: 2px solid #000000; margin-bottom: 30px; }
+                    .header h2 { color: #000000; margin: 0; font-size: 24px; font-weight: 700; letter-spacing: 2px; }
+                    .content { text-align: center; color: #333333; }
+                    .message { font-size: 15px; line-height: 1.8; margin-bottom: 24px; }
                     .btn-box { margin: 30px 0; }
-                    .btn { display: inline-block; padding: 12px 36px; background-color: #0056b3; color: #ffffff; text-decoration: none; border-radius: 6px; font-size: 16px; font-weight: 500; }
-                    .btn:hover { background-color: #004085; }
-                    .link { color: #0056b3; word-break: break-all; font-size: 14px; }
-                    .footer { text-align: center; padding-top: 30px; border-top: 1px solid #eeeeee; color: #999999; font-size: 13px; margin-top: 30px; }
-                    .footer p { margin: 5px 0; }
+                    .btn { display: inline-block; padding: 14px 48px; background-color: #000000; color: #ffffff; text-decoration: none; border-radius: 0; font-size: 15px; font-weight: 600; letter-spacing: 1px; }
+                    .btn:hover { background-color: #333333; }
+                    .link-section { margin: 24px 0; }
+                    .link-label { font-size: 14px; color: #666666; margin-bottom: 10px; }
+                    .link-row { display: flex; align-items: center; justify-content: center; gap: 8px; }
+                    .link { color: #000000; word-break: break-all; font-size: 13px; font-family: monospace; background-color: #f5f5f5; padding: 10px 14px; border: 1px solid #e0e0e0; flex: 1; text-align: left; }
+                    .copy-btn { display: inline-block; padding: 10px 16px; background-color: #000000; color: #ffffff; border: none; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; letter-spacing: 1px; }
+                    .copy-btn:hover { background-color: #333333; }
+                    .footer { text-align: center; padding-top: 24px; border-top: 2px solid #000000; color: #666666; font-size: 12px; margin-top: 30px; }
+                    .footer p { margin: 4px 0; }
                 </style>
             </head>
             <body>
@@ -285,8 +290,13 @@ public class EmailServiceImpl implements IEmailService {
                         <div class="btn-box">
                             <a href="%s" class="btn">立即登录</a>
                         </div>
-                        <p class="message">如果按钮无法点击，请复制以下链接到浏览器地址栏：</p>
-                        <p class="link">%s</p>
+                        <div class="link-section">
+                            <p class="link-label">如果按钮无法点击，请复制以下链接到浏览器地址栏：</p>
+                            <div class="link-row">
+                                <span class="link">%s</span>
+                                <button class="copy-btn" onclick="copyLink(this)">复制</button>
+                            </div>
+                        </div>
                         <p class="message">该链接15分钟内有效，为了您的账号安全，请勿泄露给他人。</p>
                     </div>
                     <div class="footer">
@@ -294,6 +304,28 @@ public class EmailServiceImpl implements IEmailService {
                         <p>&copy; 2026 ZSK Cloud. All rights reserved.</p>
                     </div>
                 </div>
+                <script>
+                    function copyLink(btn) {
+                        var link = btn.parentElement.querySelector('.link');
+                        var text = link.textContent || link.innerText;
+                        if (navigator.clipboard) {
+                            navigator.clipboard.writeText(text).then(function() {
+                                btn.textContent = '已复制';
+                                setTimeout(function() { btn.textContent = '复制'; }, 2000);
+                            });
+                        } else {
+                            var range = document.createRange();
+                            range.selectNodeContents(link);
+                            var sel = window.getSelection();
+                            sel.removeAllRanges();
+                            sel.addRange(range);
+                            document.execCommand('copy');
+                            sel.removeAllRanges();
+                            btn.textContent = '已复制';
+                            setTimeout(function() { btn.textContent = '复制'; }, 2000);
+                        }
+                    }
+                </script>
             </body>
             </html>
             """, magicLink, magicLink);

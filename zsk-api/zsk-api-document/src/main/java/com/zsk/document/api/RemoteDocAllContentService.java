@@ -25,7 +25,7 @@ public interface RemoteDocAllContentService {
      * @param source 请求来源
      * @return 用户统计信息
      */
-    @GetMapping("/docAllContent/user/stats")
+    @GetMapping("/document/docAllContent/user/stats")
     R<DocUserStatsApi> getUserStats(@RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
 
     /**
@@ -34,6 +34,6 @@ public interface RemoteDocAllContentService {
      * @param source 请求来源
      * @return 内容统计信息
      */
-    @GetMapping("/docAllContent/content/stats")
+    @GetMapping("/document/docAllContent/content/stats")
     R<DocStatisticsApi> getContentStats(@RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
 }

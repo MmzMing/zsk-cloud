@@ -61,8 +61,8 @@ public class SysDashboardServiceImpl implements ISysDashboardService {
         DocStatisticsApi docStats = getDocStatistics();
 
         /** 文档总数 */
-        Long noteCount = docStats != null ? docStats.getNoteCount() : 0L;
-        Long lastWeekNoteCount = docStats != null ? docStats.getLastWeekNoteCount() : 0L;
+        Long noteCount = docStats != null ? docStats.getDocCount() : 0L;
+        Long lastWeekNoteCount = docStats != null ? docStats.getLastWeekDocCount() : 0L;
         String noteDelta = calculateDelta(noteCount, lastWeekNoteCount);
         list.add(createItem("docs", "文档总数", String.valueOf(noteCount), noteDelta, "已发布文档数量"));
 

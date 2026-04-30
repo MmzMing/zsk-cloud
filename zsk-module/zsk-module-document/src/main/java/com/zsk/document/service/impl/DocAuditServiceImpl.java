@@ -236,8 +236,8 @@ public class DocAuditServiceImpl extends ServiceImpl<DocAuditMapper, DocAudit> i
                 .one();
 
         DocAudit audit;
-        if (latestAudit != null && latestAudit.getAuditStatus() != null && latestAudit.getAuditStatus() == AuditStatus.PENDING.getCode()) {
-            // 有待审核记录，直接更新
+        if (latestAudit != null) {
+            // 已有审核记录（含待审核、已通过、已驳回），直接更新
             audit = latestAudit;
             audit.setAuditStatus(auditStatus);
             audit.setAuditMind(request.getAuditMind());
@@ -247,26 +247,10 @@ public class DocAuditServiceImpl extends ServiceImpl<DocAuditMapper, DocAudit> i
             audit.setAuditorId(SecurityUtils.getUserId());
             audit.setAuditorName(SecurityUtils.getUserName());
             this.updateById(audit);
-            log.info("更新待审核记录, auditId={}, auditRound={}", audit.getId(), audit.getAuditRound());
-        } else if (latestAudit != null) {
-            // 已有审核结果，重新审核：创建新记录，轮次+1
-            audit = new DocAudit();
-            audit.setTargetType(type.getCode());
-            audit.setTargetId(targetId);
-            audit.setAuditType(AUDIT_TYPE_MANUAL);
-            audit.setAuditStatus(auditStatus);
-            audit.setAuditMind(request.getAuditMind());
-            audit.setRiskLevel(RISK_LEVEL_LOW);
-            audit.setViolationIds(CollectionUtils.isEmpty(request.getViolationIds())
-                    ? null : String.join(",", request.getViolationIds()));
-            audit.setAuditTime(LocalDateTime.now());
-            audit.setAuditorId(SecurityUtils.getUserId());
-            audit.setAuditorName(SecurityUtils.getUserName());
-            audit.setAuditRound(latestAudit.getAuditRound() + 1);
-            this.save(audit);
-            log.info("重新审核，创建新记录, auditId={}, auditRound={}", audit.getId(), audit.getAuditRound());
+            log.info("更新审核记录, auditId={}, auditRound={}, prevStatus={}",
+                    audit.getId(), audit.getAuditRound(), latestAudit.getAuditStatus());
         } else {
-            // 首次审核
+            // 首次审核，创建记录
             audit = new DocAudit();
             audit.setTargetType(type.getCode());
             audit.setTargetId(targetId);

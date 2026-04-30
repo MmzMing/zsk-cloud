@@ -27,7 +27,7 @@ public interface RemoteDocumentContentService {
      * @param source 请求来源
      * @return 文档详情
      */
-    @GetMapping("/docNoteHomeDetail/detail/{id}")
+    @GetMapping("/document/docNoteHomeDetail/detail/{id}")
     R<DocNoteDetailApi> getDetail(
             @PathVariable("id") Long id,
             @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
@@ -39,7 +39,7 @@ public interface RemoteDocumentContentService {
      * @param source 请求来源
      * @return 点赞结果
      */
-    @PostMapping("/docNoteHomeDetail/like/{id}")
+    @PostMapping("/document/docNoteHomeDetail/like/{id}")
     R<Map<String, Object>> toggleLike(
             @PathVariable("id") Long id,
             @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
@@ -51,7 +51,7 @@ public interface RemoteDocumentContentService {
      * @param source 请求来源
      * @return 收藏结果
      */
-    @PostMapping("/docNoteHomeDetail/favorite/{id}")
+    @PostMapping("/document/docNoteHomeDetail/favorite/{id}")
     R<Map<String, Object>> toggleFavorite(
             @PathVariable("id") Long id,
             @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
@@ -66,7 +66,7 @@ public interface RemoteDocumentContentService {
      * @param source   请求来源
      * @return 评论列表
      */
-    @GetMapping("/docNoteHomeDetail/comments/{id}")
+    @GetMapping("/document/docNoteHomeDetail/comments/{id}")
     R<Map<String, Object>> getComments(
             @PathVariable("id") Long id,
             @RequestParam(value = "page", defaultValue = "1") Integer page,
@@ -81,7 +81,7 @@ public interface RemoteDocumentContentService {
      * @param source 请求来源
      * @return 评论结果
      */
-    @PostMapping("/docNoteHomeDetail/comment")
+    @PostMapping("/document/docNoteHomeDetail/comment")
     R<DocCommentApi> postComment(
             @RequestBody Map<String, Object> params,
             @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
@@ -93,7 +93,7 @@ public interface RemoteDocumentContentService {
      * @param source    请求来源
      * @return 点赞结果
      */
-    @PostMapping("/docNoteHomeDetail/comment/like/{commentId}")
+    @PostMapping("/document/docNoteHomeDetail/comment/like/{commentId}")
     R<Map<String, Object>> toggleCommentLike(
             @PathVariable("commentId") Long commentId,
             @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);

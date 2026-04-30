@@ -25,7 +25,7 @@ public interface RemoteDocFilesService {
      * @param source 请求来源
      * @return 文件信息
      */
-    @PostMapping("/docFiles/upload")
+    @PostMapping("/document/docFiles/upload")
     R<DocFilesApi> upload(@RequestPart("file") MultipartFile file,
                           @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
 
@@ -36,7 +36,7 @@ public interface RemoteDocFilesService {
      * @param source 请求来源
      * @return 是否成功
      */
-    @DeleteMapping("/docFiles/{ids}")
+    @DeleteMapping("/document/docFiles/{ids}")
     R<Boolean> remove(@PathVariable("ids") String ids,
                       @RequestHeader(CommonConstants.REQUEST_SOURCE_HEADER) String source);
 }
