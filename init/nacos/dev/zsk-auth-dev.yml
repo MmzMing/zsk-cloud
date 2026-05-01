@@ -12,27 +12,16 @@ security:
 email:
   host: smtp.qq.com
   port: 465
-  username:
-  password:
-  from:
-  subject: 验证码
+  username: 
+  password: 
+  from: 
+  subject: 魔法登录验证码
+  # 魔法链接地址模板
+  magic-link:
+    url: http://localhost:8080/api/auth/magic-link/callback?token=
+    subject: 登录链接
   code:
     expire: 300
-
-# 第三方登录配置
-auth:
-  qq:
-    app-id: your-qq-app-id
-    app-secret: your-qq-app-secret
-    redirect-uri: http://localhost:8080/auth/qq/callback
-  wechat:
-    app-id: your-wechat-app-id
-    app-secret: your-wechat-app-secret
-    redirect-uri: http://localhost:8080/auth/wechat/callback
-  github:
-    client-id: your-github-client-id
-    client-secret: your-github-client-secret
-    redirect-uri: http://localhost:8080/auth/github/callback
 
 # Cloudflare Turnstile 配置
 turnstile:
@@ -40,6 +29,25 @@ turnstile:
   site-key: ${TURNSTILE_SITE_KEY:}
   verify-url: https://challenges.cloudflare.com/turnstile/v0/siteverify
 
-# 魔法链接配置
+# 魔法链接配置，返回地址
 magic-link:
-  redirect-url: http://localhost:5173/
+  redirect-url: http://localhost:3000/
+
+# 第三方登录回调后重定向到前端地址
+third-party:
+  redirect-url: http://localhost:3000
+
+# 第三方登录配置
+auth:
+  qq:
+    app-id: your-qq-app-id
+    app-secret: your-qq-app-secret
+    redirect-uri: http://localhost:8080/api/auth/qq/callback
+  wechat:
+    app-id: your-wechat-app-id
+    app-secret: your-wechat-app-secret
+    redirect-uri: http://localhost:8080/api/auth/wechat/callback
+  github:
+    client-id: your-github-client-id
+    client-secret: your-github-client-secret
+    redirect-uri: http://localhost:8080/api/auth/github/callback

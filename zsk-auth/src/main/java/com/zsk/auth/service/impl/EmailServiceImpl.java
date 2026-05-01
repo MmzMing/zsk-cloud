@@ -272,10 +272,7 @@ public class EmailServiceImpl implements IEmailService {
                     .btn:hover { background-color: #333333; }
                     .link-section { margin: 24px 0; }
                     .link-label { font-size: 14px; color: #666666; margin-bottom: 10px; }
-                    .link-row { display: flex; align-items: center; justify-content: center; gap: 8px; }
-                    .link { color: #000000; word-break: break-all; font-size: 13px; font-family: monospace; background-color: #f5f5f5; padding: 10px 14px; border: 1px solid #e0e0e0; flex: 1; text-align: left; }
-                    .copy-btn { display: inline-block; padding: 10px 16px; background-color: #000000; color: #ffffff; border: none; cursor: pointer; font-size: 13px; font-weight: 500; white-space: nowrap; letter-spacing: 1px; }
-                    .copy-btn:hover { background-color: #333333; }
+                    .link { color: #000000; word-break: break-all; font-size: 13px; font-family: monospace; background-color: #f5f5f5; padding: 10px 14px; border: 1px solid #e0e0e0; text-align: left; }
                     .footer { text-align: center; padding-top: 24px; border-top: 2px solid #000000; color: #666666; font-size: 12px; margin-top: 30px; }
                     .footer p { margin: 4px 0; }
                 </style>
@@ -291,11 +288,8 @@ public class EmailServiceImpl implements IEmailService {
                             <a href="%s" class="btn">立即登录</a>
                         </div>
                         <div class="link-section">
-                            <p class="link-label">如果按钮无法点击，请复制以下链接到浏览器地址栏：</p>
-                            <div class="link-row">
-                                <span class="link">%s</span>
-                                <button class="copy-btn" onclick="copyLink(this)">复制</button>
-                            </div>
+                            <p class="link-label">如果按钮无法点击，请手动复制以下链接到浏览器地址栏：</p>
+                            <span class="link">%s</span>
                         </div>
                         <p class="message">该链接15分钟内有效，为了您的账号安全，请勿泄露给他人。</p>
                     </div>
@@ -304,28 +298,6 @@ public class EmailServiceImpl implements IEmailService {
                         <p>&copy; 2026 ZSK Cloud. All rights reserved.</p>
                     </div>
                 </div>
-                <script>
-                    function copyLink(btn) {
-                        var link = btn.parentElement.querySelector('.link');
-                        var text = link.textContent || link.innerText;
-                        if (navigator.clipboard) {
-                            navigator.clipboard.writeText(text).then(function() {
-                                btn.textContent = '已复制';
-                                setTimeout(function() { btn.textContent = '复制'; }, 2000);
-                            });
-                        } else {
-                            var range = document.createRange();
-                            range.selectNodeContents(link);
-                            var sel = window.getSelection();
-                            sel.removeAllRanges();
-                            sel.addRange(range);
-                            document.execCommand('copy');
-                            sel.removeAllRanges();
-                            btn.textContent = '已复制';
-                            setTimeout(function() { btn.textContent = '复制'; }, 2000);
-                        }
-                    }
-                </script>
             </body>
             </html>
             """, magicLink, magicLink);

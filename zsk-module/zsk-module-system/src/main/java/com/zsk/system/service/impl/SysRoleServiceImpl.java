@@ -2,18 +2,21 @@ package com.zsk.system.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.zsk.system.domain.SysMenu;
 import com.zsk.system.domain.SysRole;
 import com.zsk.system.domain.SysRoleMenu;
 import com.zsk.system.domain.SysUserRole;
 import com.zsk.system.mapper.SysRoleMapper;
 import com.zsk.system.mapper.SysRoleMenuMapper;
 import com.zsk.system.mapper.SysUserRoleMapper;
+import com.zsk.system.service.ISysMenuService;
 import com.zsk.system.service.ISysRoleService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -33,6 +36,7 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
 
     private final SysRoleMenuMapper roleMenuMapper;
     private final SysUserRoleMapper userRoleMapper;
+    private final ISysMenuService menuService;
 
     /**
      * 根据用户ID查询角色权限
@@ -158,6 +162,41 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     }
 
     /**
+     * 自动补充所有父级菜单ID
+     *
+     * @param menuIds 原始菜单ID列表
+     * @return 包含父级菜单的完整菜单ID列表
+     */
+    private List<Long> collectAllParentMenuIds(List<Long> menuIds) {
+        if (menuIds == null || menuIds.isEmpty()) {
+            return menuIds;
+        }
+        Set<Long> resultSet = new HashSet<>(menuIds);
+        for (Long menuId : menuIds) {
+            collectParentMenuIds(menuId, resultSet);
+        }
+        return new ArrayList<>(resultSet);
+    }
+
+    /**
+     * 递归收集父级菜单ID
+     *
+     * @param menuId    当前菜单ID
+     * @param resultSet 收集结果的集合
+     */
+    private void collectParentMenuIds(Long menuId, Set<Long> resultSet) {
+        SysMenu menu = menuService.getById(menuId);
+        if (menu == null || menu.getParentId() == null || menu.getParentId() == 0L) {
+            return;
+        }
+        // 添加父级菜单ID
+        if (resultSet.add(menu.getParentId())) {
+            // 继续向上收集祖先菜单
+            collectParentMenuIds(menu.getParentId(), resultSet);
+        }
+    }
+
+    /**
      * 新增角色菜单信息
      *
      * @param role 角色对象
@@ -165,8 +204,14 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     public void insertRoleMenu(SysRole role) {
         Long[] menuIds = role.getMenuIds();
         if (menuIds != null) {
-            log.info("新增角色菜单关系, roleId={}, menuIds={}", role.getId(), menuIds);
+            List<Long> menuIdList = new ArrayList<>();
             for (Long menuId : menuIds) {
+                menuIdList.add(menuId);
+            }
+            // 自动补充父级菜单
+            List<Long> allMenuIds = collectAllParentMenuIds(menuIdList);
+            log.info("新增角色菜单关系, roleId={}, 原始menuIds={}, 补充后menuIds={}", role.getId(), menuIdList, allMenuIds);
+            for (Long menuId : allMenuIds) {
                 SysRoleMenu rm = new SysRoleMenu();
                 rm.setRoleId(role.getId());
                 rm.setMenuId(menuId);
@@ -205,7 +250,9 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
         List<Long> existMenuIds = selectMenuIdsByRoleId(roleId);
         Set<Long> existSet = new HashSet<>(existMenuIds);
         int addCount = 0;
-        for (Long menuId : menuIds) {
+        // 自动补充父级菜单
+        List<Long> allMenuIds = collectAllParentMenuIds(menuIds);
+        for (Long menuId : allMenuIds) {
             if (!existSet.contains(menuId)) {
                 SysRoleMenu rm = new SysRoleMenu();
                 rm.setRoleId(roleId);
@@ -248,13 +295,15 @@ public class SysRoleServiceImpl extends ServiceImpl<SysRoleMapper, SysRole> impl
     public boolean updateRoleMenus(Long roleId, List<Long> menuIds) {
         log.info("更新角色权限, roleId={}, menuIds={}", roleId, menuIds);
         roleMenuMapper.delete(new LambdaQueryWrapper<SysRoleMenu>().eq(SysRoleMenu::getRoleId, roleId));
-        for (Long menuId : menuIds) {
+        // 自动补充父级菜单
+        List<Long> allMenuIds = collectAllParentMenuIds(menuIds);
+        for (Long menuId : allMenuIds) {
             SysRoleMenu rm = new SysRoleMenu();
             rm.setRoleId(roleId);
             rm.setMenuId(menuId);
             roleMenuMapper.insert(rm);
         }
-        log.info("更新角色权限完成, roleId={}, 数量={}", roleId, menuIds.size());
+        log.info("更新角色权限完成, roleId={}, 数量={}", roleId, allMenuIds.size());
         return true;
     }
 

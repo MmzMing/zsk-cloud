@@ -16,7 +16,7 @@ import org.springframework.web.bind.annotation.*;
  *
  * @author wuhuaming
  */
-@FeignClient(contextId = "remoteUserService", value = ServiceNameConstants.SYSTEM_SERVICE, fallbackFactory = RemoteUserFallbackFactory.class, url = "http://127.0.0.1:20010")
+@FeignClient(contextId = "remoteUserService", value = ServiceNameConstants.SYSTEM_SERVICE, fallbackFactory = RemoteUserFallbackFactory.class)
 public interface RemoteUserService {
     /**
      * 通过用户ID查询用户信息

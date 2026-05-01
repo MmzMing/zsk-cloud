@@ -41,6 +41,9 @@ public class AuthController {
     @Value("${magic-link.redirect-url}")
     private String magicLinkRedirectUrl;
 
+    @Value("${third-party.redirect-url:http://localhost:3000}")
+    private String thirdPartyRedirectUrl;
+
     /**
      * 用户注册
      *
@@ -178,6 +181,84 @@ public class AuthController {
 
         LoginResponse response = authService.login(request);
         return R.ok(response);
+    }
+
+    /**
+     * GitHub 登录回调
+     *
+     * @param code  授权码
+     * @param state 状态码
+     * @return 重定向到前端
+     */
+    @Operation(summary = "GitHub 登录回调")
+    @GetMapping("/github/callback")
+    public ResponseEntity<Void> githubCallback(@RequestParam String code,
+                                               @RequestParam String state,
+                                               HttpServletResponse response) {
+        return handleThirdPartyCallback(code, state, "github", response);
+    }
+
+    /**
+     * 微信登录回调
+     *
+     * @param code  授权码
+     * @param state 状态码
+     * @return 重定向到前端
+     */
+    @Operation(summary = "微信登录回调")
+    @GetMapping("/wechat/callback")
+    public ResponseEntity<Void> wechatCallback(@RequestParam String code,
+                                               @RequestParam String state,
+                                               HttpServletResponse response) {
+        return handleThirdPartyCallback(code, state, "wechat", response);
+    }
+
+    /**
+     * QQ 登录回调
+     *
+     * @param code  授权码
+     * @param state 状态码
+     * @return 重定向到前端
+     */
+    @Operation(summary = "QQ 登录回调")
+    @GetMapping("/qq/callback")
+    public ResponseEntity<Void> qqCallback(@RequestParam String code,
+                                           @RequestParam String state,
+                                           HttpServletResponse response) {
+        return handleThirdPartyCallback(code, state, "qq", response);
+    }
+
+    /**
+     * 处理第三方登录回调通用逻辑
+     *
+     * @param code      授权码
+     * @param state     状态码
+     * @param loginType 登录类型
+     * @param response  HTTP响应对象
+     * @return 重定向响应
+     */
+    private ResponseEntity<Void> handleThirdPartyCallback(String code, String state, String loginType, HttpServletResponse response) {
+        try {
+            LoginRequest request = new LoginRequest();
+            request.setLoginType(loginType);
+            request.setAuthCode(code);
+            request.setState(state);
+
+            LoginResponse loginResponse = authService.login(request);
+
+            Cookie cookie = new Cookie("access_token", loginResponse.getAccessToken());
+            cookie.setHttpOnly(false);
+            cookie.setSecure(true);
+            cookie.setPath("/");
+            cookie.setMaxAge(loginResponse.getExpiresIn().intValue());
+            response.addCookie(cookie);
+
+            return ResponseEntity.status(HttpStatus.FOUND).header("Location", thirdPartyRedirectUrl).build();
+        } catch (Exception e) {
+            log.warn("第三方登录回调失败: loginType={}, error={}", loginType, e.getMessage());
+            String errorUrl = thirdPartyRedirectUrl + "/login?error=third_party_auth_failed";
+            return ResponseEntity.status(HttpStatus.FOUND).header("Location", errorUrl).build();
+        }
     }
 
     /**

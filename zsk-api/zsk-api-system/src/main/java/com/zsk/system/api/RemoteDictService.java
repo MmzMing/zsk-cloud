@@ -17,7 +17,7 @@ import java.util.List;
  * @version 1.0
  * @date 2026-02-15
  */
-@FeignClient(contextId = "remoteDictService", value = ServiceNameConstants.SYSTEM_SERVICE, fallbackFactory = RemoteDictFallbackFactory.class, url = "http://127.0.0.1:20010")
+@FeignClient(contextId = "remoteDictService", value = ServiceNameConstants.SYSTEM_SERVICE, fallbackFactory = RemoteDictFallbackFactory.class)
 public interface RemoteDictService {
 
     /**
@@ -26,7 +26,7 @@ public interface RemoteDictService {
      * @param dictType 字典类型
      * @return 字典数据列表
      */
-    @GetMapping("/dict/data/type/{dictType}")
+    @GetMapping("/system/dict/data/type/{dictType}")
     R<List<SysDictDataApi>> getDictDataByType(@PathVariable("dictType") String dictType);
 
     /**
@@ -40,6 +40,6 @@ public interface RemoteDictService {
      * @param dictValue 字典值（如 1）
      * @return 字典标签（如 男），未找到时返回 null
      */
-    @GetMapping("/dict/data/label/{dictType}/{dictValue}")
+    @GetMapping("/system/dict/data/label/{dictType}/{dictValue}")
     R<String> getDictLabel(@PathVariable("dictType") String dictType, @PathVariable("dictValue") String dictValue);
 }

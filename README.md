@@ -158,14 +158,16 @@ zsk-cloud
 - **前台聚合接口**: 区域化接口设计（元信息+详情、交互、评论、合集），前后台逻辑隔离
 
 ### Feign 远程调用 (`zsk-api`)
-- **zsk-api-system**: RemoteUserService（7个方法：用户查询/批量查询/邮箱查询/第三方查询/创建/更新）、RemoteDictService（字典数据查询）
+- **zsk-api-system**: RemoteUserService（7个方法：用户查询/批量查询/邮箱查询/第三方查询/创建/更新）、RemoteDictService（2个方法：字典数据查询/字典标签查询）
 - **zsk-api-document**: RemoteDocumentContentService（详情/点赞/收藏/评论/评论点赞）、RemoteDocFilesService（上传/删除）、RemoteDocAllContentService（用户统计/内容统计）
+- **服务发现**: 所有 FeignClient 基于 Nacos 服务发现自动寻址,不硬编码服务地址
 
 ### 容器化部署
 - **Docker Compose**: 4 个服务编排（gateway:8080、auth:10010、system:20010、document:20020）
 - **Dockerfile**: 各服务均提供多阶段构建 Dockerfile
 - **JVM 参数**: G1GC + 容器感知内存分配（InitialRAMPercentage=50%, MaxRAMPercentage=75%）
-- **环境变量**: 支持 Nacos 地址/命名空间/用户名密码动态配置
+- **环境变量**: 支持 Nacos 地址/命名空间/用户名密码、运行 Profile（dev/prod）动态配置
+- **Profile 自动切换**: `SPRING_PROFILES_ACTIVE` 环境变量驱动,本地开发默认 dev,Docker 部署自动切换为 prod
 
 ---
 

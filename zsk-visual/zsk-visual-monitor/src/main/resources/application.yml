@@ -7,7 +7,7 @@ spring:
   application:
     name: zsk-visual-monitor
   profiles:
-    active: dev
+    active: ${SPRING_PROFILES_ACTIVE:dev}
   config:
     import:
       - optional:nacos:application.yml?group=${spring.profiles.active}&refresh=true

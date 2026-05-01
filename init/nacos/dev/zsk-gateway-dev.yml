@@ -48,6 +48,9 @@ security:
       - /api/auth/email/code/**
       - /api/auth/magic-link/**
       - /api/auth/third-party/**
+      - /api/auth/github/callback
+      - /api/auth/wechat/callback
+      - /api/auth/qq/callback
       - /api/auth/test/hello
       - /api/system/user/info/*
       - /doc.html
