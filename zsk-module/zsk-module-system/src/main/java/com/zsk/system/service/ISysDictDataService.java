@@ -39,4 +39,16 @@ public interface ISysDictDataService extends IService<SysDictData> {
      * @return 是否成功
      */
     boolean batchToggleStatus(List<Long> ids, String status);
+
+    /**
+     * 根据字典类型和字典值查询字典标签
+     * <p>
+     * 用于内部服务调用或 Feign 远程调用，
+     * 将字典值（如 "1"、"0"）转换为对应的中文标签（如 "男"、"女"）。
+     *
+     * @param dictType  字典类型（如 sys_user_sex）
+     * @param dictValue 字典值（如 1）
+     * @return 字典标签，未找到时返回 null
+     */
+    String selectDictLabel(String dictType, String dictValue);
 }

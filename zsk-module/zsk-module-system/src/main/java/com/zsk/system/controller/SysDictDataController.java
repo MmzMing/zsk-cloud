@@ -94,6 +94,24 @@ public class SysDictDataController {
     }
 
     /**
+     * 根据字典类型和字典值查询字典标签（内部调用接口）
+     * <p>
+     * 通过字典类型和字典值查询对应的中文标签，用于 Feign 远程调用。
+     * 例如：查询 sys_user_sex 的 "1" 对应 "男"。
+     * 业务服务可调用此接口将字典值转换为标签返回给前端，
+     * 前端无需再进行字典转换。
+     *
+     * @param dictType  字典类型（如 sys_user_sex）
+     * @param dictValue 字典值（如 1）
+     * @return 字典标签（如 男），未找到时返回 null
+     */
+    @Operation(summary = "根据字典类型和值查询字典标签")
+    @GetMapping(value = "/label/{dictType}/{dictValue}")
+    public R<String> getDictLabel(@PathVariable String dictType, @PathVariable String dictValue) {
+        return R.ok(dictDataService.selectDictLabel(dictType, dictValue));
+    }
+
+    /**
      * 获取字典数据详细信息
      * <p>
      * 根据字典数据主键 ID 查询单条记录的完整信息，用于编辑回显等场景。

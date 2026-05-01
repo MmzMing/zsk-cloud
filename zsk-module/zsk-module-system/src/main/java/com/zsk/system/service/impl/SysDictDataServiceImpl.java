@@ -226,4 +226,29 @@ public class SysDictDataServiceImpl extends ServiceImpl<SysDictDataMapper, SysDi
         log.info("批量切换字典状态完成, 数量={}", ids.size());
         return result;
     }
+
+    // ==================== 字典值转标签 ====================
+
+    /**
+     * 根据字典类型和字典值查询字典标签
+     * <p>
+     * 将字典值（如 "1"、"0"）转换为对应的中文标签（如 "男"、"女"），
+     * 用于 Feign 远程调用或内部服务调用，前端无需再转换。
+     *
+     * @param dictType  字典类型（如 sys_user_sex）
+     * @param dictValue 字典值（如 1）
+     * @return 字典标签，未找到时返回 null
+     */
+    @Override
+    public String selectDictLabel(String dictType, String dictValue) {
+        if (dictType == null || dictValue == null) {
+            return null;
+        }
+        SysDictData dictData = this.lambdaQuery()
+                .eq(SysDictData::getDictType, dictType)
+                .eq(SysDictData::getDictValue, dictValue)
+                .eq(SysDictData::getStatus, "0")
+                .one();
+        return dictData != null ? dictData.getDictLabel() : null;
+    }
 }
