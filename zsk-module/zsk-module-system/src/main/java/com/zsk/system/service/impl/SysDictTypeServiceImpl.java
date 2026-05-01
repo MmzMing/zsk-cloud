@@ -9,6 +9,7 @@ import com.zsk.common.redis.service.RedisService;
 import com.zsk.system.domain.SysDictData;
 import com.zsk.system.domain.SysDictType;
 import com.zsk.system.domain.dto.DictCacheItem;
+import com.zsk.system.domain.vo.DictCacheVO;
 import com.zsk.system.mapper.SysDictDataMapper;
 import com.zsk.system.mapper.SysDictTypeMapper;
 import com.zsk.system.service.ISysDictTypeService;
@@ -45,30 +46,24 @@ import java.util.stream.Collectors;
  *    - 示例成员：sys_common_status, sys_yes_no, doc_audit_status
  * <p>
  * 2. 字典数据缓存（Value/DictCacheItem）：zsk:dict:data:{dictType}
- *    - 存储某个字典类型下的版本号 + 字典数据列表
- *    - DictCacheItem { version: 5, data: [{dictLabel:"男", ...}, ...] }
+ *    - 存储某个字典类型下的时间戳版本号 + 字典数据列表
+ *    - DictCacheItem { version: 1714521600000, data: [{dictLabel:"男", ...}, ...] }
  *    - 版本号与数据打包在同一个 Value 中，原子读取，强一致
- * <p>
- * 3. 字典缓存全局版本号（String/Long）：zsk:dict:version
- *    - 任何字典类型或字典数据的增删改都会递增此版本号
- *    - 前端可通过比较全局版本号决定是否需要重新拉取字典数据
  * <p>
  * 二、Redis Key 总数：2 + N（N = 字典类型数量）
  *    - zsk:dict:tags        × 1
- *    - zsk:dict:version     × 1
  *    - zsk:dict:data:{type} × N
  * <p>
  * 三、版本控制机制：
- * - 全局版本号：独立 Key（zsk:dict:version），INCR 原子递增
- * - 按类型版本号：内嵌在 DictCacheItem.version 中，与数据同 Value
- * - 刷新缓存时：先 INCR 全局版本号 → 将新版本号写入 DictCacheItem
+ * - 按类型版本号：内嵌在 DictCacheItem.version 中，使用 System.currentTimeMillis() 时间戳
+ * - 刷新缓存时：将当前时间戳写入 DictCacheItem
  * - 读取缓存时：一次 GET 即可同时获得版本号和数据，保证强一致
  * <p>
  * 四、缓存一致性保障：
- * - 字典类型增删改 → 自动刷新缓存（版本号内嵌更新）
- * - 字典数据增删改 → 自动刷新缓存（版本号内嵌更新）
- * - 状态切换 → 自动刷新缓存（版本号内嵌更新）
- * - 删除类型 → 清理缓存 + 递增全局版本号
+ * - 字典类型增删改 → 自动刷新缓存（时间戳自动更新）
+ * - 字典数据增删改 → 自动刷新缓存（时间戳自动更新）
+ * - 状态切换 → 自动刷新缓存（时间戳自动更新）
+ * - 删除类型 → 清理缓存
  *
  * @author wuhuaming
  */
@@ -210,7 +205,7 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
 
             log.info("[字典缓存] 获取分布式锁成功，开始预热");
 
-            long warmupVersion = redisService.increment(CacheConstants.CACHE_DICT_VERSION, 1);
+            long warmupVersion = System.currentTimeMillis();
 
             List<SysDictType> dictTypeList = this.lambdaQuery()
                     .eq(SysDictType::getStatus, "0")
@@ -338,6 +333,35 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
     }
 
     /**
+     * 根据字典类型标签获取带版本号的字典数据
+     * <p>
+     * 从 DictCacheItem 中提取版本号和 data 字段，包装为 DictCacheVO 返回，
+     * 前端可通过此接口同时获取数据和版本号用于缓存管理。
+     *
+     * @param tag 字典类型标签（dictType 值）
+     * @return 带版本号的字典数据，缓存不存在返回 version=0, data=[]
+     */
+    @Override
+    public DictCacheVO getCacheVOByTag(String tag) {
+        DictCacheVO vo = new DictCacheVO();
+        if (StrUtil.isBlank(tag)) {
+            log.warn("[字典缓存] 标签为空，返回空数据");
+            vo.setData(new ArrayList<>());
+            return vo;
+        }
+
+        String dataKey = CacheConstants.CACHE_DICT_DATA_KEY_PREFIX + tag;
+        DictCacheItem item = redisService.getCacheObject(dataKey);
+        if (item == null || item.getData() == null) {
+            vo.setData(new ArrayList<>());
+            return vo;
+        }
+        vo.setVersion(item.getVersion());
+        vo.setData(item.getData());
+        return vo;
+    }
+
+    /**
      * 获取所有已缓存的字典数据（按标签分组）
      *
      * @return Map<字典类型标签, 字典数据列表>
@@ -351,6 +375,28 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
         for (String tag : tags) {
             List<SysDictData> dataList = getCacheByTag(tag);
             result.put(tag, dataList);
+        }
+
+        return result;
+    }
+
+    /**
+     * 获取所有已缓存的字典数据（按标签分组，带版本号）
+     * <p>
+     * 每个字典类型返回包含版本号和对应数据列表的 DictCacheVO 对象，
+     * 前端可通过版本号判断本地缓存是否需要更新。
+     *
+     * @return Map<字典类型标签, 带版本号的字典数据>
+     */
+    @Override
+    public Map<String, DictCacheVO> getAllCacheVOData() {
+        log.debug("[字典缓存] 获取所有带版本号的缓存数据");
+        Set<String> tags = getCacheTags();
+        Map<String, DictCacheVO> result = new LinkedHashMap<>();
+
+        for (String tag : tags) {
+            DictCacheVO vo = getCacheVOByTag(tag);
+            result.put(tag, vo);
         }
 
         return result;
@@ -376,15 +422,17 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
 
         log.info("[字典缓存] 刷新缓存: dictType={}", dictType);
         try {
-            long newVersion = redisService.increment(CacheConstants.CACHE_DICT_VERSION, 1);
-
+            // 清理旧的缓存数据（静默删除，不递增版本号）
             deleteCacheQuietly(dictType);
 
+            // 查询字典类型是否存在且状态正常
             SysDictType sysDictType = this.lambdaQuery()
                     .eq(SysDictType::getDictType, dictType)
                     .one();
 
+            // 仅对正常状态的字典类型重建缓存
             if (sysDictType != null && "0".equals(sysDictType.getStatus())) {
+                // 查询该类型下所有正常状态的字典数据
                 List<SysDictData> dataList = dictDataMapper.selectList(
                         Wrappers.<SysDictData>lambdaQuery()
                                 .eq(SysDictData::getDictType, dictType)
@@ -392,17 +440,20 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
                                 .orderByAsc(SysDictData::getDictSort)
                 );
 
+                // 将时间戳与字典数据打包为 DictCacheItem，用于前端缓存版本判断
                 DictCacheItem item = new DictCacheItem();
-                item.setVersion(newVersion);
+                item.setVersion(System.currentTimeMillis());
                 item.setData(dataList);
 
+                // SADD 操作，幂等写入，不会重复添加
                 redisService.setSetCacheObject(CacheConstants.CACHE_DICT_TAGS, dictType);
 
+                // 将打包后的 DictCacheItem 写入 Redis，设置过期时间
                 String dataKey = CacheConstants.CACHE_DICT_DATA_KEY_PREFIX + dictType;
                 redisService.setCacheObject(dataKey, item);
                 redisService.expire(dataKey, CacheConstants.CACHE_DICT_EXPIRE_HOURS, TimeUnit.HOURS);
 
-                log.info("[字典缓存] 刷新成功: dictType={}, 数据量={}, version={}", dictType, dataList.size(), newVersion);
+                log.info("[字典缓存] 刷新成功: dictType={}, 数据量={}", dictType, dataList.size());
             } else {
                 log.info("[字典缓存] 字典类型不存在或已停用: dictType={}", dictType);
             }
@@ -414,7 +465,7 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
     /**
      * 删除单个字典类型的缓存
      * <p>
-     * 删除缓存数据后递增全局版本号，通知前端数据已变更。
+     * 删除缓存数据，下次查询时将重新加载。
      *
      * @param dictType 字典类型（dictType 值）
      */
@@ -430,8 +481,6 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
             redisService.deleteObject(dataKey);
 
             redisService.removeSetCacheObject(CacheConstants.CACHE_DICT_TAGS, dictType);
-
-            redisService.increment(CacheConstants.CACHE_DICT_VERSION, 1);
 
             log.info("[字典缓存] 删除成功: dictType={}", dictType);
         } catch (Exception e) {
@@ -463,7 +512,7 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
     /**
      * 清空所有字典缓存
      * <p>
-     * 删除所有数据缓存和标签集合后，递增全局版本号通知前端。
+     * 删除所有数据缓存和标签集合。
      */
     @Override
     public void clearAllCache() {
@@ -479,8 +528,6 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
 
             redisService.deleteObject(CacheConstants.CACHE_DICT_TAGS);
 
-            redisService.increment(CacheConstants.CACHE_DICT_VERSION, 1);
-
             log.info("[字典缓存] 清空所有缓存完成");
         } catch (Exception e) {
             log.error("[字典缓存] 清空所有缓存异常", e);
@@ -490,27 +537,10 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
     // ==================== 版本控制 ====================
 
     /**
-     * 获取字典缓存全局版本号
-     * <p>
-     * 前端可在每次加载时查询此版本号，与本地缓存的版本号比较，
-     * 若不一致则重新拉取字典数据。
-     *
-     * @return 全局版本号，若不存在返回 0
-     */
-    @Override
-    public long getDictVersion() {
-        Object version = redisService.getCacheObject(CacheConstants.CACHE_DICT_VERSION);
-        if (version == null) {
-            return 0L;
-        }
-        return ((Number) version).longValue();
-    }
-
-    /**
      * 获取指定字典类型的缓存版本号
      * <p>
-     * 从 DictCacheItem 中读取 version 字段，
-     * 版本号与字典数据存储在同一个 Redis Value 中，保证强一致性。
+     * 从 DictCacheItem 中读取 version 字段（时间戳），
+     * 版本号与字典数据存储在同一个 Redis Value 中。
      *
      * @param dictType 字典类型编码
      * @return 该类型的版本号，若缓存不存在返回 0

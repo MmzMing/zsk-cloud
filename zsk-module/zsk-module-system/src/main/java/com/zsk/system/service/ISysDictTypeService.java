@@ -3,6 +3,7 @@ package com.zsk.system.service;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.zsk.system.domain.SysDictData;
 import com.zsk.system.domain.SysDictType;
+import com.zsk.system.domain.vo.DictCacheVO;
 
 import java.util.List;
 import java.util.Map;
@@ -36,11 +37,32 @@ public interface ISysDictTypeService extends IService<SysDictType> {
     List<SysDictData> getCacheByTag(String tag);
 
     /**
+     * 根据字典类型标签获取带版本号的字典数据
+     * <p>
+     * 返回包含版本号和数据列表的 DictCacheVO 对象，
+     * 前端可通过版本号判断本地缓存是否需要更新。
+     *
+     * @param tag 字典类型标签（dictType值）
+     * @return 带版本号的字典数据
+     */
+    DictCacheVO getCacheVOByTag(String tag);
+
+    /**
      * 获取所有已缓存的字典数据（按标签分组）
      *
      * @return Map<字典类型, 字典数据列表>
      */
     Map<String, List<SysDictData>> getAllCacheData();
+
+    /**
+     * 获取所有已缓存的字典数据（按标签分组，带版本号）
+     * <p>
+     * 返回 Map<字典类型, DictCacheVO>，每个字典类型包含版本号和对应数据列表，
+     * 前端可通过版本号判断本地缓存是否需要更新。
+     *
+     * @return Map<字典类型, 带版本号的字典数据>
+     */
+    Map<String, DictCacheVO> getAllCacheVOData();
 
     /**
      * 刷新单个字典类型的缓存
@@ -68,20 +90,9 @@ public interface ISysDictTypeService extends IService<SysDictType> {
     // ==================== 版本控制 ====================
 
     /**
-     * 获取字典缓存全局版本号
-     * <p>
-     * 任何字典类型或字典数据的增删改都会递增全局版本号，
-     * 前端可通过比较版本号决定是否需要重新拉取字典数据。
-     *
-     * @return 全局版本号，若不存在返回 0
-     */
-    long getDictVersion();
-
-    /**
      * 获取指定字典类型的缓存版本号
      * <p>
-     * 版本号内嵌在 DictCacheItem 中，与字典数据存储在同一个 Redis Value 里，
-     * 读取时从 DictCacheItem.version 字段获取，保证版本与数据的强一致性。
+     * 版本号内嵌在 DictCacheItem 中，与字典数据存储在同一个 Redis Value 里。
      *
      * @param dictType 字典类型编码
      * @return 该类型的版本号，若缓存不存在返回 0

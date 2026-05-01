@@ -8,6 +8,7 @@ import com.zsk.common.datasource.domain.PageQuery;
 import com.zsk.common.datasource.domain.PageResult;
 import com.zsk.system.domain.SysDictData;
 import com.zsk.system.domain.SysDictType;
+import com.zsk.system.domain.vo.DictCacheVO;
 import com.zsk.system.service.ISysDictTypeService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -141,20 +142,6 @@ public class SysDictTypeController {
     // ==================== 版本控制 ====================
 
     /**
-     * 获取字典缓存全局版本号
-     * <p>
-     * 前端可在每次加载时调用此接口，与本地缓存的版本号比较，
-     * 若不一致则重新拉取字典数据，实现前端缓存自动刷新。
-     *
-     * @return 全局版本号
-     */
-    @Operation(summary = "获取字典缓存版本号", description = "获取字典缓存全局版本号，前端用于判断是否需要重新拉取字典数据")
-    @GetMapping("/version")
-    public R<Long> getDictVersion() {
-        return R.ok(dictTypeService.getDictVersion());
-    }
-
-    /**
      * 获取指定字典类型的缓存版本号
      * <p>
      * 前端可按类型检查版本号，仅重新拉取发生变更的字典类型数据，
@@ -201,32 +188,49 @@ public class SysDictTypeController {
     }
 
     /**
-     * 按标签获取缓存的字典数据
+     * 按标签获取缓存的字典数据（带版本号）
      * <p>
      * 根据字典类型编码从 Redis 缓存中获取对应的字典数据列表，
-     * 若缓存未命中则返回空列表（不会回源查库）。
+     * 返回包含版本号（version）和数据列表（data）的 DictCacheVO 对象。
+     * 前端可通过版本号判断本地缓存是否需要更新。
+     * <p>
+     * 前端使用示例：
+     * <pre>
+     * // 首次加载
+     * const res = await fetch(`/dict/type/cache/tag/${dictType}`);
+     * const { version, data } = await res.json();
+     * localStorage.setItem(`dict_ver_${dictType}`, version);
+     * localStorage.setItem(`dict_data_${dictType}`, JSON.stringify(data));
+     *
+     * // 后续检查更新
+     * const verRes = await fetch(`/dict/type/version/${dictType}`);
+     * const serverVer = await verRes.json();
+     * const localVer = localStorage.getItem(`dict_ver_${dictType}`);
+     * if (serverVer > localVer) { 重新拉取 }
+     * </pre>
      *
      * @param tag 字典类型编码
-     * @return 该类型下的缓存字典数据列表
+     * @return 带版本号的字典数据
      */
-    @Operation(summary = "按标签获取缓存", description = "根据字典类型标签获取缓存的字典数据列表")
+    @Operation(summary = "按标签获取缓存（带版本号）", description = "根据字典类型标签获取缓存的字典数据及版本号，前端用于缓存管理")
     @GetMapping("/cache/tag/{tag}")
-    public R<List<SysDictData>> getCacheByTag(@PathVariable String tag) {
-        return R.ok(dictTypeService.getCacheByTag(tag));
+    public R<DictCacheVO> getCacheByTag(@PathVariable String tag) {
+        return R.ok(dictTypeService.getCacheVOByTag(tag));
     }
 
     /**
-     * 获取全部缓存数据（按类型分组）
+     * 获取全部缓存数据（按类型分组，带版本号）
      * <p>
      * 返回 Redis 中所有已缓存的字典数据，按字典类型编码分组，
-     * 适用于前端一次性加载所有字典的场景。
+     * 每个类型包含版本号（version）和数据列表（data）。
+     * 适用于前端一次性加载所有字典并缓存版本号的场景。
      *
-     * @return 按字典类型编码分组的字典数据 Map
+     * @return 按字典类型编码分组的带版本号字典数据 Map
      */
-    @Operation(summary = "获取全部缓存数据", description = "获取所有已缓存的字典数据，按字典类型分组")
+    @Operation(summary = "获取全部缓存数据（带版本号）", description = "获取所有已缓存的字典数据，按字典类型分组，包含版本号")
     @GetMapping("/cache/all")
-    public R<Map<String, List<SysDictData>>> getAllCacheData() {
-        return R.ok(dictTypeService.getAllCacheData());
+    public R<Map<String, DictCacheVO>> getAllCacheData() {
+        return R.ok(dictTypeService.getAllCacheVOData());
     }
 
     /**

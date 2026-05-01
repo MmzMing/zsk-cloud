@@ -10,19 +10,19 @@ import java.util.List;
 /**
  * 字典缓存包装对象
  * <p>
- * 将版本号与字典数据打包存储在同一个 Redis Value 中，
+ * 将时间戳版本号与字典数据打包存储在同一个 Redis Value 中，
  * 实现版本与数据的原子读取，保证一致性。
  * <p>
  * Redis 存储结构：
  * <pre>
  * Key:   zsk:dict:data:{dictType}
- * Value: DictCacheItem { version: 5, data: [{dictLabel:"男", ...}, ...] }
+ * Value: DictCacheItem { version: 1714521600000, data: [{dictLabel:"男", ...}, ...] }
  * </pre>
  * <p>
  * 前端使用流程：
- * 1. 调用 GET /dict/type/version 获取全局版本号
- * 2. 若全局版本号变化，调用 GET /dict/type/cache/tag/{dictType} 获取数据
- * 3. 响应中的 version 字段即为该类型的版本号，前端可缓存用于增量比对
+ * 1. 调用 GET /dict/type/cache/tag/{dictType} 获取 { version, data }
+ * 2. 前端缓存 version 和 data
+ * 3. 后续调用 GET /dict/type/version/{dictType} 检查版本是否变更
  *
  * @author wuhuaming
  */
@@ -33,11 +33,9 @@ public class DictCacheItem implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**
-     * 缓存版本号
+     * 缓存版本号（时间戳）
      * <p>
-     * 每次数据变更时递增，前端通过比较版本号判断是否需要刷新本地缓存。
-     * 版本号取自全局版本号（zsk:dict:version）在写入时的值，
-     * 保证全局递增、不重复。
+     * 每次数据变更时写入当前时间戳，前端通过比较版本号判断是否需要刷新本地缓存。
      */
     private long version;
 
