@@ -15,6 +15,7 @@ import org.springframework.cloud.gateway.filter.GatewayFilterChain;
 import org.springframework.cloud.gateway.filter.GlobalFilter;
 import org.springframework.core.Ordered;
 import org.springframework.core.io.buffer.DataBuffer;
+import org.springframework.http.HttpCookie;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
@@ -189,8 +190,15 @@ public class AuthFilter implements GlobalFilter, Ordered {
         String token = request.getHeaders().getFirst(SecurityConstants.AUTHORIZATION_HEADER);
         if (StringUtils.isNotEmpty(token) && token.startsWith(SecurityConstants.TOKEN_PREFIX)) {
             token = token.replace(SecurityConstants.TOKEN_PREFIX, "");
+            return token;
         }
-        return token;
+
+        HttpCookie cookie = request.getCookies().getFirst("access_token");
+        if (cookie != null && StringUtils.isNotEmpty(cookie.getValue())) {
+            return cookie.getValue();
+        }
+
+        return null;
     }
 
     private Mono<Void> unauthorizedResponse(ServerWebExchange exchange, String msg) {

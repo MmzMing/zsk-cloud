@@ -7,6 +7,7 @@ import com.zsk.common.sentinel.annotation.RateLimit;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -88,13 +89,33 @@ public class AuthController {
     /**
      * 退出登录
      *
-     * @param token 访问令牌
+     * @param request HTTP请求对象
+     * @param response HTTP响应对象，用于清除Cookie
      * @return 响应结果
      */
     @Operation(summary = "退出登录")
     @PostMapping("/logout")
-    public R<Void> logout(@RequestHeader("Authorization") String token) {
+    public R<Void> logout(HttpServletRequest request, HttpServletResponse response) {
+        Cookie[] cookies = request.getCookies();
+        String token = null;
+        if (cookies != null) {
+            for (Cookie cookie : cookies) {
+                if ("access_token".equals(cookie.getName())) {
+                    token = cookie.getValue();
+                    break;
+                }
+            }
+        }
+
         authService.logout(token);
+
+        Cookie clearCookie = new Cookie("access_token", "");
+        clearCookie.setHttpOnly(true);
+        clearCookie.setSecure(true);
+        clearCookie.setPath("/");
+        clearCookie.setMaxAge(0);
+        response.addCookie(clearCookie);
+
         return R.ok();
     }
 
@@ -247,7 +268,7 @@ public class AuthController {
             LoginResponse loginResponse = authService.login(request);
 
             Cookie cookie = new Cookie("access_token", loginResponse.getAccessToken());
-            cookie.setHttpOnly(false);
+            cookie.setHttpOnly(true);
             cookie.setSecure(true);
             cookie.setPath("/");
             cookie.setMaxAge(loginResponse.getExpiresIn().intValue());
@@ -368,7 +389,7 @@ public class AuthController {
             LoginResponse loginResponse = authService.verifyMagicLink(token);
 
             Cookie cookie = new Cookie("access_token", loginResponse.getAccessToken());
-            cookie.setHttpOnly(false);
+            cookie.setHttpOnly(true);
             cookie.setSecure(true);
             cookie.setPath("/");
             cookie.setMaxAge(7200);

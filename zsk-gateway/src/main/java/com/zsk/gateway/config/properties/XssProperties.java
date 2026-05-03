@@ -20,13 +20,18 @@ import java.util.List;
 @RefreshScope
 @ConfigurationProperties(prefix = "security.xss")
 public class XssProperties {
-    /**
-     * XSS开关
-     */
+
     private Boolean enabled = true;
 
-    /**
-     * 排除路径
-     */
     private List<String> excludeUrls = new ArrayList<>();
+
+    private Boolean bodyEnabled = true;
+
+    private List<String> bodyContentTypes = new ArrayList<>() {{
+        add("application/json");
+        add("application/xml");
+        add("text/xml");
+    }};
+
+    private Long bodyMaxBytes = 1024 * 1024L;
 }

@@ -1,7 +1,14 @@
 package com.zsk.common.core.utils;
 
 import cn.hutool.http.HtmlUtil;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 
+import java.util.Iterator;
 import java.util.regex.Pattern;
 
 /**
@@ -20,6 +27,8 @@ public class XssUtil {
     private static final Pattern JAVASCRIPT_PATTERN = Pattern.compile("javascript:", Pattern.CASE_INSENSITIVE);
     private static final Pattern VBSCRIPT_PATTERN = Pattern.compile("vbscript:", Pattern.CASE_INSENSITIVE);
     private static final Pattern ONLOAD_PATTERN = Pattern.compile("onload(.*?)=", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
+
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /**
      * 清洗字符串，防止XSS
@@ -56,5 +65,57 @@ public class XssUtil {
         // value = HtmlUtil.escape(value);
 
         return value;
+    }
+
+    /**
+     * 清洗 JSON 字符串中的 XSS 攻击向量
+     *
+     * @param jsonBody JSON 字符串
+     * @return 清洗后的 JSON 字符串
+     */
+    public static String cleanJson(String jsonBody) {
+        if (StringUtils.isEmpty(jsonBody)) {
+            return jsonBody;
+        }
+
+        try {
+            JsonNode rootNode = OBJECT_MAPPER.readTree(jsonBody);
+            JsonNode cleanedNode = cleanJsonNode(rootNode);
+            return OBJECT_MAPPER.writeValueAsString(cleanedNode);
+        } catch (JsonProcessingException e) {
+            return jsonBody;
+        }
+    }
+
+    private static JsonNode cleanJsonNode(JsonNode node) {
+        if (node.isTextual()) {
+            String original = node.asText();
+            String cleaned = clean(original);
+            if (!original.equals(cleaned)) {
+                return new TextNode(cleaned);
+            }
+            return node;
+        }
+
+        if (node.isObject()) {
+            ObjectNode objectNode = (ObjectNode) node;
+            Iterator<String> fieldNames = objectNode.fieldNames();
+            while (fieldNames.hasNext()) {
+                String fieldName = fieldNames.next();
+                JsonNode fieldNode = objectNode.get(fieldName);
+                objectNode.set(fieldName, cleanJsonNode(fieldNode));
+            }
+            return objectNode;
+        }
+
+        if (node.isArray()) {
+            ArrayNode arrayNode = (ArrayNode) node;
+            for (int i = 0; i < arrayNode.size(); i++) {
+                arrayNode.set(i, cleanJsonNode(arrayNode.get(i)));
+            }
+            return arrayNode;
+        }
+
+        return node;
     }
 }
