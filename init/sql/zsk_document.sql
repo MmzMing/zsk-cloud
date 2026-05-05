@@ -295,6 +295,7 @@ CREATE TABLE `document_user_interaction`  (
   `update_time` datetime DEFAULT NULL COMMENT '更新时间',
   `deleted` tinyint(1) NOT NULL DEFAULT 0 COMMENT '是否已删除(0否1是)',
   PRIMARY KEY (`id`) USING BTREE,
+  UNIQUE INDEX `uk_ui_user_target`(`user_id` ASC, `target_type` ASC, `target_id` ASC, `interaction_type` ASC) USING BTREE COMMENT '用户-目标唯一交互索引（支持 ON DUPLICATE KEY UPDATE）',
   INDEX `idx_ui_user_id`(`user_id` ASC) USING BTREE COMMENT '用户ID索引',
   INDEX `idx_ui_target`(`target_type` ASC, `target_id` ASC) USING BTREE COMMENT '目标索引',
   INDEX `idx_ui_interaction`(`interaction_type` ASC, `status` ASC) USING BTREE COMMENT '交互类型索引'

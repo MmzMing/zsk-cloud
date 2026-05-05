@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.zsk.document.mapper.DocUserInteractionMapper">
+
+    <!--
+        批量 upsert：命中唯一索引 uk_ui_user_target 则更新 status，否则插入。
+        调用方需提前设置好 id（雪花ID）。
+    -->
+    <insert id="batchUpsert">
+        INSERT INTO document_user_interaction
+            (id, user_id, target_type, target_id, interaction_type, status,
+             create_time, update_time)
+        VALUES
+        <foreach collection="list" item="item" separator=",">
+            (#{item.id}, #{item.userId}, #{item.targetType}, #{item.targetId},
+             #{item.interactionType}, #{item.status},
+             NOW(), NOW())
+        </foreach>
+        ON DUPLICATE KEY UPDATE
+            status = VALUES(status),
+            update_time = NOW()
+    </insert>
+
+</mapper>

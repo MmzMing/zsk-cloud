@@ -8,6 +8,7 @@ import org.apache.ibatis.annotations.Select;
 import org.apache.ibatis.annotations.Update;
 
 import java.util.List;
+import java.util.Collection;
 
 /**
  * 用户交互关系Mapper接口
@@ -79,4 +80,12 @@ public interface DocUserInteractionMapper extends BaseMapper<DocUserInteraction>
     List<DocUserInteraction> selectByTarget(@Param("targetType") Integer targetType,
                                             @Param("targetId") Long targetId,
                                             @Param("interactionType") Integer interactionType);
+
+    /**
+     * 批量 upsert 交互记录
+     * 命中唯一索引 uk_ui_user_target 时更新 status，否则插入。
+     *
+     * @param list 交互记录列表
+     */
+    void batchUpsert(@Param("list") Collection<DocUserInteraction> list);
 }

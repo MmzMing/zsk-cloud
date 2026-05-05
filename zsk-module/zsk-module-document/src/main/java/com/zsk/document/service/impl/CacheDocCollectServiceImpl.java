@@ -1,7 +1,7 @@
 package com.zsk.document.service.impl;
 
+import com.baomidou.mybatisplus.core.toolkit.IdWorker;
 import com.zsk.common.core.constant.CacheConstants;
-import com.zsk.common.redis.utils.BitmapOffsetUtil;
 import com.zsk.document.domain.DocUserInteraction;
 import com.zsk.document.domain.context.DocUserInteractionContext;
 import com.zsk.document.enums.CacheDocCollectTypeEnum;
@@ -9,33 +9,24 @@ import com.zsk.document.mapper.DocUserInteractionMapper;
 import com.zsk.document.service.ICacheDocCollectService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.data.domain.Range;
-import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 /**
- * 缓存文档收藏服务实现类
- * <p>
- * 基于 Redis 双 Key 方案（Bitmap + Hash）实现高性能收藏功能：
- * <ul>
- *     <li><b>Bitmap:</b> collect:bit:{typeCode}:{targetId} — 使用位图存储用户收藏状态，SETBIT 返回旧值实现原子 toggle</li>
- *     <li><b>Hash:</b> stat:{targetType}:{targetId} — 使用哈希存储统计计数，HINCRBY 原子增减</li>
- * </ul>
- * <p>
- * <b>核心设计要点：</b>
- * <ul>
- *     <li>SETBIT 返回旧值，天然支持原子 toggle，无需分布式锁</li>
- *     <li>Bitmap 极省内存：1亿用户仅需约 12MB</li>
- *     <li>先写 Redis，定时任务异步同步到数据库</li>
- *     <li>查询时先查 Redis，Redis 未命中则查 DB 并回写缓存</li>
- * </ul>
+ * 缓存文档收藏服务实现
  *
- * @author wuhuaming
- * @version 3.0
- * @date 2026-04-25
+ * <p>Redis 结构：
+ * <ul>
+ *   <li>用户维度 Set — {@code zsk:collect:user:{userId}:{typeCode}} → Set&lt;targetId&gt;，TTL=7d</li>
+ *   <li>计数 Hash  — {@code zsk:stat:{targetType}:{targetId}} → Hash {collect:{typeCode}: count}</li>
+ *   <li>待同步队列 — {@code zsk:collect:pending} → Hash {userId:typeCode:targetId: 1/0}</li>
+ * </ul>
  */
 @Slf4j
 @Service
@@ -46,93 +37,86 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
     private final DocUserInteractionMapper docUserInteractionMapper;
 
     /**
-     * 用户收藏内容
-     * <p>
-     * 使用 Redis Bitmap 实现原子收藏操作：
-     * 1. SETBIT 设置用户位为 1，返回旧状态
-     * 2. 若旧状态为 false（未收藏），则增加计数
-     * 3. 若旧状态为 true（已收藏），说明重复操作，直接返回 false
+     * 收藏目标
      *
-     * @param type     收藏类型（见 {@link CacheDocCollectTypeEnum}）
-     * @param targetId 目标内容ID（笔记ID/视频ID）
+     * @param type     收藏类型编码
+     * @param targetId 目标ID
      * @param userId   用户ID
-     * @return true-收藏成功，false-已收藏或参数无效
+     * @return true-收藏成功，false-参数无效或已收藏
      */
     @Override
     public boolean collect(Integer type, Long targetId, Long userId) {
-        // 参数校验
         CacheDocCollectTypeEnum collectType = CacheDocCollectTypeEnum.getByCode(type);
         if (collectType == null || targetId == null || userId == null) {
-            log.warn("收藏参数无效: type={}, targetId={}, userId={}", type, targetId, userId);
+            return false;
+        }
+        String userKey = buildUserKey(collectType, userId);
+        String targetStr = String.valueOf(targetId);
+
+        // 幂等校验：已收藏则直接返回
+        Boolean isMember = redisTemplate.opsForSet().isMember(userKey, targetStr);
+        if (Boolean.TRUE.equals(isMember)) {
             return false;
         }
 
-        // 构建 Bitmap Key：collect:bit:{typeCode}:{targetId}
-        String bitmapKey = buildBitmapKey(collectType, targetId);
+        // 写入用户维度 Set 并刷新 TTL
+        redisTemplate.opsForSet().add(userKey, targetStr);
+        redisTemplate.expire(userKey, CacheConstants.CACHE_INTERACTION_TTL_SECONDS, TimeUnit.SECONDS);
 
-        // SETBIT 设置为 true，返回旧状态（原子操作）
-        // 旧状态=false → 未收藏，需要增加计数
-        // 旧状态=true → 已收藏，无需操作
-        Boolean wasCollected = redisTemplate.opsForValue().setBit(bitmapKey, BitmapOffsetUtil.toOffset(userId), true);
-        if (Boolean.TRUE.equals(wasCollected)) {
-            return false; // 已收藏，无需重复操作
-        }
+        // 目标维度计数 +1
+        redisTemplate.opsForHash().increment(buildStatKey(collectType, targetId), buildCountField(collectType), 1);
 
-        // 更新统计计数：stat:{targetType}:{targetId} 的 collect:{typeCode} 字段
-        String statKey = buildStatKey(collectType, targetId);
-        String countField = buildCountField(collectType);
-        redisTemplate.opsForHash().increment(statKey, countField, 1);
+        // 写入待同步队列，值为 "1" 表示收藏状态
+        redisTemplate.opsForHash().put(
+                CacheConstants.CACHE_COLLECT_PENDING,
+                buildPendingField(userId, collectType, targetId),
+                "1");
 
-        log.debug("用户 {} 收藏 {} targetId={}", userId, collectType.getDesc(), targetId);
+        log.debug("收藏: userId={}, type={}, targetId={}", userId, type, targetId);
         return true;
     }
 
     /**
-     * 用户取消收藏
-     * <p>
-     * 使用 Redis Bitmap 实现原子取消收藏操作：
-     * 1. SETBIT 设置用户位为 0，返回旧状态
-     * 2. 若旧状态为 true（已收藏），则减少计数
-     * 3. 若旧状态为 false（未收藏），说明重复操作，直接返回 false
+     * 取消收藏
      *
-     * @param type     收藏类型（见 {@link CacheDocCollectTypeEnum}）
-     * @param targetId 目标内容ID（笔记ID/视频ID）
+     * @param type     收藏类型编码
+     * @param targetId 目标ID
      * @param userId   用户ID
-     * @return true-取消收藏成功，false-未收藏或参数无效
+     * @return true-取消成功，false-参数无效或未收藏
      */
     @Override
     public boolean uncollect(Integer type, Long targetId, Long userId) {
-        // 参数校验
         CacheDocCollectTypeEnum collectType = CacheDocCollectTypeEnum.getByCode(type);
         if (collectType == null || targetId == null || userId == null) {
-            log.warn("取消收藏参数无效: type={}, targetId={}, userId={}", type, targetId, userId);
+            return false;
+        }
+        String userKey = buildUserKey(collectType, userId);
+        String targetStr = String.valueOf(targetId);
+
+        // 校验：未收藏则无需取消
+        Boolean isMember = redisTemplate.opsForSet().isMember(userKey, targetStr);
+        if (!Boolean.TRUE.equals(isMember)) {
             return false;
         }
 
-        // 构建 Bitmap Key
-        String bitmapKey = buildBitmapKey(collectType, targetId);
+        // 从用户维度 Set 移除
+        redisTemplate.opsForSet().remove(userKey, targetStr);
 
-        // SETBIT 设置为 false，返回旧状态（原子操作）
-        // 旧状态=true → 已收藏，需要减少计数
-        // 旧状态=false → 未收藏，无需操作
-        Boolean wasCollected = redisTemplate.opsForValue().setBit(bitmapKey, BitmapOffsetUtil.toOffset(userId), false);
-        if (Boolean.FALSE.equals(wasCollected)) {
-            return false; // 未收藏，无需操作
-        }
+        // 目标维度计数 -1
+        redisTemplate.opsForHash().increment(buildStatKey(collectType, targetId), buildCountField(collectType), -1);
 
-        // 更新统计计数，减少 1
-        String statKey = buildStatKey(collectType, targetId);
-        String countField = buildCountField(collectType);
-        redisTemplate.opsForHash().increment(statKey, countField, -1);
+        // 写入待同步队列，值为 "0" 表示取消收藏
+        redisTemplate.opsForHash().put(
+                CacheConstants.CACHE_COLLECT_PENDING,
+                buildPendingField(userId, collectType, targetId),
+                "0");
 
-        log.debug("用户 {} 取消收藏 {} targetId={}", userId, collectType.getDesc(), targetId);
+        log.debug("取消收藏: userId={}, type={}, targetId={}", userId, type, targetId);
         return true;
     }
 
     /**
-     * 获取用户收藏总数
-     * <p>
-     * 直接从数据库查询用户的收藏记录数
+     * 获取用户收藏总数（查库）
      *
      * @param userId 用户ID
      * @return 收藏总数
@@ -142,17 +126,15 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
         if (userId == null) {
             return 0L;
         }
-        Long dbCount = docUserInteractionMapper.countByUser(userId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
-        return dbCount != null ? dbCount : 0L;
+        Long count = docUserInteractionMapper.countByUser(userId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
+        return count != null ? count : 0L;
     }
 
     /**
-     * 获取目标内容的收藏数
-     * <p>
-     * 缓存策略：先查 Redis，未命中则查数据库并回写缓存
+     * 获取目标收藏数（先查缓存，未命中回源数据库并回填）
      *
-     * @param type     收藏类型
-     * @param targetId 目标内容ID
+     * @param type     收藏类型编码
+     * @param targetId 目标ID
      * @return 收藏数
      */
     @Override
@@ -161,38 +143,31 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
         if (collectType == null || targetId == null) {
             return 0L;
         }
-
-        // 先查 Redis 缓存
-        String statKey = buildStatKey(collectType, targetId);
-        String countField = buildCountField(collectType);
-        Object count = redisTemplate.opsForHash().get(statKey, countField);
+        // 优先从缓存读取计数
+        Object count = redisTemplate.opsForHash().get(buildStatKey(collectType, targetId), buildCountField(collectType));
         if (count != null) {
             return Long.parseLong(count.toString());
         }
-
-        // Redis 未命中，查数据库
+        // 缓存未命中，回源数据库
         Integer targetType = getTargetType(collectType);
         if (targetType == null) {
             return 0L;
         }
         Long dbCount = docUserInteractionMapper.countByTarget(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
-
-        // 回写缓存（仅当有数据时）
+        // 回填缓存，仅当计数 > 0 时写入
         if (dbCount != null && dbCount > 0) {
-            redisTemplate.opsForHash().put(statKey, countField, dbCount.toString());
+            redisTemplate.opsForHash().put(buildStatKey(collectType, targetId), buildCountField(collectType), dbCount.toString());
         }
         return dbCount != null ? dbCount : 0L;
     }
 
     /**
-     * 判断用户是否已收藏目标内容
-     * <p>
-     * 缓存策略：先查 Redis Bitmap，未命中则查数据库并回写缓存
+     * 判断用户是否已收藏该目标（先查缓存，未命中查库）
      *
-     * @param type     收藏类型
-     * @param targetId 目标内容ID
+     * @param type     收藏类型编码
+     * @param targetId 目标ID
      * @param userId   用户ID
-     * @return true-已收藏，false-未收藏
+     * @return true-已收藏
      */
     @Override
     public boolean hasCollected(Integer type, Long targetId, Long userId) {
@@ -200,26 +175,24 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
         if (collectType == null || targetId == null || userId == null) {
             return false;
         }
-
-        // 先查 Redis Bitmap
-        String bitmapKey = buildBitmapKey(collectType, targetId);
-        Boolean bit = redisTemplate.opsForValue().getBit(bitmapKey, BitmapOffsetUtil.toOffset(userId));
-        if (Boolean.TRUE.equals(bit)) {
+        // 优先从缓存判断
+        Boolean hit = redisTemplate.opsForSet().isMember(buildUserKey(collectType, userId), String.valueOf(targetId));
+        if (Boolean.TRUE.equals(hit)) {
             return true;
         }
-
-        // Redis 未命中，查数据库
-        DocUserInteraction interaction = docUserInteractionMapper.selectByUserAndTarget(
-                userId, getTargetType(collectType), targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
-        return interaction != null && interaction.getStatus() == 1;
+        // 缓存未命中，查库确认（status=1 表示有效收藏）
+        Integer targetType = getTargetType(collectType);
+        DocUserInteraction record = docUserInteractionMapper.selectByUserAndTarget(
+                userId, targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
+        return record != null && record.getStatus() == 1;
     }
 
     /**
-     * 批量获取目标内容的收藏数
+     * 批量获取目标收藏数
      *
-     * @param type      收藏类型
-     * @param targetIds 目标内容ID列表
-     * @return 目标ID到收藏数的映射
+     * @param type      收藏类型编码
+     * @param targetIds 目标ID集合
+     * @return targetId → 收藏数
      */
     @Override
     public Map<Long, Long> getCollectCountBatch(Integer type, Iterable<Long> targetIds) {
@@ -234,30 +207,43 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
     }
 
     /**
-     * 同步收藏数据从 Redis 到数据库
-     * <p>
-     * 执行流程：
-     * 1. 扫描所有 collect:bit:* 键，读取 Bitmap 获取所有收藏用户ID，写入数据库
-     * 2. 扫描所有 stat:* 键，读取 collect:* 字段的计数，写入数据库
-     * 3. 同步完成后删除 Bitmap 键（防止重复同步）
+     * 将 Redis 待同步队列中的收藏数据批量写入数据库（rename → 读取 → 删除 → upsert）
      */
     @Override
     public void syncCollectDataToDb() {
-        log.info("开始同步收藏数据到数据库...");
-        int userSyncCount = 0;
-        int countSyncCount = 0;
+        log.info("开始同步收藏数据...");
+        // 检查待同步队列是否存在
+        if (!Boolean.TRUE.equals(redisTemplate.hasKey(CacheConstants.CACHE_COLLECT_PENDING))) {
+            log.info("收藏 pending 队列不存在，跳过");
+            return;
+        }
+        // 原子切换：rename 确保后续新写入到新队列，当前队列独占处理
+        String processingKey = CacheConstants.CACHE_COLLECT_PENDING + ":processing:" + System.currentTimeMillis();
+        redisTemplate.rename(CacheConstants.CACHE_COLLECT_PENDING, processingKey);
 
-        // 1. 同步用户收藏状态（从 Bitmap）
-        String pattern = CacheConstants.CACHE_COLLECT_BIT + "*";
-        Collection<String> keys = redisTemplate.keys(pattern);
-        if (keys != null && !keys.isEmpty()) {
-            for (String bitmapKey : keys) {
-                // 解析 Key 中的 typeCode 和 targetId
-                Integer typeCode = extractTypeCode(bitmapKey);
-                Long targetId = extractTargetId(bitmapKey);
-                if (typeCode == null || targetId == null) {
-                    continue;
-                }
+        // 读取并立即删除，避免重复处理
+        Map<Object, Object> pending = redisTemplate.opsForHash().entries(processingKey);
+        redisTemplate.delete(processingKey);
+
+        if (pending.isEmpty()) {
+            return;
+        }
+
+        // 解析 pending 记录，构建批量 upsert 列表
+        List<DocUserInteraction> batch = new ArrayList<>(pending.size());
+        for (Map.Entry<Object, Object> entry : pending.entrySet()) {
+            // Hash field 格式：{userId}:{typeCode}:{targetId}
+            String[] parts = entry.getKey().toString().split(":");
+            if (parts.length != 3) {
+                continue;
+            }
+            try {
+                Long userId = Long.parseLong(parts[0]);
+                Integer typeCode = Integer.parseInt(parts[1]);
+                Long targetId = Long.parseLong(parts[2]);
+                // Hash value：1=收藏，0=取消收藏
+                Integer status = Integer.parseInt(entry.getValue().toString());
+
                 CacheDocCollectTypeEnum collectType = CacheDocCollectTypeEnum.getByCode(typeCode);
                 if (collectType == null) {
                     continue;
@@ -267,171 +253,99 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
                     continue;
                 }
 
-                // 获取所有已收藏的用户ID（Bitmap中值为1的位）
-                Set<Long> offsets = getSetBits(bitmapKey);
-                for (Long offset : offsets) {
-                    saveInteractionToDb(offset, targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
-                    userSyncCount++;
-                }
-                // 删除已同步的 Bitmap 键
-                redisTemplate.delete(bitmapKey);
+                DocUserInteraction record = new DocUserInteraction();
+                record.setId(IdWorker.getId());
+                record.setUserId(userId);
+                record.setTargetType(targetType);
+                record.setTargetId(targetId);
+                record.setInteractionType(DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
+                record.setStatus(status);
+                batch.add(record);
+            } catch (Exception e) {
+                log.warn("解析 pending 记录失败: {}", entry.getKey(), e);
             }
         }
 
-        // 2. 同步收藏计数（从 Hash）
-        String statPattern = CacheConstants.CACHE_STAT + "*";
-        Collection<String> statKeys = redisTemplate.keys(statPattern);
-        if (statKeys != null && !statKeys.isEmpty()) {
-            for (String statKey : statKeys) {
-                Long[] parsed = extractStatKey(statKey);
-                if (parsed == null) {
+        // 批量写入数据库（INSERT ON DUPLICATE KEY UPDATE）
+        if (!batch.isEmpty()) {
+            docUserInteractionMapper.batchUpsert(batch);
+            log.info("收藏同步完成，共 {} 条", batch.size());
+        }
+    }
+
+    /**
+     * 从数据库预热收藏缓存（重建用户维度 Set + 计数 Hash）
+     *
+     * @param type     收藏类型编码
+     * @param targetId 目标ID
+     */
+    @Override
+    public void warmCollectCacheFromDb(Integer type, Long targetId) {
+        CacheDocCollectTypeEnum collectType = CacheDocCollectTypeEnum.getByCode(type);
+        if (collectType == null || targetId == null) {
+            return;
+        }
+        Integer targetType = getTargetType(collectType);
+        if (targetType == null) {
+            return;
+        }
+
+        // 查询所有收藏了该目标的用户，重建各自的用户维度 Set
+        List<DocUserInteraction> records = docUserInteractionMapper.selectByTarget(
+                targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
+
+        if (records != null && !records.isEmpty()) {
+            for (DocUserInteraction record : records) {
+                if (record.getUserId() == null || record.getUserId() <= 0) {
                     continue;
                 }
-                int targetType = parsed[0].intValue();
-                long targetId = parsed[1];
-
-                Map<Object, Object> entries = redisTemplate.opsForHash().entries(statKey);
-                for (Map.Entry<Object, Object> entry : entries.entrySet()) {
-                    String field = entry.getKey().toString();
-                    // 只处理收藏相关字段
-                    if (!field.startsWith("collect:")) {
-                        continue;
-                    }
-                    try {
-                        long count = Long.parseLong(entry.getValue().toString());
-                        saveCountToDb(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE, count);
-                        countSyncCount++;
-                    } catch (Exception e) {
-                        log.warn("解析计数字段失败: key={}, field={}", statKey, field, e);
-                    }
-                }
+                String userKey = buildUserKey(collectType, record.getUserId());
+                redisTemplate.opsForSet().add(userKey, String.valueOf(targetId));
+                redisTemplate.expire(userKey, CacheConstants.CACHE_INTERACTION_TTL_SECONDS, TimeUnit.SECONDS);
             }
         }
 
-        log.info("收藏数据同步完成，用户记录 {} 条，计数 {} 条", userSyncCount, countSyncCount);
+        // 重建目标维度计数 Hash
+        Long dbCount = docUserInteractionMapper.countByTarget(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
+        if (dbCount != null && dbCount > 0) {
+            redisTemplate.opsForHash().put(buildStatKey(collectType, targetId), buildCountField(collectType), dbCount.toString());
+        }
+        log.info("收藏缓存预热完成: type={}, targetId={}", type, targetId);
     }
 
     /**
-     * 构建收藏状态 Bitmap Key
-     *
-     * @param type     收藏类型
-     * @param targetId 目标内容ID
-     * @return Key 格式: collect:bit:{typeCode}:{targetId}
+     * 构建用户维度缓存 Key：zsk:collect:user:{userId}:{typeCode}
      */
-    private String buildBitmapKey(CacheDocCollectTypeEnum type, Long targetId) {
-        return CacheConstants.CACHE_COLLECT_BIT + type.getCode() + ":" + targetId;
+    private String buildUserKey(CacheDocCollectTypeEnum type, Long userId) {
+        return CacheConstants.CACHE_COLLECT_USER + userId + ":" + type.getCode();
     }
 
     /**
-     * 构建统计 Hash Key
-     *
-     * @param type     收藏类型
-     * @param targetId 目标内容ID
-     * @return Key 格式: stat:{targetType}:{targetId}
+     * 构建统计维度缓存 Key：zsk:stat:{targetType}:{targetId}
      */
     private String buildStatKey(CacheDocCollectTypeEnum type, Long targetId) {
         return CacheConstants.CACHE_STAT + getTargetType(type) + ":" + targetId;
     }
 
     /**
-     * 构建计数字段名
-     *
-     * @param type 收藏类型
-     * @return 字段名格式: collect:{typeCode}
+     * 构建计数 Hash 字段：collect:{typeCode}
      */
     private String buildCountField(CacheDocCollectTypeEnum type) {
         return "collect:" + type.getCode();
     }
 
     /**
-     * 从 Bitmap Key 中解析 typeCode
-     *
-     * @param key Redis Key
-     * @return typeCode
+     * 构建待同步队列 Hash 字段：{userId}:{typeCode}:{targetId}
      */
-    private Integer extractTypeCode(String key) {
-        try {
-            String[] parts = key.split(":");
-            if (parts.length >= 4) {
-                return Integer.parseInt(parts[3]);
-            }
-        } catch (Exception e) {
-            log.warn("解析 typeCode 失败: {}", key, e);
-        }
-        return null;
+    private String buildPendingField(Long userId, CacheDocCollectTypeEnum type, Long targetId) {
+        return userId + ":" + type.getCode() + ":" + targetId;
     }
 
     /**
-     * 从 Bitmap Key 中解析 targetId
+     * 根据收藏类型枚举映射数据库目标类型
      *
-     * @param key Redis Key
-     * @return targetId
-     */
-    private Long extractTargetId(String key) {
-        try {
-            String[] parts = key.split(":");
-            if (parts.length >= 5) {
-                return Long.parseLong(parts[4]);
-            }
-        } catch (Exception e) {
-            log.warn("解析 targetId 失败: {}", key, e);
-        }
-        return null;
-    }
-
-    /**
-     * 从 Stat Key 中解析 targetType 和 targetId
-     *
-     * @param key Redis Key
-     * @return [targetType, targetId]
-     */
-    private Long[] extractStatKey(String key) {
-        try {
-            String[] parts = key.split(":");
-            if (parts.length >= 4) {
-                return new Long[]{Long.parseLong(parts[2]), Long.parseLong(parts[3])};
-            }
-        } catch (Exception e) {
-            log.warn("解析 stat 键失败: {}", key, e);
-        }
-        return null;
-    }
-
-    /**
-     * 获取 Bitmap 中所有值为 1 的位（即所有已收藏的用户ID）
-     *
-     * @param bitmapKey Bitmap Key
-     * @return 用户ID集合
-     */
-    private Set<Long> getSetBits(String bitmapKey) {
-        Set<Long> result = new HashSet<>();
-        try {
-            redisTemplate.execute((RedisCallback<Void>) connection -> {
-                long pos = 0;
-                byte[] keyBytes = bitmapKey.getBytes();
-                while (true) {
-                    // BITPOS 查找下一个值为 1 的位，从 pos 位置开始查找
-                    Range<Long> range = Range.from(Range.Bound.inclusive(pos)).to(Range.Bound.unbounded());
-                    Long idx = connection.bitPos(keyBytes, true, range);
-                    if (idx == null || idx < 0) {
-                        break;
-                    }
-                    result.add(idx);
-                    pos = idx + 1;
-                }
-                return null;
-            });
-        } catch (Exception e) {
-            log.warn("读取 Bitmap 位失败: {}", bitmapKey, e);
-        }
-        return result;
-    }
-
-    /**
-     * 将收藏类型转换为目标类型
-     *
-     * @param collectType 收藏类型
-     * @return 目标类型
+     * @param collectType 收藏类型枚举
+     * @return 目标类型，未知类型返回 null
      */
     private Integer getTargetType(CacheDocCollectTypeEnum collectType) {
         switch (collectType) {
@@ -442,139 +356,5 @@ public class CacheDocCollectServiceImpl implements ICacheDocCollectService {
             default:
                 return null;
         }
-    }
-
-    /**
-     * 保存用户交互记录到数据库
-     *
-     * @param userId          用户ID
-     * @param targetType      目标类型
-     * @param targetId        目标ID
-     * @param interactionType 交互类型
-     */
-    private void saveInteractionToDb(Long userId, Integer targetType, Long targetId, Integer interactionType) {
-        DocUserInteraction existing = docUserInteractionMapper.selectByUserAndTarget(
-                userId, targetType, targetId, interactionType);
-        if (existing != null) {
-            // 更新现有记录状态为已收藏
-            existing.setStatus(1);
-            docUserInteractionMapper.updateById(existing);
-        } else {
-            // 插入新记录
-            DocUserInteraction interaction = new DocUserInteraction();
-            interaction.setUserId(userId);
-            interaction.setTargetType(targetType);
-            interaction.setTargetId(targetId);
-            interaction.setInteractionType(interactionType);
-            interaction.setStatus(1);
-            docUserInteractionMapper.insert(interaction);
-        }
-    }
-
-    /**
-     * 保存统计计数到数据库
-     *
-     * @param targetType      目标类型
-     * @param targetId        目标ID
-     * @param interactionType 交互类型
-     * @param count           计数值
-     */
-    private void saveCountToDb(Integer targetType, Long targetId, Integer interactionType, Long count) {
-        // userId=0 表示这是一条统计记录，而非用户级记录
-        DocUserInteraction existing = docUserInteractionMapper.selectByUserAndTarget(
-                0L, targetType, targetId, interactionType);
-        if (existing != null) {
-            existing.setStatus(count.intValue());
-            docUserInteractionMapper.updateById(existing);
-        } else {
-            DocUserInteraction interaction = new DocUserInteraction();
-            interaction.setUserId(0L);
-            interaction.setTargetType(targetType);
-            interaction.setTargetId(targetId);
-            interaction.setInteractionType(interactionType);
-            interaction.setStatus(count.intValue());
-            docUserInteractionMapper.insert(interaction);
-        }
-    }
-
-    /**
-     * 从数据库预热收藏缓存
-     * <p>
-     * <b>预热目的：</b>服务重启后，将数据库中的收藏数据加载到Redis缓存，恢复缓存状态。
-     * <p>
-     * <b>数据模型说明：</b>
-     * <ul>
-     *     <li>用户级记录（userId > 0）：存储单个用户的收藏状态，用于构建Bitmap</li>
-     *     <li>统计记录（userId = 0）：status字段存储计数，用于快速查询总数</li>
-     * </ul>
-     * <p>
-     * <b>预热流程：</b>
-     * <ol>
-     *     <li>预热用户收藏状态到Bitmap：必须查询用户级记录，因为需要知道具体哪些用户收藏了该内容</li>
-     *     <li>预热收藏计数到Hash：通过countByTarget重新统计，保证数据准确性（避免统计记录与实际不一致）</li>
-     * </ol>
-     * <p>
-     * <b>为什么不直接读取userId=0的统计记录？</b>
-     * <ul>
-     *     <li>Bitmap预热必须用用户级记录（需要具体用户ID来设置bit位）</li>
-     *     <li>Hash计数重新统计可保证数据一致性（异常场景下统计记录可能不准确）</li>
-     * </ul>
-     *
-     * @param type     收藏类型
-     * @param targetId 目标ID
-     */
-    @Override
-    public void warmCollectCacheFromDb(Integer type, Long targetId) {
-        // 参数校验
-        CacheDocCollectTypeEnum collectType = CacheDocCollectTypeEnum.getByCode(type);
-        if (collectType == null || targetId == null) {
-            log.warn("预热缓存参数无效: type={}, targetId={}", type, targetId);
-            return;
-        }
-
-        // 获取目标类型映射
-        Integer targetType = getTargetType(collectType);
-        if (targetType == null) {
-            return;
-        }
-
-        // ========== 步骤1：预热用户收藏状态到Bitmap ==========
-        // Bitmap Key: collect:bit:{typeCode}:{targetId}
-        // 每个bit位代表一个用户ID，值为1表示该用户已收藏
-        String bitmapKey = buildBitmapKey(collectType, targetId);
-        // 先清除旧的Bitmap缓存，避免脏数据（服务重启后可能有残留的过期数据）
-        redisTemplate.delete(bitmapKey);
-
-        // 查询数据库中该目标的所有有效收藏记录（status=1）
-        // 必须查询用户级记录（userId > 0），因为需要具体的用户ID来设置Bitmap的bit位
-        List<DocUserInteraction> interactions = docUserInteractionMapper.selectByTarget(
-                targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
-
-        if (interactions != null && !interactions.isEmpty()) {
-            for (DocUserInteraction interaction : interactions) {
-                // 过滤无效用户ID（userId > 0）
-                if (interaction.getUserId() != null && interaction.getUserId() > 0) {
-                    // 将用户ID对应的bit位设置为1，表示已收藏
-                    redisTemplate.opsForValue().setBit(bitmapKey, BitmapOffsetUtil.toOffset(interaction.getUserId()), true);
-                }
-            }
-            log.debug("收藏Bitmap预热完成: targetId={}, 记录数={}", targetId, interactions.size());
-        }
-
-        // ========== 步骤2：预热收藏计数到Hash ==========
-        // Hash Key: stat:{targetType}:{targetId}
-        // Field: collect:{typeCode} -> 收藏计数值
-        String statKey = buildStatKey(collectType, targetId);
-        String countField = buildCountField(collectType);
-
-        // 通过countByTarget重新统计用户级记录，而不是读取userId=0的统计记录
-        // 这样可以保证数据一致性，避免因异常导致统计记录与实际用户记录不一致
-        Long dbCount = docUserInteractionMapper.countByTarget(targetType, targetId, DocUserInteractionContext.INTERACTION_TYPE_FAVORITE);
-        if (dbCount != null && dbCount > 0) {
-            redisTemplate.opsForHash().put(statKey, countField, dbCount.toString());
-            log.debug("收藏计数预热完成: targetId={}, count={}", targetId, dbCount);
-        }
-
-        log.info("收藏缓存预热完成: type={}, targetId={}", type, targetId);
     }
 }

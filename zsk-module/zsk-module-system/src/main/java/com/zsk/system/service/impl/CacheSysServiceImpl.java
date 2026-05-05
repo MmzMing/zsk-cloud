@@ -680,12 +680,7 @@ public class CacheSysServiceImpl implements ICacheSysService {
      * @return true-是 Bitmap 类型，false-不是 Bitmap 类型
      */
     private boolean isBitmapKey(String cacheKey) {
-        if (cacheKey == null) {
-            return false;
-        }
-        return cacheKey.startsWith(CacheConstants.CACHE_LIKE_BIT)
-                || cacheKey.startsWith(CacheConstants.CACHE_COLLECT_BIT)
-                || cacheKey.startsWith(CacheConstants.CACHE_FOLLOW_BIT);
+        return false;
     }
 
     /**

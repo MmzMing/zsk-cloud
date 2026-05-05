@@ -104,24 +104,48 @@ public class CacheConstants {
     public static final String CACHE_GATEWAY_BLACKLIST = CACHE_PREFIX + "gateway:blacklist:";
 
     /**
-     * 点赞 Bitmap 缓存键前缀（记录用户是否点赞，SETBIT/GETBIT 操作）
+     * 点赞用户 Set 缓存键前缀（记录用户点赞的目标集合）
+     * 完整 Key: like:user:{userId}:{typeCode}  Value: Set<targetId>
      */
-    public static final String CACHE_LIKE_BIT = CACHE_PREFIX + "like:bit:";
+    public static final String CACHE_LIKE_USER = CACHE_PREFIX + "like:user:";
 
     /**
-     * 收藏 Bitmap 缓存键前缀（记录用户是否收藏，SETBIT/GETBIT 操作）
+     * 收藏用户 Set 缓存键前缀（记录用户收藏的目标集合）
+     * 完整 Key: collect:user:{userId}:{typeCode}  Value: Set<targetId>
      */
-    public static final String CACHE_COLLECT_BIT = CACHE_PREFIX + "collect:bit:";
+    public static final String CACHE_COLLECT_USER = CACHE_PREFIX + "collect:user:";
 
     /**
-     * 关注 Bitmap 缓存键前缀（记录用户关注关系，SETBIT/GETBIT 操作）
+     * 关注用户 Set 缓存键前缀（记录用户关注的目标集合）
+     * 完整 Key: follow:user:{userId}:{typeCode}  Value: Set<targetId>
      */
-    public static final String CACHE_FOLLOW_BIT = CACHE_PREFIX + "follow:bit:";
+    public static final String CACHE_FOLLOW_USER = CACHE_PREFIX + "follow:user:";
+
+    /**
+     * 点赞待同步队列（Hash，field=userId:typeCode:targetId，value=1/0）
+     * RENAME 原子切换后批量写库，避免 KEYS 扫描阻塞 Redis
+     */
+    public static final String CACHE_LIKE_PENDING = CACHE_PREFIX + "like:pending";
+
+    /**
+     * 收藏待同步队列（Hash，field=userId:typeCode:targetId，value=1/0）
+     */
+    public static final String CACHE_COLLECT_PENDING = CACHE_PREFIX + "collect:pending";
+
+    /**
+     * 关注待同步队列（Hash，field=userId:typeCode:targetId，value=1/0）
+     */
+    public static final String CACHE_FOLLOW_PENDING = CACHE_PREFIX + "follow:pending";
 
     /**
      * 互动统计 Hash 缓存键前缀（存储点赞/收藏/关注/浏览计数，HINCRBY 操作）
      */
     public static final String CACHE_STAT = CACHE_PREFIX + "stat:";
+
+    /**
+     * 用户维度 Set TTL（秒），7天
+     */
+    public static final long CACHE_INTERACTION_TTL_SECONDS = 7 * 24 * 3600L;
 
     /**
      * 浏览去重锁缓存键前缀（防止短时间重复计数，SETNX 操作）
