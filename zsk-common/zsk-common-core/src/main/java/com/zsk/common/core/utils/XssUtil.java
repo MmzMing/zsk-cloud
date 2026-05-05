@@ -1,6 +1,5 @@
 package com.zsk.common.core.utils;
 
-import cn.hutool.http.HtmlUtil;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -13,25 +12,63 @@ import java.util.regex.Pattern;
 
 /**
  * XSS过滤工具类
+ * <p>
+ * 网关层清洗策略：仅移除真正危险的 XSS 攻击向量，不破坏合法内容。
+ * 核心原则：
+ * 1. 只针对 <script>、javascript:、vbscript:、onXXX= 事件处理器等不可争议的攻击向量
+ * 2. 不使用 HtmlUtil.cleanHtmlTag()（会删除所有 HTML 标签，破坏合法内容）
+ * 3. 不使用 HtmlUtil.escape()（会造成双重转义）
+ * 4. 富文本/Markdown 内容的 XSS 防护由前端渲染层负责
+ * </p>
  *
  * @author wuhuaming
  */
 public class XssUtil {
-    private static final Pattern SCRIPT_PATTERN = Pattern.compile("<script>(.*?)</script>", Pattern.CASE_INSENSITIVE);
-    private static final Pattern SRC_PATTERN = Pattern.compile("src[\r\n]*=[\r\n]*\\\'(.*?)\\\'", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
-    private static final Pattern SRC_PATTERN2 = Pattern.compile("src[\r\n]*=[\r\n]*\\\"(.*?)\\\"", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
-    private static final Pattern CLOSING_SCRIPT_PATTERN = Pattern.compile("</script>", Pattern.CASE_INSENSITIVE);
-    private static final Pattern OPENING_SCRIPT_PATTERN = Pattern.compile("<script(.*?)>", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
-    private static final Pattern EVAL_PATTERN = Pattern.compile("eval\\((.*?)\\)", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
-    private static final Pattern EXPRESSION_PATTERN = Pattern.compile("expression\\((.*?)\\)", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
-    private static final Pattern JAVASCRIPT_PATTERN = Pattern.compile("javascript:", Pattern.CASE_INSENSITIVE);
-    private static final Pattern VBSCRIPT_PATTERN = Pattern.compile("vbscript:", Pattern.CASE_INSENSITIVE);
-    private static final Pattern ONLOAD_PATTERN = Pattern.compile("onload(.*?)=", Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL);
+
+    private static final Pattern SCRIPT_TAG_PATTERN = Pattern.compile(
+            "<\\s*script[^>]*>.*?<\\s*/\\s*script\\s*>",
+            Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL
+    );
+    private static final Pattern OPENING_SCRIPT_PATTERN = Pattern.compile(
+            "<\\s*script[^>]*>",
+            Pattern.CASE_INSENSITIVE | Pattern.MULTILINE | Pattern.DOTALL
+    );
+    private static final Pattern CLOSING_SCRIPT_PATTERN = Pattern.compile(
+            "<\\s*/\\s*script\\s*>",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern JAVASCRIPT_PROTOCOL_PATTERN = Pattern.compile(
+            "javascript\\s*:",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern VBSCRIPT_PROTOCOL_PATTERN = Pattern.compile(
+            "vbscript\\s*:",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern DATA_PROTOCOL_PATTERN = Pattern.compile(
+            "data\\s*:\\s*text/html",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern EVENT_HANDLER_PATTERN = Pattern.compile(
+            "\\bon(\\w+)\\s*=",
+            Pattern.CASE_INSENSITIVE
+    );
+    private static final Pattern EXPRESSION_PATTERN = Pattern.compile(
+            "expression\\s*\\(",
+            Pattern.CASE_INSENSITIVE
+    );
 
     private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     /**
-     * 清洗字符串，防止XSS
+     * 清洗字符串，仅移除不可争议的 XSS 攻击向量
+     * <p>
+     * 与旧版区别：
+     * - 不再使用 HtmlUtil.cleanHtmlTag()（会删除所有 HTML 标签）
+     * - 不再匹配 src= 属性（会误伤 JSON 中的 src 字段值）
+     * - 不再匹配 eval()（会误伤技术笔记中的代码示例）
+     * - 仅移除 script 标签、javascript/vbscript/data:text-html 协议、onXXX= 事件处理器
+     * </p>
      *
      * @param value 待清洗的字符串
      * @return 清洗后的字符串
@@ -41,34 +78,23 @@ public class XssUtil {
             return value;
         }
 
-        // 1. 使用 Hutool 进行 HTML 转义，防止 HTML 注入
-        // 注意：如果业务允许 HTML 标签，可以使用 HtmlUtil.filter(value)
-        // 这里采用比较严格的过滤策略，结合正则清理常见攻击向量
-
-        // 先进行正则替换，移除危险标签
-        value = SCRIPT_PATTERN.matcher(value).replaceAll("");
-        value = SRC_PATTERN.matcher(value).replaceAll("");
-        value = SRC_PATTERN2.matcher(value).replaceAll("");
-        value = CLOSING_SCRIPT_PATTERN.matcher(value).replaceAll("");
+        value = SCRIPT_TAG_PATTERN.matcher(value).replaceAll("");
         value = OPENING_SCRIPT_PATTERN.matcher(value).replaceAll("");
-        value = EVAL_PATTERN.matcher(value).replaceAll("");
+        value = CLOSING_SCRIPT_PATTERN.matcher(value).replaceAll("");
+        value = JAVASCRIPT_PROTOCOL_PATTERN.matcher(value).replaceAll("");
+        value = VBSCRIPT_PROTOCOL_PATTERN.matcher(value).replaceAll("");
+        value = DATA_PROTOCOL_PATTERN.matcher(value).replaceAll("");
+        value = EVENT_HANDLER_PATTERN.matcher(value).replaceAll("");
         value = EXPRESSION_PATTERN.matcher(value).replaceAll("");
-        value = JAVASCRIPT_PATTERN.matcher(value).replaceAll("");
-        value = VBSCRIPT_PATTERN.matcher(value).replaceAll("");
-        value = ONLOAD_PATTERN.matcher(value).replaceAll("");
-
-        // 2. 再次使用 Hutool 进行过滤，移除所有 HTML 标签，仅保留文本
-        // 如果允许部分 HTML，可以使用 cleanHtmlTag 并指定保留标签
-        value = HtmlUtil.cleanHtmlTag(value);
-
-        // 3. 转义特殊字符（可选，视情况而定，如果前端会再次转义，这里可能造成双重转义）
-        // value = HtmlUtil.escape(value);
 
         return value;
     }
 
     /**
      * 清洗 JSON 字符串中的 XSS 攻击向量
+     * <p>
+     * 仅遍历字符串值节点进行清洗，不改变 JSON 结构、字段顺序、数值精度。
+     * </p>
      *
      * @param jsonBody JSON 字符串
      * @return 清洗后的 JSON 字符串

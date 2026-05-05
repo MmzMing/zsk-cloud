@@ -272,7 +272,7 @@ public class EmailServiceImpl implements IEmailService {
                     .btn:hover { background-color: #333333; }
                     .link-section { margin: 24px 0; }
                     .link-label { font-size: 14px; color: #666666; margin-bottom: 10px; }
-                    .link { color: #000000; word-break: break-all; font-size: 13px; font-family: monospace; background-color: #f5f5f5; padding: 10px 14px; border: 1px solid #e0e0e0; text-align: left; }
+                    .link { display: block; color: #000000; word-break: break-all; overflow-wrap: anywhere; font-size: 13px; font-family: monospace; background-color: #f5f5f5; padding: 10px 14px; border: 1px solid #e0e0e0; text-align: left; }
                     .footer { text-align: center; padding-top: 24px; border-top: 2px solid #000000; color: #666666; font-size: 12px; margin-top: 30px; }
                     .footer p { margin: 4px 0; }
                 </style>
@@ -289,7 +289,7 @@ public class EmailServiceImpl implements IEmailService {
                         </div>
                         <div class="link-section">
                             <p class="link-label">如果按钮无法点击，请手动复制以下链接到浏览器地址栏：</p>
-                            <span class="link">%s</span>
+                            <div class="link">%s</div>
                         </div>
                         <p class="message">该链接15分钟内有效，为了您的账号安全，请勿泄露给他人。</p>
                     </div>

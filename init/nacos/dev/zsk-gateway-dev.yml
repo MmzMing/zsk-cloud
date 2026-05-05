@@ -45,11 +45,12 @@ security:
       - application/xml
       - text/xml
     # Body 最大读取字节数（默认 1MB），防止超大请求体导致 OOM
-    body-max-bytes: 1048576
+    body-max-bytes: 5048576
     # 排除路径（支持 Ant 风格），匹配的路径不进行 XSS 过滤
     exclude-urls:
       # 认证服务：登录/注册/第三方回调等接口不需要 XSS 过滤（可能包含特殊字符）
       - /api/auth/**
+      - /api/document/docNoteDtlAggregate/**
   # =============================================
   # 安全配置 (白名单)
   ignore:

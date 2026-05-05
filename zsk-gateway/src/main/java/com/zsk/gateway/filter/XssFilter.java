@@ -15,7 +15,6 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpRequestDecorator;
-import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.util.AntPathMatcher;
 import org.springframework.util.MultiValueMap;
@@ -132,49 +131,69 @@ public class XssFilter implements GlobalFilter, Ordered {
 
     /**
      * 清洗请求体
+     * <p>
+     * 注意：必须在 filter 层先消费并处理 body，再构造 decorator 并覆盖 getHeaders()，
+     * 否则 ServerHttpRequestDecorator.getHeaders() 返回原始只读 Headers，
+     * Content-Length 无法修改，导致下游读取时字节数不匹配而抛出 I/O error。
+     * </p>
      */
     private Mono<Void> cleanRequestBody(ServerWebExchange exchange, GatewayFilterChain chain, ServerHttpRequest cleanedRequest) {
-        ServerHttpResponse originalResponse = exchange.getResponse();
-        DataBufferFactory bufferFactory = originalResponse.bufferFactory();
-        Long maxBytes = xssProperties.getBodyMaxBytes() != null ? xssProperties.getBodyMaxBytes() : 1024 * 1024L;
+        DataBufferFactory bufferFactory = exchange.getResponse().bufferFactory();
+        long maxBytes = xssProperties.getBodyMaxBytes() != null ? xssProperties.getBodyMaxBytes() : 1024 * 1024L;
 
-        ServerHttpRequestDecorator decorator = new ServerHttpRequestDecorator(cleanedRequest) {
+        return DataBufferUtils.join(cleanedRequest.getBody())
+                .defaultIfEmpty(bufferFactory.allocateBuffer(0))
+                .flatMap(dataBuffer -> {
+                    try {
+                        if (dataBuffer.readableByteCount() > maxBytes) {
+                            log.warn("XSS filter: request body exceeds max size {} bytes, skipping", maxBytes);
+                            return chain.filter(exchange.mutate().request(buildDecorator(cleanedRequest, dataBuffer, dataBuffer.readableByteCount())).build());
+                        }
+
+                        byte[] bytes = new byte[dataBuffer.readableByteCount()];
+                        dataBuffer.read(bytes);
+                        DataBufferUtils.release(dataBuffer);
+
+                        String originalBody = new String(bytes, StandardCharsets.UTF_8);
+                        if (StringUtils.isEmpty(originalBody)) {
+                            return chain.filter(exchange.mutate().request(buildDecorator(cleanedRequest, bufferFactory.allocateBuffer(0), 0)).build());
+                        }
+
+                        String cleanedBody = XssUtil.cleanJson(originalBody);
+                        byte[] cleanedBytes = cleanedBody.getBytes(StandardCharsets.UTF_8);
+                        DataBuffer newBuffer = bufferFactory.wrap(cleanedBytes);
+
+                        return chain.filter(exchange.mutate().request(buildDecorator(cleanedRequest, newBuffer, cleanedBytes.length)).build());
+                    } catch (Exception e) {
+                        log.error("XSS body filter error: {}", e.getMessage());
+                        DataBufferUtils.release(dataBuffer);
+                        return chain.filter(exchange);
+                    }
+                });
+    }
+
+    /**
+     * 构造带正确 Content-Length 的请求装饰器
+     * <p>
+     * 覆盖 getHeaders() 返回可变副本以确保 Content-Length 与实际 body 一致。
+     * </p>
+     */
+    private ServerHttpRequestDecorator buildDecorator(ServerHttpRequest request, DataBuffer body, long contentLength) {
+        HttpHeaders mutableHeaders = new HttpHeaders();
+        mutableHeaders.putAll(request.getHeaders());
+        mutableHeaders.setContentLength(contentLength);
+
+        return new ServerHttpRequestDecorator(request) {
+            @Override
+            public HttpHeaders getHeaders() {
+                return mutableHeaders;
+            }
+
             @Override
             public Flux<DataBuffer> getBody() {
-                return DataBufferUtils.join(super.getBody())
-                        .defaultIfEmpty(bufferFactory.allocateBuffer(0))
-                        .flatMapMany(dataBuffer -> {
-                            if (dataBuffer.readableByteCount() > maxBytes) {
-                                log.warn("XSS filter: request body exceeds max size {} bytes, skipping", maxBytes);
-                                return Flux.just(dataBuffer);
-                            }
-
-                            byte[] bytes = new byte[dataBuffer.readableByteCount()];
-                            dataBuffer.read(bytes);
-                            DataBufferUtils.release(dataBuffer);
-
-                            String originalBody = new String(bytes, StandardCharsets.UTF_8);
-                            if (StringUtils.isEmpty(originalBody)) {
-                                DataBuffer emptyBuffer = bufferFactory.allocateBuffer(0);
-                                return Flux.just(emptyBuffer);
-                            }
-
-                            String cleanedBody = XssUtil.cleanJson(originalBody);
-
-                            byte[] cleanedBytes = cleanedBody.getBytes(StandardCharsets.UTF_8);
-                            DataBuffer newBuffer = bufferFactory.allocateBuffer(cleanedBytes.length);
-                            newBuffer.write(cleanedBytes);
-
-                            HttpHeaders headers = getHeaders();
-                            headers.setContentLength(cleanedBytes.length);
-                            headers.set(HttpHeaders.CONTENT_LENGTH, String.valueOf(cleanedBytes.length));
-
-                            return Flux.just(newBuffer);
-                        });
+                return Flux.just(body);
             }
         };
-
-        return chain.filter(exchange.mutate().request(decorator).build());
     }
 
     /**

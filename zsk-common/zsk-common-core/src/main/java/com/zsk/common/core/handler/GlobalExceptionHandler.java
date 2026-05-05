@@ -72,6 +72,16 @@ public class GlobalExceptionHandler {
     }
 
     /**
+     * 请求体解析异常（如 JSON 格式错误、类型不匹配、I/O 中断等）
+     */
+    @ExceptionHandler(org.springframework.http.converter.HttpMessageNotReadableException.class)
+    public R<?> handleHttpMessageNotReadableException(org.springframework.http.converter.HttpMessageNotReadableException e, HttpServletRequest request) {
+        String requestUri = request.getRequestURI();
+        log.error("请求地址'{}', 请求体解析失败", requestUri, e);
+        return R.fail(ResultCode.PARAM_ERROR.getCode(), "请求参数格式错误，请检查 JSON 格式或字段类型");
+    }
+
+    /**
      * 拦截未知的运行时异常
      */
     @ExceptionHandler(RuntimeException.class)
