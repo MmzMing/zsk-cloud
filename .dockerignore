@@ -1,23 +1,48 @@
-.git
+# Git
+.git/
 .gitignore
-.idea
+
+# IDE
+.idea/
 *.iml
-.vscode
-.settings
-.project
-.classpath
+*.ipr
+*.iws
+.vscode/
+*.swp
+*.swo
+
+# Build output
+**/target/
+**/build/
+**/out/
+
+# Logs
 *.log
 logs/
-target/
-node_modules/
-.env
-.env.*
-*.md
-!README.md
+
+# Documentation
 docs/
-init/
-*.bak
-*.tmp
-*.swp
+README.md
+CHANGELOG.md
+PROJECT_SUMMARY.md
+CLAUDE.md
+
+# Docker
+docker/
+.dockerignore
+
+# CI/CD
+.github/
+.travis.yml
+.gitlab-ci.yml
+
+# Test files
+**/src/test/
+
+# Local config
+*.local
+*.env
+
+# OS files
 .DS_Store
 Thumbs.db

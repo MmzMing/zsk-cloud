@@ -3,7 +3,7 @@
 FROM eclipse-temurin:21-jdk-alpine AS builder
 WORKDIR /build
 
-# 将整个项目复制到构建目录（需要 zsk-common、zsk-api 等依赖模块）
+# 复制整个项目（利用 .dockerignore 排除不需要的文件）
 COPY . .
 
 # 安装 Maven 并编译 zsk-gateway 模块及其所有依赖模块
