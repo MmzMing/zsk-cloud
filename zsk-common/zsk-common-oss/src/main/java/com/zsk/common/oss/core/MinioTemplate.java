@@ -141,7 +141,7 @@ public class MinioTemplate implements OssTemplate {
                 .method(Method.GET)
                 .bucket(bucketName)
                 .object(objectName)
-                .expiry(7, TimeUnit.DAYS)
+                .expiry(ossProperties.getUrlExpiry(), TimeUnit.HOURS)
                 .build());
     }
 

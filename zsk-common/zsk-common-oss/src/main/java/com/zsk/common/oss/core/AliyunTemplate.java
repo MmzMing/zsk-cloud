@@ -118,7 +118,7 @@ public class AliyunTemplate implements OssTemplate {
             return "https://" + ossProperties.getDomain() + "/" + objectName;
         }
         // 默认URL生成 (有效期10年)
-        Date expiration = new Date(System.currentTimeMillis() + 3600L * 1000 * 24 * 365 * 10);
+        Date expiration = new Date(System.currentTimeMillis() + ossProperties.getUrlExpiry() * 3600L * 1000);
         URL url = ossClient.generatePresignedUrl(bucketName, objectName, expiration);
         return url.toString();
     }

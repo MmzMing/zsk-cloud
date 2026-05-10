@@ -45,6 +45,14 @@ public class OssProperties {
 
     /**
      * 访问域名（自定义域名，非必填）
+     * 配置后返回直接URL（永不过期），否则返回预签名URL
      */
     private String domain;
+
+    /**
+     * 预签名URL有效期（单位：小时），默认168小时（7天）
+     * MinIO最大支持7天(168小时)，阿里云OSS无上限
+     * 仅在未配置domain时生效
+     */
+    private Integer urlExpiry = 168;
 }

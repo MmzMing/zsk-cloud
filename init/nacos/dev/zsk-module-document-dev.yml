@@ -19,8 +19,10 @@ zsk:
     access-key: minio_5bkRbj
     secret-key: minio_bTpeBY
     bucket-name: zsk-document
-    # 自定义域名（可选）
+    # 自定义域名（可选，配置后返回直接URL永不过期）
     domain:
+    # 预签名URL有效期（单位：小时），默认168小时（7天），MinIO最大168小时
+    url-expiry: 168
     # Aliyun配置示例 (切换type为aliyun时使用)
     # endpoint: oss-cn-hangzhou.aliyuncs.com
     # access-key: your-access-key
